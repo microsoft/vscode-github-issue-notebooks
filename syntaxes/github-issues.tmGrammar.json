@@ -1,0 +1,37 @@
+{
+    "scopeName": "source.github-issues",
+    "patterns": [
+        {
+            "name": "keyword.operator",
+            "match": ":|-|<|<=|>|>=|\\*\\.\\.|\\.\\.\\*|\\.\\.|NOT"
+        },
+        {
+            "name": "keyword.other",
+            "match": "type|updated|in|org|repo|user|state|assignee|author|mentions|team|commenter|involves|label|linked|milestone|project|language|comments|interactions|reactions|created|closed|archived|is|no|status|base|head|draft|review-requested|review|reviewed-by|team-review-requested|merged"
+        },
+        {
+            "name": "constant.language",
+            "match": "pr|issue|title|body|comments|open|closed|true|false|locked|unlocked|merged|unmerged|public|private|pending|success|failure|none|required|approved"
+        },
+        {
+            "name": "constant.language.me",
+            "match": "@me"
+        },
+        {
+            "name": "constant.numeric.date",
+            "match": "\\d\\d\\d\\d-\\d\\d-\\d\\d"
+        },
+        {
+            "name": "constant.numeric.datetime",
+            "match": "\\d\\d\\d\\d-\\d\\d-\\d\\dT\\d\\d:\\d\\d:\\d\\dZ"
+        },
+        {
+            "name": "constant.numeric.sha",
+            "match": "[a-fA-F0-9]{7,40}"
+        },
+        {
+            "name": "constant.numeric",
+            "match": "\\d+"
+        }
+    ]
+}

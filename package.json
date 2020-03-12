@@ -1,0 +1,58 @@
+{
+	"name": "vscode-github-issue-notebooks",
+	"displayName": "GitHub Issue Notebooks",
+	"description": "GitHub Issue Notebooks for VS Code",
+	"version": "0.0.1",
+	"engines": {
+		"vscode": "^1.43.0"
+	},
+	"categories": [
+		"Other"
+	],
+	"activationEvents": [
+		"onLanguage:github-issues"
+	],
+	"main": "./out/extension.js",
+	"contributes": {
+		"languages": [
+			{
+				"id": "github-issues",
+				"aliases": [
+					"GitHub Issues"
+				],
+				"filenamePatterns": [
+					"*.github-issues"
+				]
+			}
+		],
+		"grammars": [
+			{
+				"language": "github-issues",
+				"scopeName": "source.github-issues",
+				"path": "./syntaxes/github-issues.tmGrammar.json"
+			}
+		]
+	},
+	"scripts": {
+		"vscode:prepublish": "npm run compile",
+		"compile": "tsc -p ./",
+		"lint": "eslint src --ext ts",
+		"watch": "tsc -watch -p ./",
+		"pretest": "npm run compile && npm run lint",
+		"test": "node ./out/test/runTest.js",
+		"unit-test": "npx mocha ./out/unit-test"
+	},
+	"devDependencies": {
+		"@types/glob": "^7.1.1",
+		"@types/mocha": "^7.0.1",
+		"@types/node": "^12.11.7",
+		"@types/vscode": "^1.43.0",
+		"eslint": "^6.8.0",
+		"@typescript-eslint/parser": "^2.18.0",
+		"@typescript-eslint/eslint-plugin": "^2.18.0",
+		"glob": "^7.1.6",
+		"mocha": "^7.0.1",
+		"typescript": "^3.8.3",
+		"vscode-test": "^1.3.0"
+	}
+}
