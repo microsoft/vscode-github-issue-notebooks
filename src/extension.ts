@@ -55,13 +55,11 @@ export function activate(context: vscode.ExtensionContext) {
 		provideHover(document: vscode.TextDocument, position: vscode.Position) {
 			const offset = document.offsetAt(position);
 			const query = queryDocs.getOrCreate(document);
-			const node = Query.nodeAt(query.ast, offset);
-			if (!node) {
-				return;
-			}
+			const stack: Node[] = [];
+			Query.nodeAt(query.ast, offset, stack);
 			return new vscode.Hover(
-				`node_type: ${node._type} => ${document.getText().substring(node.start, node.end)}`,
-				query.rangeOf(node)
+				stack.map(node => `- \`${query.textOf(node)}\` (*${node._type}*)\n`).join(''),
+				query.rangeOf(stack[stack.length - 1])
 			);
 		}
 	}));
