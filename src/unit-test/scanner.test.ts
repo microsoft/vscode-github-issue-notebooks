@@ -10,7 +10,7 @@ import * as assert from 'assert';
 suite('Scanner', function () {
 
     function assertTokenTypes(str: string, ...expected: TokenType[]) {
-        const scanner = new Scanner(str);
+        const scanner = new Scanner().reset(str);
         const tokens = [...scanner];
         expected.push(TokenType.EOF);
         assert.equal(tokens.length, expected.length, 'len: ' + str);

@@ -6,18 +6,19 @@
 import { TokenType } from "./scanner";
 
 export const enum NodeType {
-    Literal = 'Literal',
-    Number = 'Number',
+    Any = 'Any',
+    Compare = 'Compare',
     Date = 'Date',
+    Literal = 'Literal',
+    Missing = 'Missing',
+    Number = 'Number',
+    OrExpression = 'BinaryExpression',
     QualifiedValue = 'QualifiedValue',
+    Query = 'Query',
+    QueryDocument = 'QueryDocument',
+    Range = 'Range',
     VariableDefinition = 'VariableDefinition',
     VariableName = 'VariableName',
-    OrExpression = 'BinaryExpression',
-    NodeList = 'NodeList',
-    Range = 'Range',
-    Compare = 'Compare',
-    Any = 'Any',
-    Missing = 'Missing',
 }
 
 interface BaseNode {
@@ -35,8 +36,8 @@ export interface MissingNode extends BaseNode {
     message: string;
 }
 
-export interface NodeList extends BaseNode {
-    _type: NodeType.NodeList;
+export interface QueryNode extends BaseNode {
+    _type: NodeType.Query;
     nodes: Node[];
 }
 
@@ -91,18 +92,22 @@ export interface OrExpressionNode extends BaseNode {
     right: Node | undefined;
 }
 
-export type Node = NodeList | OrExpressionNode | VariableDefinitionNode
-    | VariableNameNode | QualifiedValueNode | RangeNode | CompareNode
-    | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+export interface QueryDocumentNode extends BaseNode {
+    _type: NodeType.QueryDocument;
+    nodes: Node[];
+}
+
+export type Node = QueryDocumentNode | QueryNode | OrExpressionNode | VariableDefinitionNode | VariableNameNode
+    | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
 
 
 export interface NodeVisitor {
     (node: Node, parent: Node | undefined): any;
 }
 
+export namespace Utils {
 
-export class Query {
-    static visit(node: Node, callback: NodeVisitor) {
+    export function visit(node: Node, callback: NodeVisitor) {
         if (!node) {
             return;
         }
@@ -143,7 +148,8 @@ export class Query {
                     stack.unshift(node.left);
                     stack.unshift(node);
                     break;
-                case NodeType.NodeList:
+                case NodeType.QueryDocument:
+                case NodeType.Query:
                     for (let child of node.nodes.reverse()) {
                         stack.unshift(child);
                         stack.unshift(node);
@@ -152,17 +158,19 @@ export class Query {
             }
         }
     }
-    static nodeAt(node: Node, offset: number, parents?: Node[]): Node | undefined {
+
+    export function nodeAt(node: Node, offset: number, parents?: Node[]): Node | undefined {
         let result: Node | undefined;
-        Query.visit(node, node => {
-            if (Query.containsPosition(node, offset)) {
+        Utils.visit(node, node => {
+            if (Utils.containsPosition(node, offset)) {
                 parents?.push(node);
                 result = node;
             }
         });
         return result;
     }
-    static containsPosition(node: Node, offset: number): boolean {
+
+    export function containsPosition(node: Node, offset: number): boolean {
         return node.start <= offset && offset <= node.end;
     }
 }

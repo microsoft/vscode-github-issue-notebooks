@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { suite, test } from 'mocha';
-import { NodeType, NodeList } from '../parser/nodes';
+import { NodeType, QueryNode } from '../parser/nodes';
 import { Parser } from '../parser/parser';
-import { Query } from "../parser/nodes";
+import { Utils } from "../parser/nodes";
 import * as assert from 'assert';
 
 suite('Parser', function () {
@@ -15,21 +15,20 @@ suite('Parser', function () {
         const parser = new Parser();
         const nodes = parser.parse(input).nodes;
         assert.equal(nodes.length, 1);
-        assert.equal(nodes[0]._type, NodeType.NodeList);
+        assert.equal(nodes[0]._type, NodeType.Query);
 
-        (<NodeList>nodes[0]).nodes.forEach((node, i) => {
+        (<QueryNode>nodes[0]).nodes.forEach((node, i) => {
             assert.equal(node._type, types[i], input.substring(node.start, node.end));
         });
-        assert.equal((<NodeList>nodes[0]).nodes.length, types.length);
+        assert.equal((<QueryNode>nodes[0]).nodes.length, types.length);
     }
 
     function assertNodeTypesDeep(input: string, ...types: NodeType[]) {
         const parser = new Parser();
         const query = parser.parse(input);
         const actual: NodeType[] = [];
-        types.unshift(NodeType.NodeList);
-        types.unshift(NodeType.NodeList);
-        Query.visit(query, node => actual.push(node._type));
+        Utils.visit(query, node => actual.push(node._type));
+        types.unshift(NodeType.QueryDocument);
         assert.deepEqual(actual, types, input);
     }
 
@@ -54,16 +53,18 @@ suite('Parser', function () {
     });
 
     test('Sequence (deep)', function () {
-        assertNodeTypesDeep('label: foo', NodeType.QualifiedValue, NodeType.Literal, NodeType.Missing, NodeType.Literal);
-        assertNodeTypesDeep('label:foo', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-        assertNodeTypesDeep('label:123', NodeType.QualifiedValue, NodeType.Literal, NodeType.Number);
-        assertNodeTypesDeep('label:"123"', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-        assertNodeTypesDeep('label:"foo bar"', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-        assertNodeTypesDeep('"label":foo', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-        assertNodeTypesDeep('-label:"foo"', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-        assertNodeTypesDeep('label:foo bar NOT bazz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any, NodeType.Literal);
-        assertNodeTypesDeep('label:cafecafe bazz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
-        assertNodeTypesDeep('label:"sss" dd"', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any);
+        assertNodeTypesDeep('label: foo', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Missing, NodeType.Literal);
+        assertNodeTypesDeep('label:foo', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('label:123', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number);
+        assertNodeTypesDeep('label:"123"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('label:"foo bar"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('"label":foo', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('-label:"foo"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('label:foo bar NOT bazz', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any, NodeType.Literal);
+        assertNodeTypesDeep('label:cafecafe bazz', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
+        assertNodeTypesDeep('label:"sss" dd"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any);
+        assertNodeTypesDeep('$BUG=label:bug', NodeType.VariableDefinition, NodeType.VariableName, NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('foo OR BAR', NodeType.OrExpression, NodeType.Query, NodeType.Literal, NodeType.Query, NodeType.Literal);
     });
 
 });

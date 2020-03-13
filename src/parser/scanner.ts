@@ -65,12 +65,16 @@ export class Scanner {
         [TokenType.Literal, /[^\s:"=]+/y],
         [TokenType.Unknown, /.+/y],
     ]);
-    private _value: string;
-    private _pos: number;
-    constructor(value: string) {
+
+    private _value: string = '';
+    private _pos: number = 0;
+
+    reset(value: string) {
         this._value = value;
         this._pos = 0;
+        return this;
     }
+
     next(): Token {
         if (this._pos < this._value.length) {
             let match: RegExpMatchArray | null;
@@ -92,14 +96,17 @@ export class Scanner {
         }
         return { type: TokenType.EOF, start: this._value.length, end: this._value.length };
     }
-    reset(token?: Token): void {
+
+    resetPosition(token?: Token): void {
         if (token) {
             this._pos = token.start;
         }
     }
+
     value(token: Token): string {
         return this._value.substring(token.start, token.end);
     }
+
     *[Symbol.iterator](): Iterator<Token> {
         while (true) {
             let token = this.next();

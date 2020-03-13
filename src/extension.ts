@@ -5,15 +5,15 @@
 
 import * as vscode from 'vscode';
 import { Parser } from './parser/parser';
-import { Node, NodeList } from './parser/nodes';
-import { Query } from "./parser/nodes";
+import { Node, QueryDocumentNode } from './parser/nodes';
+import { Utils } from "./parser/nodes";
 import { validateQuery } from './parser/validation';
 import { completeQuery, CompletionKind } from './parser/completion';
 import { ValueType } from './parser/schema';
 
 class QueryDocument {
 
-	constructor(readonly ast: NodeList, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
+	constructor(readonly ast: QueryDocumentNode, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
 
 	rangeOf(node: Node): vscode.Range {
 		return new vscode.Range(this.doc.positionAt(node.start), this.doc.positionAt(node.end));
@@ -58,7 +58,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const offset = document.offsetAt(position);
 			const query = queryDocs.getOrCreate(document);
 			const stack: Node[] = [];
-			Query.nodeAt(query.ast, offset, stack);
+			Utils.nodeAt(query.ast, offset, stack);
 			stack.shift();
 			return new vscode.Hover(
 				stack.map(node => `- \`${query.textOf(node)}\` (*${node._type}*)\n`).join(''),
@@ -75,7 +75,7 @@ export function activate(context: vscode.ExtensionContext) {
 			for (let position of positions) {
 				const offset = document.offsetAt(position);
 				const parents: Node[] = [];
-				if (Query.nodeAt(query.ast, offset, parents)) {
+				if (Utils.nodeAt(query.ast, offset, parents)) {
 					let last: vscode.SelectionRange | undefined;
 					for (let node of parents) {
 						let selRange = new vscode.SelectionRange(query.rangeOf(node), last);

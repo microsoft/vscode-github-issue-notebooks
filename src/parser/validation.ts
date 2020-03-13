@@ -3,20 +3,20 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { NodeType, Node, NodeList } from "./nodes";
-import { Query } from "./nodes";
+import { NodeType, Node, QueryNode, QueryDocumentNode } from "./nodes";
+import { Utils } from "./nodes";
 import { qualifiers, ValueType } from "./schema";
 
 export class ValidationError {
     constructor(readonly node: Node, readonly message: string, readonly conflictNode?: Node) { }
 }
 
-export function validateQuery(query: NodeList): Iterable<ValidationError> {
+export function validateQuery(query: QueryDocumentNode): Iterable<ValidationError> {
 
     let result = new Map<Node, ValidationError>();
     let mutual = new Map<string, Node>();
 
-    Query.visit(query, node => {
+    Utils.visit(query, node => {
 
         // unknown qualifier
         // unknown qualifier-value

@@ -3,12 +3,12 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { NodeList, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode } from "./nodes";
+import { QueryNode, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
 export class Parser {
 
-    private _scanner: Scanner = new Scanner('');
+    private _scanner: Scanner = new Scanner();
     private _token: Token = { type: TokenType.EOF, start: 0, end: 0 };
 
     private _accept<T extends TokenType>(type: T): Token & { type: T; } | undefined {
@@ -20,13 +20,13 @@ export class Parser {
     }
 
     private _reset(token?: Token): void {
-        this._scanner.reset(token);
+        this._scanner.resetPosition(token);
         this._token = this._scanner.next();
     }
 
-    parse(value: string): NodeList {
+    parse(value: string): QueryDocumentNode {
         const nodes: Node[] = [];
-        this._scanner = new Scanner(value);
+        this._scanner.reset(value);
         this._token = this._scanner.next();
         while (this._token.type !== TokenType.EOF) {
             const node = this._parseVariableDefinition() ?? this._parseQuery();
@@ -35,10 +35,10 @@ export class Parser {
             }
             this._accept(TokenType.NewLine);
         }
-        return this._createNodeList(nodes);
+        return this._createContainerNode(nodes, NodeType.QueryDocument);
     }
 
-    private _parseQuery(): Node | undefined {
+    private _parseQuery(): QueryNode | OrExpressionNode | undefined {
         let nodes: Node[] = [];
         while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
@@ -51,7 +51,8 @@ export class Parser {
             const tk = this._accept(TokenType.OR);
             if (tk && nodes.length > 0) {
                 // make this a OrExpressionNode
-                const left = this._createNodeList(nodes);
+                // todo@jrieken turn this into a query when there no right-side
+                const left = this._createContainerNode(nodes, NodeType.Query);
                 const right = this._parseQuery();
                 return {
                     _type: NodeType.OrExpression,
@@ -75,16 +76,9 @@ export class Parser {
             nodes.push(node);
         }
 
-        if (nodes.length === 0) {
-            return undefined;
-        }
-
-        return {
-            _type: NodeType.NodeList,
-            start: nodes[0].start,
-            end: nodes[nodes.length - 1].end,
-            nodes
-        };
+        return nodes.length > 0
+            ? this._createContainerNode(nodes, NodeType.Query)
+            : undefined;
     }
 
     private _parseAny(type: TokenType): AnyNode | undefined {
@@ -295,9 +289,11 @@ export class Parser {
         };
     }
 
-    private _createNodeList(nodes: Node[]): NodeList {
+    private _createContainerNode(nodes: Node[], type: NodeType.Query): QueryNode;
+    private _createContainerNode(nodes: Node[], type: NodeType.QueryDocument): QueryDocumentNode;
+    private _createContainerNode(nodes: Node[], type: NodeType) {
         return {
-            _type: NodeType.NodeList,
+            _type: type,
             start: nodes[0]?.start ?? 0,
             end: nodes[nodes.length - 1]?.end ?? 0,
             nodes
