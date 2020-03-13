@@ -112,6 +112,7 @@ export const enum NodeType {
     Number = 'Number',
     Date = 'Date',
     QualifiedValue = 'QualifiedValue',
+    Query = 'Query',
     Range = 'Range',
     Compare = 'Compare',
     Any = 'Any',
@@ -151,7 +152,7 @@ export interface DateNode extends BaseNode {
 export interface CompareNode extends BaseNode {
     _type: NodeType.Compare;
     cmp: TokenType.LessThan | TokenType.LessThanEqual | TokenType.GreaterThan | TokenType.GreaterThanEqual | undefined;
-    node: DateNode | NumberNode | MissingNode;
+    value: DateNode | NumberNode | MissingNode;
 }
 
 export interface RangeNode extends BaseNode {
@@ -167,71 +168,74 @@ export interface QualifiedValueNode extends BaseNode {
     value: Node;
 }
 
-export type Node = QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+export interface QueryNode extends BaseNode {
+    _type: NodeType.Query;
+    nodes: Node[];
+}
+
+export type Node = QueryNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
 
 export interface NodeVisitor {
-    (node: Node): any;
+    (node: Node, parent: Node | undefined): any;
 }
 
 export class Query {
-
-    constructor(readonly nodes: readonly Node[]) {
-
-    }
-
-    static containsPosition(node: Node, offset: number): boolean {
-        return node.start <= offset && offset <= node.end;
-    }
-
-    nodeAt(offset: number): Node | undefined {
-        for (let node of this.nodes) {
-            let result: Node | undefined;
-            Query.visit(node, node => {
-                if (Query.containsPosition(node, offset)) {
-                    result = node;
-                }
-            });
-            if (result) {
-                return result;
-            }
-        }
-        return undefined;
-    }
-
-    visit(callback: NodeVisitor) {
-        for (let node of this.nodes) {
-            Query.visit(node, callback);
-        }
-    }
 
     static visit(node: Node, callback: NodeVisitor) {
         if (!node) {
             return;
         }
-        let stack: Array<Node | undefined> = [node];
+        const stack: Array<Node | undefined> = [undefined, node]; //parent, node
         while (stack.length > 0) {
+            let parent = stack.shift();
             let node = stack.shift();
             if (!node) {
                 continue;
             }
-            callback(node);
+            callback(node, parent);
             switch (node._type) {
                 case NodeType.Compare:
-                    stack.unshift(node.node);
+                    stack.unshift(node.value);
+                    stack.unshift(node);
                     break;
                 case NodeType.Range:
                     stack.unshift(node.close);
+                    stack.unshift(node);
                     stack.unshift(node.open);
+                    stack.unshift(node);
                     break;
                 case NodeType.QualifiedValue:
                     stack.unshift(node.value);
+                    stack.unshift(node);
                     stack.unshift(node.qualifier);
+                    stack.unshift(node);
+                    break;
+                case NodeType.Query:
+                    for (let child of node.nodes.reverse()) {
+                        stack.unshift(child);
+                        stack.unshift(node);
+                    }
                     break;
             }
         }
     }
 
+    static nodeAt(node: Node, offset: number, parents?: Node[]): Node | undefined {
+        let result: Node | undefined;
+        Query.visit(node, node => {
+            if (Query.containsPosition(node, offset)) {
+                parents?.push(node);
+                result = node;
+            }
+        });
+        return result;
+    }
+
+    static containsPosition(node: Node, offset: number): boolean {
+        return node.start <= offset && offset <= node.end;
+    }
 }
+
 
 export class Parser {
 
@@ -251,7 +255,7 @@ export class Parser {
         this._token = this._scanner.next();
     }
 
-    parse(value: string): Query {
+    parse(value: string): QueryNode {
         let nodes: Node[] = [];
         this._scanner = new Scanner(value);
         this._token = this._scanner.next();
@@ -272,7 +276,13 @@ export class Parser {
 
             nodes.push(node);
         }
-        return new Query(nodes);
+
+        return {
+            _type: NodeType.Query,
+            start: nodes[0]?.start ?? 0,
+            end: nodes[nodes.length - 1]?.end ?? 0,
+            nodes
+        };
     }
 
     private _parseAny(type: TokenType): AnyNode | undefined {
@@ -347,7 +357,7 @@ export class Parser {
             start: cmp.start,
             end: value.end,
             cmp: cmp.type,
-            node: value
+            value: value
         };
     }
 

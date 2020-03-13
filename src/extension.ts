@@ -4,12 +4,12 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Parser, Query, Node, } from './parser/parser';
+import { Parser, Query, Node, QueryNode, } from './parser/parser';
 import { validateQuery } from './parser/validation';
 
 class QueryDocument {
 
-	constructor(readonly ast: Query, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
+	constructor(readonly ast: QueryNode, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
 
 	rangeOf(node: Node): vscode.Range {
 		return new vscode.Range(this.doc.positionAt(node.start), this.doc.positionAt(node.end));
@@ -36,7 +36,6 @@ class QueryDocuments {
 };
 
 
-
 export function activate(context: vscode.ExtensionContext) {
 
 	const selector = { language: 'github-issues' };
@@ -50,14 +49,37 @@ export function activate(context: vscode.ExtensionContext) {
 		provideHover(document: vscode.TextDocument, position: vscode.Position) {
 			const offset = document.offsetAt(position);
 			const query = queryDocs.getOrCreate(document);
-			for (let node of query.ast.nodes) {
-				if (Query.containsPosition(node, offset)) {
-					return new vscode.Hover(
-						`node_type: ${node._type} => ${document.getText().substring(node.start, node.end)}`,
-						query.rangeOf(node)
-					);
+			const node = Query.nodeAt(query.ast, offset);
+			if (!node) {
+				return;
+			}
+			return new vscode.Hover(
+				`node_type: ${node._type} => ${document.getText().substring(node.start, node.end)}`,
+				query.rangeOf(node)
+			);
+		}
+	}));
+
+	// Smart Select
+	context.subscriptions.push(vscode.languages.registerSelectionRangeProvider(selector, new class implements vscode.SelectionRangeProvider {
+		provideSelectionRanges(document: vscode.TextDocument, positions: vscode.Position[]): vscode.ProviderResult<vscode.SelectionRange[]> {
+			const result: vscode.SelectionRange[] = [];
+			const query = queryDocs.getOrCreate(document);
+			for (let position of positions) {
+				const offset = document.offsetAt(position);
+				const parents: Node[] = [];
+				if (Query.nodeAt(query.ast, offset, parents)) {
+					let last: vscode.SelectionRange | undefined;
+					for (let node of parents) {
+						let selRange = new vscode.SelectionRange(query.rangeOf(node), last);
+						last = selRange;
+					}
+					if (last) {
+						result.push(last);
+					}
 				}
 			}
+			return result;
 		}
 	}));
 

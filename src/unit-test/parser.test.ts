@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { suite, test } from 'mocha';
-import { Scanner, TokenType, NodeType, Parser } from '../parser/parser';
+import { Scanner, TokenType, NodeType, Parser, Query } from '../parser/parser';
 import * as assert from 'assert';
 
 suite('Scanner', function () {
@@ -100,9 +100,10 @@ suite('Parser', function () {
 
     function assertNodeTypesDeep(input: string, ...types: NodeType[]) {
         const parser = new Parser();
-        const syntax = parser.parse(input);
-        let actual: NodeType[] = [];
-        syntax.visit(node => actual.push(node._type));
+        const query = parser.parse(input);
+        const actual: NodeType[] = [];
+        types.unshift(NodeType.Query);
+        Query.visit(query, node => actual.push(node._type));
         assert.deepEqual(actual, types, input);
     }
 

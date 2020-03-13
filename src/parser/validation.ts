@@ -3,30 +3,17 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Query, NodeType, Node } from "./parser";
+import { Query, NodeType, Node, QueryNode } from "./parser";
 import { qualifiers, ValueType } from "./schema";
 
-
-function isNumberOrDateLike(node: Node, what: NodeType.Number | NodeType.Date): boolean {
-    if (node._type === what) {
-        return true;
-    }
-    if (node._type === NodeType.Compare && node.node._type === what) {
-        return true;
-    }
-    if (node._type === NodeType.Range && node.open?._type === what) {
-        return true;
-    }
-    return false;
-}
 
 export class ValidationError {
     constructor(readonly node: Node, readonly message: string) { }
 }
 
-export function validateQuery(ast: Query): readonly ValidationError[] {
+export function validateQuery(query: QueryNode): readonly ValidationError[] {
     let result: ValidationError[] = [];
-    ast.visit(node => {
+    Query.visit(query, node => {
         // missing nodes
         if (node._type === NodeType.Missing) {
             result.push(new ValidationError(node, node.message));
@@ -77,4 +64,17 @@ export function validateQuery(ast: Query): readonly ValidationError[] {
     });
 
     return result;
+}
+
+function isNumberOrDateLike(node: Node, what: NodeType.Number | NodeType.Date): boolean {
+    if (node._type === what) {
+        return true;
+    }
+    if (node._type === NodeType.Compare && node.value._type === what) {
+        return true;
+    }
+    if (node._type === NodeType.Range && node.open?._type === what) {
+        return true;
+    }
+    return false;
 }
