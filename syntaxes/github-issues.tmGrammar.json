@@ -2,12 +2,8 @@
     "scopeName": "source.github-issues",
     "patterns": [
         {
-            "name": "keyword.operator",
-            "match": ":|-|<|<=|>|>=|\\*\\.\\.|\\.\\.\\*|\\.\\.|NOT"
-        },
-        {
-            "name": "keyword.other",
-            "match": "type|updated|in|org|repo|user|state|assignee|author|mentions|team|commenter|involves|label|linked|milestone|project|language|comments|interactions|reactions|created|closed|archived|is|no|status|base|head|draft|review-requested|review|reviewed-by|team-review-requested|merged"
+            "name": "variable.other",
+            "match": "\\$[_a-zA-Z][_a-zA-Z0-9]+"
         },
         {
             "name": "constant.language",
@@ -32,6 +28,14 @@
         {
             "name": "constant.numeric",
             "match": "\\d+"
+        },
+        {
+            "name": "keyword.operator",
+            "match": ":|-|<|<=|>|>=|\\*\\.\\.|\\.\\.\\*|\\.\\.|NOT"
+        },
+        {
+            "name": "keyword.other",
+            "match": "type|updated|in|org|repo|user|state|assignee|author|mentions|team|commenter|involves|label|linked|milestone|project|language|comments|interactions|reactions|created|closed|archived|is|no|status|base|head|draft|review-requested|review|reviewed-by|team-review-requested|merged"
         }
     ]
 }

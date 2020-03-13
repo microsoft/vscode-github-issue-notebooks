@@ -3,15 +3,14 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Query, NodeType, Node, QueryNode } from "./parser";
+import { Query, NodeType, Node, NodeList } from "./parser";
 import { qualifiers, ValueType } from "./schema";
-
 
 export class ValidationError {
     constructor(readonly node: Node, readonly message: string, readonly conflictNode?: Node) { }
 }
 
-export function validateQuery(query: QueryNode): Iterable<ValidationError> {
+export function validateQuery(query: NodeList): Iterable<ValidationError> {
 
     let result = new Map<Node, ValidationError>();
     let mutual = new Map<string, Node>();
@@ -81,6 +80,7 @@ export function validateQuery(query: QueryNode): Iterable<ValidationError> {
             return;
         }
 
+        // todo@jrieken undefined variables, recursive variable-usage
     });
 
     return result.values();

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Query, QueryNode, Node, NodeType } from "./parser";
+import { Query, NodeList, Node, NodeType } from "./parser";
 import { ValueType, qualifiers } from "./schema";
 
 
@@ -22,7 +22,7 @@ export interface ValueTypeCompletion {
     valueType: ValueType;
 }
 
-export function completeQuery(query: QueryNode, offset: number): Iterable<LiteralCompletion | ValueTypeCompletion> {
+export function completeQuery(query: NodeList, offset: number): Iterable<LiteralCompletion | ValueTypeCompletion> {
     const parents: Node[] = [];
     const node = Query.nodeAt(query, offset, parents);
     const parent = parents[parents.length - 2];

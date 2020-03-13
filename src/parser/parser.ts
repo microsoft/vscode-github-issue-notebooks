@@ -22,8 +22,12 @@ export const enum TokenType {
     SHA,
     Unknown,
     Whitespace,
-    // Macro,
     EOF,
+    // not GH standard
+    OR,
+    Equals,
+    VariableName,
+    NewLine
 }
 
 export interface Token {
@@ -35,6 +39,10 @@ export interface Token {
 export class Scanner {
 
     private _rules = new Map<TokenType, RegExp>([
+        // the sorting here is important because some regular expression
+        // are more relaxed than others and would "eat away too much" if 
+        // they come early
+        [TokenType.NewLine, /\r\n|\n/y],
         [TokenType.Whitespace, /\s+/y],
         [TokenType.DateTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|\+\d{2}:\d{2})/y], //YYYY-MM-DDTHH:MM:SS+00:00 or YYYY-MM-DDTHH:MM:SSZ
         [TokenType.Date, /\d{4}-\d{2}-\d{2}/y], //YYYY-MM-DDD
@@ -43,16 +51,18 @@ export class Scanner {
         [TokenType.QuotedLiteral, /"[^"]+"/y],
         [TokenType.Colon, /:/y],
         [TokenType.Dash, /-/y],
+        [TokenType.Equals, /=/y],
         [TokenType.LessThanEqual, /<=/y],
         [TokenType.LessThan, /</y],
         [TokenType.GreaterThanEqual, />=/y],
         [TokenType.GreaterThan, />/y],
         [TokenType.Not, /NOT/y],
+        [TokenType.OR, /OR/y],
+        [TokenType.VariableName, /\$[_a-zA-Z][_a-zA-Z0-9]+/y],
         [TokenType.RangeFixedStart, new RegExp("\\.\\.\\*", 'y')],
         [TokenType.RangeFixedEnd, new RegExp("\\*\\.\\.", 'y')],
         [TokenType.Range, new RegExp("\\.\\.", 'y')],
-        // [TokenType.Macro, /\$\{[_a-z][_a-z0-9]+\}/i], // ${_foo}
-        [TokenType.Literal, /[^\s:"]+/y],
+        [TokenType.Literal, /[^\s:"=]+/y],
         [TokenType.Unknown, /.+/y],
     ]);
 
@@ -112,7 +122,10 @@ export const enum NodeType {
     Number = 'Number',
     Date = 'Date',
     QualifiedValue = 'QualifiedValue',
-    Query = 'Query',
+    VariableDefinition = 'VariableDefinition',
+    VariableName = 'VariableName',
+    OrExpression = 'BinaryExpression',
+    NodeList = 'NodeList',
     Range = 'Range',
     Compare = 'Compare',
     Any = 'Any',
@@ -132,6 +145,11 @@ export interface AnyNode extends BaseNode {
 export interface MissingNode extends BaseNode {
     _type: NodeType.Missing;
     message: string;
+}
+
+export interface NodeList extends BaseNode {
+    _type: NodeType.NodeList;
+    nodes: Node[];
 }
 
 export interface LiteralNode extends BaseNode {
@@ -168,12 +186,26 @@ export interface QualifiedValueNode extends BaseNode {
     value: Node;
 }
 
-export interface QueryNode extends BaseNode {
-    _type: NodeType.Query;
-    nodes: Node[];
+export interface VariableNameNode extends BaseNode {
+    _type: NodeType.VariableName;
+    value: string;
 }
 
-export type Node = QueryNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+export interface VariableDefinitionNode extends BaseNode {
+    _type: NodeType.VariableDefinition;
+    name: VariableNameNode;
+    value: Node | MissingNode;
+}
+
+export interface OrExpressionNode extends BaseNode {
+    _type: NodeType.OrExpression;
+    left: Node;
+    right: Node | undefined;
+}
+
+export type Node = NodeList | OrExpressionNode | VariableDefinitionNode
+    | VariableNameNode | QualifiedValueNode | RangeNode | CompareNode
+    | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
 
 export interface NodeVisitor {
     (node: Node, parent: Node | undefined): any;
@@ -210,7 +242,19 @@ export class Query {
                     stack.unshift(node.qualifier);
                     stack.unshift(node);
                     break;
-                case NodeType.Query:
+                case NodeType.VariableDefinition:
+                    stack.unshift(node.value);
+                    stack.unshift(node);
+                    stack.unshift(node.name);
+                    stack.unshift(node);
+                    break;
+                case NodeType.OrExpression:
+                    stack.unshift(node.right);
+                    stack.unshift(node);
+                    stack.unshift(node.left);
+                    stack.unshift(node);
+                    break;
+                case NodeType.NodeList:
                     for (let child of node.nodes.reverse()) {
                         stack.unshift(child);
                         stack.unshift(node);
@@ -255,32 +299,65 @@ export class Parser {
         this._token = this._scanner.next();
     }
 
-    parse(value: string): QueryNode {
-        let nodes: Node[] = [];
+    parse(value: string): NodeList {
+        const nodes: Node[] = [];
         this._scanner = new Scanner(value);
         this._token = this._scanner.next();
         while (this._token.type !== TokenType.EOF) {
+            const node = this._parseVariableDefinition() ?? this._parseQuery();
+            if (node) {
+                nodes.push(node);
+            }
+            this._accept(TokenType.NewLine);
+        }
+        return this._createNodeList(nodes);
+    }
 
+    private _parseQuery(): Node | undefined {
+        let nodes: Node[] = [];
+        while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
+
+            // skip over whitespace
             if (this._accept(TokenType.Whitespace)) {
                 continue;
             }
 
+            // check for OR
+            const tk = this._accept(TokenType.OR);
+            if (tk && nodes.length > 0) {
+                // make this a OrExpressionNode
+                const left = this._createNodeList(nodes);
+                const right = this._parseQuery();
+                return {
+                    _type: NodeType.OrExpression,
+                    start: left.start,
+                    end: right?.end || tk.end,
+                    left,
+                    right
+                };
+            }
+
+            // parse the query AS-IS
             const node = this._parseQualifiedValue()
                 ?? this._parseNumber()
+                ?? this._parseVariableName()
                 ?? this._parseLiteral()
                 ?? this._parseAny(this._token.type);
 
             if (!node) {
                 throw new Error('no node produced...');
             }
-
             nodes.push(node);
         }
 
+        if (nodes.length === 0) {
+            return undefined;
+        }
+
         return {
-            _type: NodeType.Query,
-            start: nodes[0]?.start ?? 0,
-            end: nodes[nodes.length - 1]?.end ?? 0,
+            _type: NodeType.NodeList,
+            start: nodes[0].start,
+            end: nodes[nodes.length - 1].end,
             nodes
         };
     }
@@ -434,6 +511,7 @@ export class Parser {
             ?? this._parseRangeFixedEnd()
             ?? this._parseDate()
             ?? this._parseNumber()
+            ?? this._parseVariableName()
             ?? this._parseLiteral()
             ?? this._parseAny(TokenType.SHA)
             ?? this._createMissing('expected value');
@@ -448,12 +526,56 @@ export class Parser {
         };
     }
 
+    private _parseVariableName(): VariableNameNode | undefined {
+        // ${name}
+        const token = this._accept(TokenType.VariableName);
+        if (!token) {
+            return undefined;
+        };
+        return {
+            _type: NodeType.VariableName,
+            start: token.start,
+            end: token.end,
+            value: this._scanner.value(token)
+        };
+    }
+
+    private _parseVariableDefinition(): VariableDefinitionNode | undefined {
+        // ${name}=query
+        const anchor = this._token;
+        const name = this._parseVariableName();
+        if (!name) {
+            return;
+        }
+        if (!this._accept(TokenType.Equals)) {
+            this._reset(anchor);
+            return;
+        }
+        const value = this._parseQuery() ?? this._createMissing('query expected');
+        return {
+            _type: NodeType.VariableDefinition,
+            start: name.start,
+            end: value.end,
+            name,
+            value,
+        };
+    }
+
     private _createMissing(message: string): MissingNode {
         return {
             _type: NodeType.Missing,
             start: this._token!.start,
             end: this._token!.start,
             message
+        };
+    }
+
+    private _createNodeList(nodes: Node[]): NodeList {
+        return {
+            _type: NodeType.NodeList,
+            start: nodes[0]?.start ?? 0,
+            end: nodes[nodes.length - 1]?.end ?? 0,
+            nodes
         };
     }
 }

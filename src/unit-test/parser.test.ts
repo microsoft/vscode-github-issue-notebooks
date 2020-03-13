@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { suite, test } from 'mocha';
-import { Scanner, TokenType, NodeType, Parser, Query } from '../parser/parser';
+import { Scanner, TokenType, NodeType, Parser, Query, NodeList } from '../parser/parser';
 import * as assert from 'assert';
 
 suite('Scanner', function () {
@@ -42,9 +42,12 @@ suite('Scanner', function () {
         assertTokenTypes('*..', TokenType.RangeFixedEnd);
         assertTokenTypes('..', TokenType.Range);
         assertTokenTypes('-', TokenType.Dash);
-
-        // assertTokenTypes('', TokenType.Macro);
         assertTokenTypes('Foo', TokenType.Literal);
+        assertTokenTypes('$Foo', TokenType.VariableName);
+        assertTokenTypes('=', TokenType.Equals);
+        assertTokenTypes('OR', TokenType.OR);
+        assertTokenTypes('\n', TokenType.NewLine);
+        assertTokenTypes('\r\n', TokenType.NewLine);
     });
 
     test('Sequence', function () {
@@ -83,6 +86,10 @@ suite('Scanner', function () {
 
         assertTokenTypes('2020-03-11 2020-03-11', TokenType.Date, TokenType.Whitespace, TokenType.Date);
         assertTokenTypes('2020-03-11 Foo', TokenType.Date, TokenType.Whitespace, TokenType.Literal);
+
+        assertTokenTypes('$BUG= "label:bug"', TokenType.VariableName, TokenType.Equals, TokenType.Whitespace, TokenType.QuotedLiteral);
+        assertTokenTypes('$BUG=label:bug', TokenType.VariableName, TokenType.Equals, TokenType.Literal, TokenType.Colon, TokenType.Literal);
+
     });
 });
 
@@ -91,18 +98,22 @@ suite('Parser', function () {
 
     function assertNodeTypes(input: string, ...types: NodeType[]) {
         const parser = new Parser();
-        let nodes = parser.parse(input).nodes;
-        nodes.forEach((node, i) => {
+        const nodes = parser.parse(input).nodes;
+        assert.equal(nodes.length, 1);
+        assert.equal(nodes[0]._type, NodeType.NodeList);
+
+        (<NodeList>nodes[0]).nodes.forEach((node, i) => {
             assert.equal(node._type, types[i], input.substring(node.start, node.end));
         });
-        assert.equal(nodes.length, types.length);
+        assert.equal((<NodeList>nodes[0]).nodes.length, types.length);
     }
 
     function assertNodeTypesDeep(input: string, ...types: NodeType[]) {
         const parser = new Parser();
         const query = parser.parse(input);
         const actual: NodeType[] = [];
-        types.unshift(NodeType.Query);
+        types.unshift(NodeType.NodeList);
+        types.unshift(NodeType.NodeList);
         Query.visit(query, node => actual.push(node._type));
         assert.deepEqual(actual, types, input);
     }

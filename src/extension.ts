@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Parser, Query, Node, QueryNode, } from './parser/parser';
+import { Parser, Query, Node, NodeList, } from './parser/parser';
 import { validateQuery } from './parser/validation';
 import { completeQuery, CompletionKind } from './parser/completion';
 import { ValueType } from './parser/schema';
 
 class QueryDocument {
 
-	constructor(readonly ast: QueryNode, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
+	constructor(readonly ast: NodeList, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
 
 	rangeOf(node: Node): vscode.Range {
 		return new vscode.Range(this.doc.positionAt(node.start), this.doc.positionAt(node.end));
@@ -57,6 +57,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const query = queryDocs.getOrCreate(document);
 			const stack: Node[] = [];
 			Query.nodeAt(query.ast, offset, stack);
+			stack.shift();
 			return new vscode.Hover(
 				stack.map(node => `- \`${query.textOf(node)}\` (*${node._type}*)\n`).join(''),
 				query.rangeOf(stack[stack.length - 1])
