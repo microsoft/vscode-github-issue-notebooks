@@ -23,7 +23,7 @@ class QueryDocument {
 		readonly doc: vscode.TextDocument,
 	) {
 		this.ast = QueryDocument._parser.parse(doc.getText());
-		this.symbols = fillSymbols(this.ast);
+		this.symbols = fillSymbols(this.ast, doc.uri);
 		this.versionParsed = doc.version;
 	}
 
@@ -51,6 +51,19 @@ class QueryDocuments {
 
 	delete(doc: vscode.TextDocument): void {
 		this._cached.delete(doc.uri.toString());
+	}
+
+	rangeOf(uri: vscode.Uri, node: Node): vscode.Range {
+		for (let [, value] of this._cached) {
+			if (value.doc.uri.toString() === uri.toString()) {
+				return value.rangeOf(node);
+			}
+		}
+		throw new Error('');
+	}
+
+	all() {
+		return this._cached.values();
 	}
 };
 
@@ -130,7 +143,7 @@ export function activate(context: vscode.ExtensionContext) {
 				let result: vscode.Location[] = [];
 				for (const info of query.symbols.getAll(node.value)) {
 					if (info.def) {
-						result.push(new vscode.Location(document.uri, query.rangeOf(info.def)));
+						result.push(new vscode.Location(info.uri!, queryDocs.rangeOf(info.uri!, info.def)));
 					}
 				}
 				return result;
@@ -147,13 +160,15 @@ export function activate(context: vscode.ExtensionContext) {
 
 			if (anchor?._type === NodeType.VariableName) {
 				let result: vscode.Location[] = [];
-				Utils.walk(query.ast, (node, parent) => {
-					if (node._type === NodeType.VariableName && node.value === anchor.value) {
-						if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
-							result.push(new vscode.Location(document.uri, query.rangeOf(node)));
+				for (let doc of queryDocs.all()) {
+					Utils.walk(doc.ast, (node, parent) => {
+						if (node._type === NodeType.VariableName && node.value === anchor.value) {
+							if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
+								result.push(new vscode.Location(doc.doc.uri, doc.rangeOf(node)));
+							}
 						}
-					}
-				});
+					});
+				}
 				return result;
 			}
 		}

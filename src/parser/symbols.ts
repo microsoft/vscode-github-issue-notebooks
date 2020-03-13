@@ -4,66 +4,23 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { QueryDocumentNode, Node, Utils, NodeType } from "./nodes";
+import { Uri } from "vscode";
 
-export interface SymbolInfo {
-    name: string;
-    def?: Node;
-    value?: Value;
-}
-
-// export type SymbolTable = Set<SymbolInfo>;
-
-export class SymbolTable {
-
-    private readonly _data = new Set<SymbolInfo>();
-
-    add(info: SymbolInfo) {
-        this._data.add(info);
+let symbols: SymbolTable;
+export function fillSymbols(query: QueryDocumentNode, uri: Uri): SymbolTable {
+    if (!symbols) {
+        symbols = new SymbolTable();
     }
-
-    get(name: string): SymbolInfo | undefined {
-        for (let info of this._data) {
-            if (info.name === name) {
-                return info;
-            }
-        }
-    }
-
-    *getAll(name: string): Iterable<SymbolInfo> {
-        for (let info of this._data) {
-            if (info.name === name) {
-                yield info;
-            }
-        }
-    }
-
-    all(): Iterable<SymbolInfo> {
-        return this._data;
-    }
-}
-
-export function fillSymbols(query: QueryDocumentNode): SymbolTable {
-
-    const symbols = new SymbolTable();
-
-    // defined variables
     Utils.walk(query, node => {
+        // defined variables
         if (node._type === NodeType.VariableDefinition) {
             symbols.add({
                 name: node.name.value,
-                def: node
+                def: node,
+                uri
             });
         }
     });
-
-    // given variables
-    for (let [key, value] of qualifiers) {
-        symbols.add({
-            name: key,
-            value
-        });
-    }
-
     return symbols;
 }
 
@@ -85,7 +42,7 @@ export enum ValueType {
 
 export type Value = ValueType | Set<string>[];
 
-export const qualifiers = new Map<string, Value>([
+const qualifiers = new Map<string, Value>([
     ['type', [new Set(['pr', 'issue'])]],
     ['updated', ValueType.Date],
     ['in', [new Set(['title', 'body', 'comments'])]],
@@ -123,6 +80,7 @@ export const qualifiers = new Map<string, Value>([
     ['merged', ValueType.Date],
 ]);
 
+
 export const requiresPrType = new Set<string>([
     'status',
     'base',
@@ -134,3 +92,50 @@ export const requiresPrType = new Set<string>([
     'team-review-requested',
     'merged',
 ]);
+
+
+export interface SymbolInfo {
+    name: string;
+    uri?: Uri;
+    def?: Node;
+    value?: Value;
+}
+
+export class SymbolTable {
+
+    private readonly _data = new Set<SymbolInfo>();
+
+    constructor() {
+        // given variables
+        for (let [key, value] of qualifiers) {
+            this._data.add({
+                name: key,
+                value
+            });
+        }
+    }
+
+    add(info: SymbolInfo) {
+        this._data.add(info);
+    }
+
+    get(name: string): SymbolInfo | undefined {
+        for (let info of this._data) {
+            if (info.name === name) {
+                return info;
+            }
+        }
+    }
+
+    *getAll(name: string): Iterable<SymbolInfo> {
+        for (let info of this._data) {
+            if (info.name === name) {
+                yield info;
+            }
+        }
+    }
+
+    all(): Iterable<SymbolInfo> {
+        return this._data;
+    }
+}
