@@ -6,6 +6,8 @@
 import * as vscode from 'vscode';
 import { Parser, Query, Node, QueryNode, } from './parser/parser';
 import { validateQuery } from './parser/validation';
+import { completeQuery, CompletionKind } from './parser/completion';
+import { ValueType } from './parser/schema';
 
 class QueryDocument {
 
@@ -86,6 +88,25 @@ export function activate(context: vscode.ExtensionContext) {
 			return result;
 		}
 	}));
+
+	// Completions
+	context.subscriptions.push(vscode.languages.registerCompletionItemProvider(selector, new class implements vscode.CompletionItemProvider {
+		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.CompletionItem[]> {
+			const query = queryDocs.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const result: vscode.CompletionItem[] = [];
+			const completions = completeQuery(query.ast, offset);
+			for (let item of completions) {
+				if (item.type === CompletionKind.Literal) {
+					result.push(new vscode.CompletionItem(item.value, vscode.CompletionItemKind.Value));
+				} else {
+					//todo@jrieken fetch the actual values of this type
+					result.push(new vscode.CompletionItem(ValueType[item.valueType], vscode.CompletionItemKind.Value));
+				}
+			}
+			return result;
+		}
+	}, ':'));
 
 	// Validation
 	const diagnostcis = vscode.languages.createDiagnosticCollection();
