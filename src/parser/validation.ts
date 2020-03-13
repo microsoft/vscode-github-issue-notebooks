@@ -5,38 +5,52 @@
 
 import { NodeType, Node, QueryNode, QueryDocumentNode } from "./nodes";
 import { Utils } from "./nodes";
-import { qualifiers, ValueType } from "./schema";
+import { ValueType, SymbolTable } from "./symbols";
 
 export class ValidationError {
     constructor(readonly node: Node, readonly message: string, readonly conflictNode?: Node) { }
 }
 
-export function validateQuery(query: QueryDocumentNode): Iterable<ValidationError> {
+export function validateQueryDocument(doc: QueryDocumentNode, symbols: SymbolTable): Iterable<ValidationError> {
+    const result: ValidationError[] = [];
+    Utils.walk(doc, node => {
+        if (node._type === NodeType.Query) {
+            validateQuery(node, result, symbols);
+        }
+    });
+    return result;
+}
 
-    let result = new Map<Node, ValidationError>();
+function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: SymbolTable): void {
+
     let mutual = new Map<string, Node>();
 
-    Utils.visit(query, node => {
+    Utils.walk(query, (node) => {
 
         // unknown qualifier
         // unknown qualifier-value
         // qualifier with mutual exclusive values, e.g is:pr is:issue
         if (node._type === NodeType.QualifiedValue) {
-            const def = qualifiers.get(node.qualifier.value);
-            if (def === undefined) {
-                result.set(node, new ValidationError(node.qualifier, `Unknown qualifier: '${node.qualifier.value}'`));
+            const info = symbols.get(node.qualifier.value);
+            if (!info || info.value === undefined) {
+                bucket.push(new ValidationError(node.qualifier, `Unknown qualifier: '${node.qualifier.value}'`));
                 return;
             }
 
-            if (Array.isArray(def)) {
+            if (node.value._type === NodeType.VariableName) {
+                // trust all variables...
+                return;
+            }
+
+            if (Array.isArray(info.value)) {
                 const value = node.value._type === NodeType.Literal ? node.value.value : '';
                 if (mutual.has(value)) {
-                    result.set(node, new ValidationError(node, `Conflicts with mutual exclusive expression`, mutual.get(value)));
+                    bucket.push(new ValidationError(node, `Conflicts with mutual exclusive expression`, mutual.get(value)));
                     return;
                 }
 
                 let found = false;
-                for (let set of def) {
+                for (let set of info.value) {
                     if (set.has(value)) {
                         found = true;
                         for (let candidate of set) {
@@ -50,41 +64,52 @@ export function validateQuery(query: QueryDocumentNode): Iterable<ValidationErro
                     }
                 }
                 if (!found) {
-                    result.set(node, new ValidationError(node.value, `Unknown value, must be one of: ${def.map(set => [...set].join(', ')).join(', ')}`));
+                    bucket.push(new ValidationError(node.value, `Unknown value, must be one of: ${info.value.map(set => [...set].join(', ')).join(', ')}`));
                     return;
                 }
             }
 
-            if (def === ValueType.Date && !isNumberOrDateLike(node.value, NodeType.Date)) {
-                result.set(node, new ValidationError(node.value, `Invalid value, expected date`));
+            if (info.value === ValueType.Date && !isNumberOrDateLike(node.value, NodeType.Date)) {
+                bucket.push(new ValidationError(node.value, `Invalid value, expected date`));
                 return;
             }
 
-            if (def === ValueType.Number && !isNumberOrDateLike(node.value, NodeType.Number)) {
-                result.set(node, new ValidationError(node.value, `Invalid value, expected number`));
+            if (info.value === ValueType.Number && !isNumberOrDateLike(node.value, NodeType.Number)) {
+                bucket.push(new ValidationError(node.value, `Invalid value, expected number`));
                 return;
             }
             // range from..to => from < to
         }
 
+        if (node._type === NodeType.VariableName) {
+            const info = symbols.get(node.value);
+            if (!info) {
+                bucket.push(new ValidationError(node, `Unknown variable`));
+                return;
+            }
+            if (!info.def) {
+                bucket.push(new ValidationError(node, `Unknown variable`));
+                return;
+            }
+        }
+
         // unbalanced range
         if (node._type === NodeType.Range) {
             if (node.open && node.close && node.open._type !== node.close._type) {
-                result.set(node, new ValidationError(node, `Range must start and end with equals types`));
+                bucket.push(new ValidationError(node, `Range must start and end with equals types`));
                 return;
             }
         }
 
         // missing nodes
         if (node._type === NodeType.Missing) {
-            result.set(node, new ValidationError(node, node.message));
+            bucket.push(new ValidationError(node, node.message));
             return;
         }
 
         // todo@jrieken undefined variables, recursive variable-usage
     });
 
-    return result.values();
 }
 
 function isNumberOrDateLike(node: Node, what: NodeType.Number | NodeType.Date): boolean {

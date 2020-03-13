@@ -43,7 +43,7 @@ export class Scanner {
         // are more relaxed than others and would "eat away too much" if 
         // they come early
         [TokenType.NewLine, /\r\n|\n/y],
-        [TokenType.Whitespace, /\s+/y],
+        [TokenType.Whitespace, /[ \t]+/y],
         [TokenType.DateTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|\+\d{2}:\d{2})/y],
         [TokenType.Date, /\d{4}-\d{2}-\d{2}/y],
         [TokenType.SHA, /[a-fA-F0-9]{7,40}/y],

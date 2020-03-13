@@ -5,7 +5,7 @@
 
 import { QueryNode, Node, NodeType, QueryDocumentNode } from "./nodes";
 import { Utils } from "./nodes";
-import { ValueType, qualifiers } from "./schema";
+import { ValueType, SymbolTable } from "./symbols";
 
 
 export const enum CompletionKind {
@@ -23,7 +23,7 @@ export interface ValueTypeCompletion {
     valueType: ValueType;
 }
 
-export function completeQuery(query: QueryDocumentNode, offset: number): Iterable<LiteralCompletion | ValueTypeCompletion> {
+export function completeQuery(query: QueryDocumentNode, offset: number, symbols: SymbolTable): Iterable<LiteralCompletion | ValueTypeCompletion> {
     const parents: Node[] = [];
     const node = Utils.nodeAt(query, offset, parents);
     const parent = parents[parents.length - 2];
@@ -34,17 +34,17 @@ export function completeQuery(query: QueryDocumentNode, offset: number): Iterabl
     // globals
     if (node === query || node._type === NodeType.Literal) {
         // todo@value
-        return [...qualifiers.keys()].map(value => {
+        return [...symbols.all()].map(info => {
             return {
                 type: CompletionKind.Literal,
-                value
+                value: info.name
             };
         });
     }
 
     // complete a qualified expression
     if (node._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
-        const values = qualifiers.get(parent.qualifier.value);
+        const values = symbols.get(parent.qualifier.value);
         if (Array.isArray(values)) {
             let result: LiteralCompletion[] = [];
             for (let set of values) {
@@ -60,7 +60,7 @@ export function completeQuery(query: QueryDocumentNode, offset: number): Iterabl
         } else if (values) {
             return [{
                 type: CompletionKind.ValueType,
-                valueType: values
+                valueType: values.value as any
             }];
         }
     }

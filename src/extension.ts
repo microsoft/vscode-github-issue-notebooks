@@ -5,15 +5,27 @@
 
 import * as vscode from 'vscode';
 import { Parser } from './parser/parser';
-import { Node, QueryDocumentNode } from './parser/nodes';
+import { Node, QueryDocumentNode, NodeType } from './parser/nodes';
 import { Utils } from "./parser/nodes";
-import { validateQuery } from './parser/validation';
+import { validateQueryDocument } from './parser/validation';
 import { completeQuery, CompletionKind } from './parser/completion';
-import { ValueType } from './parser/schema';
+import { ValueType, SymbolTable, fillSymbols } from './parser/symbols';
 
 class QueryDocument {
 
-	constructor(readonly ast: QueryDocumentNode, readonly doc: vscode.TextDocument, readonly versionParsed: number) { }
+	private static _parser = new Parser();
+
+	readonly ast: QueryDocumentNode;
+	readonly symbols: SymbolTable;
+	readonly versionParsed: number;
+
+	constructor(
+		readonly doc: vscode.TextDocument,
+	) {
+		this.ast = QueryDocument._parser.parse(doc.getText());
+		this.symbols = fillSymbols(this.ast);
+		this.versionParsed = doc.version;
+	}
 
 	rangeOf(node: Node): vscode.Range {
 		return new vscode.Range(this.doc.positionAt(node.start), this.doc.positionAt(node.end));
@@ -27,12 +39,11 @@ class QueryDocument {
 class QueryDocuments {
 
 	private _cached = new Map<string, QueryDocument>();
-	private _parser = new Parser();
 
 	getOrCreate(doc: vscode.TextDocument): QueryDocument {
 		let value = this._cached.get(doc.uri.toString());
 		if (!value || value.versionParsed !== doc.version) {
-			value = new QueryDocument(this._parser.parse(doc.getText()), doc, doc.version);
+			value = new QueryDocument(doc);
 			this._cached.set(doc.uri.toString(), value);
 		}
 		return value;
@@ -96,7 +107,7 @@ export function activate(context: vscode.ExtensionContext) {
 			const query = queryDocs.getOrCreate(document);
 			const offset = document.offsetAt(position);
 			const result: vscode.CompletionItem[] = [];
-			const completions = completeQuery(query.ast, offset);
+			const completions = completeQuery(query.ast, offset, query.symbols);
 			for (let item of completions) {
 				if (item.type === CompletionKind.Literal) {
 					result.push(new vscode.CompletionItem(item.value, vscode.CompletionItemKind.Value));
@@ -109,12 +120,51 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}, ':'));
 
+	// Definition
+	context.subscriptions.push(vscode.languages.registerDefinitionProvider(selector, new class implements vscode.DefinitionProvider {
+		provideDefinition(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Location[]> {
+			const query = queryDocs.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const node = Utils.nodeAt(query.ast, offset);
+			if (node?._type === NodeType.VariableName) {
+				let result: vscode.Location[] = [];
+				for (const info of query.symbols.getAll(node.value)) {
+					if (info.def) {
+						result.push(new vscode.Location(document.uri, query.rangeOf(info.def)));
+					}
+				}
+				return result;
+			}
+		}
+	}));
+
+	// References
+	context.subscriptions.push(vscode.languages.registerReferenceProvider(selector, new class implements vscode.ReferenceProvider {
+		provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext): vscode.ProviderResult<vscode.Location[]> {
+			const query = queryDocs.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const anchor = Utils.nodeAt(query.ast, offset);
+
+			if (anchor?._type === NodeType.VariableName) {
+				let result: vscode.Location[] = [];
+				Utils.walk(query.ast, (node, parent) => {
+					if (node._type === NodeType.VariableName && node.value === anchor.value) {
+						if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
+							result.push(new vscode.Location(document.uri, query.rangeOf(node)));
+						}
+					}
+				});
+				return result;
+			}
+		}
+	}));
+
 	// Validation
 	const diagnostcis = vscode.languages.createDiagnosticCollection();
 	function validateDoc(doc: vscode.TextDocument) {
 		if (vscode.languages.match(selector, doc)) {
 			const query = queryDocs.getOrCreate(doc);
-			const errors = validateQuery(query.ast);
+			const errors = validateQueryDocument(query.ast, query.symbols);
 			const diag = [...errors].map(error => {
 				const result = new vscode.Diagnostic(query.rangeOf(error.node), error.message);
 				if (error.conflictNode) {

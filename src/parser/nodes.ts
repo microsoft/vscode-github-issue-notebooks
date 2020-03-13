@@ -107,7 +107,7 @@ export interface NodeVisitor {
 
 export namespace Utils {
 
-    export function visit(node: Node, callback: NodeVisitor) {
+    export function walk(node: Node, callback: NodeVisitor) {
         if (!node) {
             return;
         }
@@ -161,7 +161,7 @@ export namespace Utils {
 
     export function nodeAt(node: Node, offset: number, parents?: Node[]): Node | undefined {
         let result: Node | undefined;
-        Utils.visit(node, node => {
+        Utils.walk(node, node => {
             if (Utils.containsPosition(node, offset)) {
                 parents?.push(node);
                 result = node;

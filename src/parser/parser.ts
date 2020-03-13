@@ -29,11 +29,14 @@ export class Parser {
         this._scanner.reset(value);
         this._token = this._scanner.next();
         while (this._token.type !== TokenType.EOF) {
+            // skip over whitespace
+            if (this._accept(TokenType.Whitespace) || this._accept(TokenType.NewLine)) {
+                continue;
+            }
             const node = this._parseVariableDefinition() ?? this._parseQuery();
             if (node) {
                 nodes.push(node);
             }
-            this._accept(TokenType.NewLine);
         }
         return this._createContainerNode(nodes, NodeType.QueryDocument);
     }

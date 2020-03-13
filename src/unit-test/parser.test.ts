@@ -27,7 +27,7 @@ suite('Parser', function () {
         const parser = new Parser();
         const query = parser.parse(input);
         const actual: NodeType[] = [];
-        Utils.visit(query, node => actual.push(node._type));
+        Utils.walk(query, node => actual.push(node._type));
         types.unshift(NodeType.QueryDocument);
         assert.deepEqual(actual, types, input);
     }
@@ -50,6 +50,8 @@ suite('Parser', function () {
         assertNodeTypes('label:foo bar', NodeType.QualifiedValue, NodeType.Literal);
         assertNodeTypes('label:foo bar NOT bazz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
         assertNodeTypes('label:foo bar 0cafecafe bazz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
+
+        // assertNodeTypes('comments:>=10 \n$bar=label:bug', NodeType.QualifiedValue, NodeType.VariableDefinition);
     });
 
     test('Sequence (deep)', function () {
