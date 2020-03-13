@@ -93,7 +93,7 @@ function isNumberOrDateLike(node: Node, what: NodeType.Number | NodeType.Date): 
     if (node._type === NodeType.Compare && node.value._type === what) {
         return true;
     }
-    if (node._type === NodeType.Range && node.open?._type === what) {
+    if (node._type === NodeType.Range && (node.open?._type === what || node.close?._type === what)) {
         return true;
     }
     return false;
