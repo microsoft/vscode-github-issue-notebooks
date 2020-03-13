@@ -14,6 +14,10 @@ class QueryDocument {
 	rangeOf(node: Node): vscode.Range {
 		return new vscode.Range(this.doc.positionAt(node.start), this.doc.positionAt(node.end));
 	}
+
+	textOf(node: Node): string {
+		return this.doc.getText().substring(node.start, node.end);
+	}
 }
 
 class QueryDocuments {
@@ -89,7 +93,16 @@ export function activate(context: vscode.ExtensionContext) {
 		if (vscode.languages.match(selector, doc)) {
 			const query = queryDocs.getOrCreate(doc);
 			const errors = validateQuery(query.ast);
-			const diag = errors.map(error => new vscode.Diagnostic(query.rangeOf(error.node), error.message));
+			const diag = [...errors].map(error => {
+				const result = new vscode.Diagnostic(query.rangeOf(error.node), error.message);
+				if (error.conflictNode) {
+					result.relatedInformation = [new vscode.DiagnosticRelatedInformation(
+						new vscode.Location(doc.uri, query.rangeOf(error.conflictNode)),
+						query.textOf(error.conflictNode)
+					)];
+				}
+				return result;
+			});
 			diagnostcis.set(doc.uri, diag);
 		}
 	}
