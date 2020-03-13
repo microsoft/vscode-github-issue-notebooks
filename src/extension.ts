@@ -4,7 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Parser, Query, Node, NodeList, } from './parser/parser';
+import { Parser } from './parser/parser';
+import { Node, NodeList } from './parser/nodes';
+import { Query } from "./parser/nodes";
 import { validateQuery } from './parser/validation';
 import { completeQuery, CompletionKind } from './parser/completion';
 import { ValueType } from './parser/schema';

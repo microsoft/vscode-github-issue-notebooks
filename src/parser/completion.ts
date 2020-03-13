@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Query, NodeList, Node, NodeType } from "./parser";
+import { NodeList, Node, NodeType } from "./nodes";
+import { Query } from "./nodes";
 import { ValueType, qualifiers } from "./schema";
 
 

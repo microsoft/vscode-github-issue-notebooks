@@ -3,7 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Query, NodeType, Node, NodeList } from "./parser";
+import { NodeType, Node, NodeList } from "./nodes";
+import { Query } from "./nodes";
 import { qualifiers, ValueType } from "./schema";
 
 export class ValidationError {
