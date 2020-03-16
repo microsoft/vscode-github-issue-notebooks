@@ -18,6 +18,10 @@ export function activate(context: vscode.ExtensionContext) {
 	const project = new QueryDocumentProject();
 	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => project.delete(doc)));
 
+	vscode.languages.setLanguageConfiguration(selector.language, {
+		wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g
+	});
+
 	// Hover (debug)
 	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
 		async provideHover(document: vscode.TextDocument, position: vscode.Position) {
@@ -71,7 +75,10 @@ export function activate(context: vscode.ExtensionContext) {
 				// globals
 				// todo@jrieken values..
 				for (let symbol of project.symbols.all()) {
-					result.push(new vscode.CompletionItem(symbol.name, symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Constant : vscode.CompletionItemKind.Variable));
+					result.push(new vscode.CompletionItem(
+						symbol.name,
+						symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Enum : vscode.CompletionItemKind.Variable)
+					);
 				}
 
 			} else if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
@@ -87,7 +94,7 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 			return result;
 		}
-	}, ':'));
+	}, ':', '$'));
 
 	// Definition
 	context.subscriptions.push(vscode.languages.registerDefinitionProvider(selector, new class implements vscode.DefinitionProvider {
