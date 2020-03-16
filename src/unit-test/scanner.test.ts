@@ -49,6 +49,9 @@ suite('Scanner', function () {
         assertTokenTypes('OR', TokenType.OR);
         assertTokenTypes('\n', TokenType.NewLine);
         assertTokenTypes('\r\n', TokenType.NewLine);
+        assertTokenTypes('// aaaaaaa', TokenType.LineComment);
+        assertTokenTypes('//', TokenType.LineComment);
+        assertTokenTypes('// aaaa aaa', TokenType.LineComment);
     });
 
     test('Sequence', function () {

@@ -46,7 +46,7 @@ export class Parser {
         while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
             // skip over whitespace
-            if (this._accept(TokenType.Whitespace)) {
+            if (this._accept(TokenType.Whitespace) || this._accept(TokenType.LineComment)) {
                 continue;
             }
 

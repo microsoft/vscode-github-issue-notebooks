@@ -4,30 +4,31 @@
  *--------------------------------------------------------------------------------------------*/
 
 export const enum TokenType {
-    Literal,
-    QuotedLiteral,
-    Number,
-    Date,
-    DateTime,
-    Dash,
-    Colon,
-    LessThan,
-    LessThanEqual,
-    GreaterThan,
-    GreaterThanEqual,
-    Not,
-    RangeFixedStart,
-    RangeFixedEnd,
-    Range,
-    SHA,
-    Unknown,
-    Whitespace,
-    EOF,
-    // not GH standard
-    OR,
-    Equals,
-    VariableName,
-    NewLine
+    Literal = 'Literal',
+    QuotedLiteral = 'QuotedLiteral',
+    Number = 'Number',
+    Date = 'Date',
+    DateTime = 'DateTime',
+    Dash = 'Dash',
+    Colon = 'Colon',
+    LessThan = 'LessThan',
+    LessThanEqual = 'LessThanEqual',
+    GreaterThan = 'GreaterThan',
+    GreaterThanEqual = 'GreaterThanEqual',
+    Not = 'Not',
+    RangeFixedStart = 'RangeFixedStart',
+    RangeFixedEnd = 'RangeFixedEnd',
+    Range = 'Range',
+    SHA = 'SHA',
+    Unknown = 'Unknown',
+    Whitespace = 'Whitespace',
+    EOF = 'EOF',
+    //not GH standard
+    LineComment = 'LineComment',
+    OR = 'OR',
+    Equals = 'Equals',
+    VariableName = 'VariableName',
+    NewLine = 'NewLine'
 }
 
 export interface Token {
@@ -42,6 +43,7 @@ export class Scanner {
         // the sorting here is important because some regular expression
         // are more relaxed than others and would "eat away too much" if 
         // they come early
+        [TokenType.LineComment, /\/\/[^\r\n]*/y],
         [TokenType.NewLine, /\r\n|\n/y],
         [TokenType.Whitespace, /[ \t]+/y],
         [TokenType.DateTime, /\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(Z|\+\d{2}:\d{2})/y],

@@ -2,6 +2,10 @@
     "scopeName": "source.github-issues",
     "patterns": [
         {
+            "name": "comment.line",
+            "match": "\/\/[^\r\n]*"
+        },
+        {
             "name": "variable.other",
             "match": "\\$[_a-zA-Z][_a-zA-Z0-9]+"
         },
