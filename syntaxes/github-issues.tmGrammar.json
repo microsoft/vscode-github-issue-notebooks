@@ -11,11 +11,11 @@
         },
         {
             "name": "constant.language",
-            "match": "pr|issue|title|body|comments|open|closed|true|false|locked|unlocked|merged|unmerged|public|private|pending|success|failure|none|required|approved"
+            "match": "\b(pr|issue|title|body|comments|open|closed|true|false|locked|unlocked|merged|unmerged|public|private|pending|success|failure|none|required|approved)\b"
         },
         {
             "name": "constant.language.me",
-            "match": "@me"
+            "match": "\b@me\b"
         },
         {
             "name": "constant.numeric.date",
@@ -35,7 +35,7 @@
         },
         {
             "name": "keyword.operator",
-            "match": ":|-|<|<=|>|>=|\\*\\.\\.|\\.\\.\\*|\\.\\.|NOT"
+            "match": ":|-|<|<=|>|>=|\\*\\.\\.|\\.\\.\\*|\\.\\.|NOT|OR"
         },
         {
             "name": "keyword.other",
