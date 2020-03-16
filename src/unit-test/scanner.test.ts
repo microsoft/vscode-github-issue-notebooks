@@ -44,6 +44,7 @@ suite('Scanner', function () {
         assertTokenTypes('-', TokenType.Dash);
         assertTokenTypes('Foo', TokenType.Literal);
         assertTokenTypes('$Foo', TokenType.VariableName);
+        assertTokenTypes('$F', TokenType.VariableName);
         assertTokenTypes('=', TokenType.Equals);
         assertTokenTypes('OR', TokenType.OR);
         assertTokenTypes('\n', TokenType.NewLine);

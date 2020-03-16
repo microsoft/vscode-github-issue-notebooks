@@ -58,7 +58,7 @@ export class Scanner {
         [TokenType.GreaterThan, />/y],
         [TokenType.Not, /NOT/y],
         [TokenType.OR, /OR/y],
-        [TokenType.VariableName, /\$[_a-zA-Z][_a-zA-Z0-9]+/y],
+        [TokenType.VariableName, /\$[_a-zA-Z][_a-zA-Z0-9]*/y],
         [TokenType.RangeFixedStart, new RegExp("\\.\\.\\*", 'y')],
         [TokenType.RangeFixedEnd, new RegExp("\\*\\.\\.", 'y')],
         [TokenType.Range, new RegExp("\\.\\.", 'y')],

@@ -66,6 +66,7 @@ suite('Parser', function () {
         assertNodeTypesDeep('label:cafecafe bazz', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
         assertNodeTypesDeep('label:"sss" dd"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any);
         assertNodeTypesDeep('$BUG=label:bug', NodeType.VariableDefinition, NodeType.VariableName, NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+        assertNodeTypesDeep('$a=label:bug', NodeType.VariableDefinition, NodeType.VariableName, NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
         assertNodeTypesDeep('foo OR BAR', NodeType.OrExpression, NodeType.Query, NodeType.Literal, NodeType.Query, NodeType.Literal);
     });
 
