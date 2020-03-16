@@ -6,24 +6,6 @@
 import { QueryDocumentNode, Node, Utils, NodeType } from "./nodes";
 import { Uri } from "vscode";
 
-let symbols: SymbolTable;
-export function fillSymbols(query: QueryDocumentNode, uri: Uri): SymbolTable {
-    if (!symbols) {
-        symbols = new SymbolTable();
-    }
-    Utils.walk(query, node => {
-        // defined variables
-        if (node._type === NodeType.VariableDefinition) {
-            symbols.add({
-                name: node.name.value,
-                def: node,
-                uri
-            });
-        }
-    });
-    return symbols;
-}
-
 
 export enum ValueType {
     Number,
@@ -94,12 +76,24 @@ export const requiresPrType = new Set<string>([
 ]);
 
 
-export interface SymbolInfo {
-    name: string;
-    uri?: Uri;
-    def?: Node;
-    value?: Value;
+export const enum SymbolKind {
+    User, Static
 }
+
+export interface UserSymbol {
+    kind: SymbolKind.User;
+    name: string;
+    uri: Uri;
+    def: Node;
+}
+
+export interface StaticSymbol {
+    kind: SymbolKind.Static;
+    name: string;
+    value: Value;
+}
+
+export type SymbolInfo = UserSymbol | StaticSymbol;
 
 export class SymbolTable {
 
@@ -109,14 +103,33 @@ export class SymbolTable {
         // given variables
         for (let [key, value] of qualifiers) {
             this._data.add({
+                kind: SymbolKind.Static,
                 name: key,
                 value
             });
         }
     }
 
-    add(info: SymbolInfo) {
-        this._data.add(info);
+    update(query: QueryDocumentNode, uri: Uri) {
+
+        // remove old
+        for (let value of this._data) {
+            if (value.kind === SymbolKind.User && value.uri.toString() === uri.toString()) {
+                this._data.delete(value);
+            }
+        }
+
+        // add new - all defined variables
+        Utils.walk(query, node => {
+            if (node._type === NodeType.VariableDefinition) {
+                this._data.add({
+                    kind: SymbolKind.User,
+                    name: node.name.value,
+                    def: node,
+                    uri
+                });
+            }
+        });
     }
 
     get(name: string): SymbolInfo | undefined {
@@ -127,7 +140,7 @@ export class SymbolTable {
         }
     }
 
-    *getAll(name: string): Iterable<SymbolInfo> {
+    * getAll(name: string): Iterable<SymbolInfo> {
         for (let info of this._data) {
             if (info.name === name) {
                 yield info;

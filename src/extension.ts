@@ -4,105 +4,48 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Parser } from './parser/parser';
-import { Node, QueryDocumentNode, NodeType } from './parser/nodes';
+import { Node, NodeType } from './parser/nodes';
 import { Utils } from "./parser/nodes";
 import { validateQueryDocument } from './parser/validation';
-import { completeQuery, CompletionKind } from './parser/completion';
-import { ValueType, SymbolTable, fillSymbols } from './parser/symbols';
-
-class QueryDocument {
-
-	private static _parser = new Parser();
-
-	readonly ast: QueryDocumentNode;
-	readonly symbols: SymbolTable;
-	readonly versionParsed: number;
-
-	constructor(
-		readonly doc: vscode.TextDocument,
-	) {
-		this.ast = QueryDocument._parser.parse(doc.getText());
-		this.symbols = fillSymbols(this.ast, doc.uri);
-		this.versionParsed = doc.version;
-	}
-
-	rangeOf(node: Node): vscode.Range {
-		return new vscode.Range(this.doc.positionAt(node.start), this.doc.positionAt(node.end));
-	}
-
-	textOf(node: Node): string {
-		return this.doc.getText().substring(node.start, node.end);
-	}
-}
-
-class QueryDocuments {
-
-	private _cached = new Map<string, QueryDocument>();
-
-	getOrCreate(doc: vscode.TextDocument): QueryDocument {
-		let value = this._cached.get(doc.uri.toString());
-		if (!value || value.versionParsed !== doc.version) {
-			value = new QueryDocument(doc);
-			this._cached.set(doc.uri.toString(), value);
-		}
-		return value;
-	}
-
-	delete(doc: vscode.TextDocument): void {
-		this._cached.delete(doc.uri.toString());
-	}
-
-	rangeOf(uri: vscode.Uri, node: Node): vscode.Range {
-		for (let [, value] of this._cached) {
-			if (value.doc.uri.toString() === uri.toString()) {
-				return value.rangeOf(node);
-			}
-		}
-		throw new Error('');
-	}
-
-	all() {
-		return this._cached.values();
-	}
-};
-
+import { ValueType, SymbolKind } from './parser/symbols';
+import { QueryDocumentProject } from './service';
 
 export function activate(context: vscode.ExtensionContext) {
 
 	const selector = { language: 'github-issues' };
 
 	// manage syntax trees
-	const queryDocs = new QueryDocuments();
-	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => queryDocs.delete(doc)));
+	const project = new QueryDocumentProject();
+	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => project.delete(doc)));
 
 	// Hover (debug)
 	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
-		provideHover(document: vscode.TextDocument, position: vscode.Position) {
+		async provideHover(document: vscode.TextDocument, position: vscode.Position) {
 			const offset = document.offsetAt(position);
-			const query = queryDocs.getOrCreate(document);
+			const query = project.getOrCreate(document);
 			const stack: Node[] = [];
-			Utils.nodeAt(query.ast, offset, stack);
+			Utils.nodeAt(query, offset, stack);
 			stack.shift();
+
 			return new vscode.Hover(
-				stack.map(node => `- \`${query.textOf(node)}\` (*${node._type}*)\n`).join(''),
-				query.rangeOf(stack[stack.length - 1])
+				(await Promise.all(stack.map(async node => `- \`${await project.textOf(node)}\` (*${node._type}*)\n`))).join(''),
+				await project.rangeOf(stack[stack.length - 1])
 			);
 		}
 	}));
 
 	// Smart Select
 	context.subscriptions.push(vscode.languages.registerSelectionRangeProvider(selector, new class implements vscode.SelectionRangeProvider {
-		provideSelectionRanges(document: vscode.TextDocument, positions: vscode.Position[]): vscode.ProviderResult<vscode.SelectionRange[]> {
+		async provideSelectionRanges(document: vscode.TextDocument, positions: vscode.Position[]) {
 			const result: vscode.SelectionRange[] = [];
-			const query = queryDocs.getOrCreate(document);
+			const query = project.getOrCreate(document);
 			for (let position of positions) {
 				const offset = document.offsetAt(position);
 				const parents: Node[] = [];
-				if (Utils.nodeAt(query.ast, offset, parents)) {
+				if (Utils.nodeAt(query, offset, parents)) {
 					let last: vscode.SelectionRange | undefined;
 					for (let node of parents) {
-						let selRange = new vscode.SelectionRange(query.rangeOf(node), last);
+						let selRange = new vscode.SelectionRange(await project.rangeOf(node), last);
 						last = selRange;
 					}
 					if (last) {
@@ -117,16 +60,29 @@ export function activate(context: vscode.ExtensionContext) {
 	// Completions
 	context.subscriptions.push(vscode.languages.registerCompletionItemProvider(selector, new class implements vscode.CompletionItemProvider {
 		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.CompletionItem[]> {
-			const query = queryDocs.getOrCreate(document);
+			const query = project.getOrCreate(document);
 			const offset = document.offsetAt(position);
+			const parents: Node[] = [];
+			const node = Utils.nodeAt(query, offset, parents);
+			const parent = parents[parents.length - 2];
+
 			const result: vscode.CompletionItem[] = [];
-			const completions = completeQuery(query.ast, offset, query.symbols);
-			for (let item of completions) {
-				if (item.type === CompletionKind.Literal) {
-					result.push(new vscode.CompletionItem(item.value, vscode.CompletionItemKind.Value));
-				} else {
-					//todo@jrieken fetch the actual values of this type
-					result.push(new vscode.CompletionItem(ValueType[item.valueType], vscode.CompletionItemKind.Value));
+			if (node === query || node?._type === NodeType.Literal) {
+				// globals
+				// todo@jrieken values..
+				for (let symbol of project.symbols.all()) {
+					result.push(new vscode.CompletionItem(symbol.name, symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Constant : vscode.CompletionItemKind.Variable));
+				}
+
+			} else if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
+				// complete a qualified expression
+				const symbol = project.symbols.get(parent.qualifier.value);
+				if (symbol?.kind === SymbolKind.Static && Array.isArray(symbol.value)) {
+					for (let set of symbol.value) {
+						for (let value of set) {
+							result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
+						}
+					}
 				}
 			}
 			return result;
@@ -135,62 +91,65 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// Definition
 	context.subscriptions.push(vscode.languages.registerDefinitionProvider(selector, new class implements vscode.DefinitionProvider {
-		provideDefinition(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.Location[]> {
-			const query = queryDocs.getOrCreate(document);
+		async provideDefinition(document: vscode.TextDocument, position: vscode.Position) {
+			const query = project.getOrCreate(document);
 			const offset = document.offsetAt(position);
-			const node = Utils.nodeAt(query.ast, offset);
-			if (node?._type === NodeType.VariableName) {
-				let result: vscode.Location[] = [];
-				for (const info of query.symbols.getAll(node.value)) {
-					if (info.def) {
-						result.push(new vscode.Location(info.uri!, queryDocs.rangeOf(info.uri!, info.def)));
-					}
-				}
-				return result;
+			const node = Utils.nodeAt(query, offset);
+			if (node?._type !== NodeType.VariableName) {
+				return;
 			}
+			const result: vscode.Location[] = [];
+			for (const symbol of project.symbols.getAll(node.value)) {
+				if (symbol.kind === SymbolKind.User) {
+					result.push(new vscode.Location(symbol.uri, await project.rangeOf(symbol.def, symbol.uri)));
+				}
+			}
+			return result;
 		}
 	}));
 
 	// References
 	context.subscriptions.push(vscode.languages.registerReferenceProvider(selector, new class implements vscode.ReferenceProvider {
 		provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext): vscode.ProviderResult<vscode.Location[]> {
-			const query = queryDocs.getOrCreate(document);
+			const query = project.getOrCreate(document);
 			const offset = document.offsetAt(position);
-			const anchor = Utils.nodeAt(query.ast, offset);
-
-			if (anchor?._type === NodeType.VariableName) {
-				let result: vscode.Location[] = [];
-				for (let doc of queryDocs.all()) {
-					Utils.walk(doc.ast, (node, parent) => {
-						if (node._type === NodeType.VariableName && node.value === anchor.value) {
-							if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
-								result.push(new vscode.Location(doc.doc.uri, doc.rangeOf(node)));
-							}
-						}
-					});
-				}
-				return result;
+			const node = Utils.nodeAt(query, offset);
+			if (node?._type !== NodeType.VariableName) {
+				return;
 			}
+
+			let result: Promise<vscode.Location>[] = [];
+			for (let { node, uri } of project.all()) {
+				Utils.walk(node, (node, parent) => {
+					if (node._type === NodeType.VariableName && node.value === node.value) {
+						if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
+							result.push(project.rangeOf(node, uri).then(range => new vscode.Location(uri, range)));
+						}
+					}
+				});
+			}
+			return Promise.all(result);
+
 		}
 	}));
 
 	// Validation
 	const diagnostcis = vscode.languages.createDiagnosticCollection();
-	function validateDoc(doc: vscode.TextDocument) {
+	async function validateDoc(doc: vscode.TextDocument) {
 		if (vscode.languages.match(selector, doc)) {
-			const query = queryDocs.getOrCreate(doc);
-			const errors = validateQueryDocument(query.ast, query.symbols);
-			const diag = [...errors].map(error => {
-				const result = new vscode.Diagnostic(query.rangeOf(error.node), error.message);
+			const query = project.getOrCreate(doc);
+			const errors = validateQueryDocument(query, project.symbols);
+			const diag = [...errors].map(async error => {
+				const result = new vscode.Diagnostic(await project.rangeOf(error.node), error.message);
 				if (error.conflictNode) {
 					result.relatedInformation = [new vscode.DiagnosticRelatedInformation(
-						new vscode.Location(doc.uri, query.rangeOf(error.conflictNode)),
-						query.textOf(error.conflictNode)
+						new vscode.Location(doc.uri, await project.rangeOf(error.conflictNode)),
+						await project.textOf(error.conflictNode)
 					)];
 				}
 				return result;
 			});
-			diagnostcis.set(doc.uri, diag);
+			diagnostcis.set(doc.uri, await Promise.all(diag));
 		}
 	}
 	vscode.workspace.textDocuments.forEach(validateDoc);

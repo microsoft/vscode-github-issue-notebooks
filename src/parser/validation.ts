@@ -5,7 +5,7 @@
 
 import { NodeType, Node, QueryNode, QueryDocumentNode } from "./nodes";
 import { Utils } from "./nodes";
-import { ValueType, SymbolTable } from "./symbols";
+import { ValueType, SymbolTable, SymbolKind } from "./symbols";
 
 export class ValidationError {
     constructor(readonly node: Node, readonly message: string, readonly conflictNode?: Node) { }
@@ -31,12 +31,15 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
         // unknown qualifier-value
         // qualifier with mutual exclusive values, e.g is:pr is:issue
         if (node._type === NodeType.QualifiedValue) {
+
+            // check name
             const info = symbols.get(node.qualifier.value);
-            if (!info || info.value === undefined) {
+            if (!info || info.kind !== SymbolKind.Static) {
                 bucket.push(new ValidationError(node.qualifier, `Unknown qualifier: '${node.qualifier.value}'`));
                 return;
             }
 
+            // check value
             if (node.value._type === NodeType.VariableName) {
                 // trust all variables...
                 return;
@@ -83,11 +86,7 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 
         if (node._type === NodeType.VariableName) {
             const info = symbols.get(node.value);
-            if (!info) {
-                bucket.push(new ValidationError(node, `Unknown variable`));
-                return;
-            }
-            if (!info.def) {
+            if (!info || info.kind !== SymbolKind.User) {
                 bucket.push(new ValidationError(node, `Unknown variable`));
                 return;
             }
