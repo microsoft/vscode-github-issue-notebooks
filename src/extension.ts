@@ -141,6 +141,28 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
+	// Document Highlights
+	context.subscriptions.push(vscode.languages.registerDocumentHighlightProvider(selector, new class implements vscode.DocumentHighlightProvider {
+		provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.DocumentHighlight[]> {
+			const query = project.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const node = Utils.nodeAt(query, offset);
+			if (node?._type !== NodeType.VariableName) {
+				return;
+			}
+			const result: Promise<vscode.DocumentHighlight>[] = [];
+			Utils.walk(query, (candidate, parent) => {
+				if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
+					result.push(project.rangeOf(candidate, document.uri).then(range => new vscode.DocumentHighlight(
+						range,
+						parent?._type === NodeType.VariableDefinition ? vscode.DocumentHighlightKind.Write : vscode.DocumentHighlightKind.Read
+					)));
+				}
+			});
+			return Promise.all(result);
+		}
+	}));
+
 	// Validation
 	const diagnostcis = vscode.languages.createDiagnosticCollection();
 	async function validateDoc(doc: vscode.TextDocument) {
