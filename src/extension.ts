@@ -119,11 +119,11 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 
 			let result: Promise<vscode.Location>[] = [];
-			for (let { node, uri } of project.all()) {
-				Utils.walk(node, (node, parent) => {
-					if (node._type === NodeType.VariableName && node.value === node.value) {
+			for (let entry of project.all()) {
+				Utils.walk(entry.node, (candidate, parent) => {
+					if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
 						if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
-							result.push(project.rangeOf(node, uri).then(range => new vscode.Location(uri, range)));
+							result.push(project.rangeOf(candidate, entry.uri).then(range => new vscode.Location(entry.uri, range)));
 						}
 					}
 				});
