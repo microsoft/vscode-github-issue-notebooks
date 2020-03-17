@@ -3,9 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { NodeType, Node, QueryNode, QueryDocumentNode } from "./nodes";
+import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode } from "./nodes";
 import { Utils } from "./nodes";
 import { ValueType, SymbolTable, SymbolKind } from "./symbols";
+import { TokenType } from "./scanner";
 
 export class ValidationError {
     constructor(readonly node: Node, readonly message: string, readonly conflictNode?: Node) { }
@@ -14,8 +15,13 @@ export class ValidationError {
 export function validateQueryDocument(doc: QueryDocumentNode, symbols: SymbolTable): Iterable<ValidationError> {
     const result: ValidationError[] = [];
     Utils.walk(doc, node => {
-        if (node._type === NodeType.Query) {
-            validateQuery(node, result, symbols);
+        switch (node._type) {
+            case NodeType.Query:
+                validateQuery(node, result, symbols);
+                break;
+            case NodeType.VariableDefinition:
+                validateVariableDefinition(node, result);
+                break;
         }
     });
     return result;
@@ -25,7 +31,7 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 
     let mutual = new Map<string, Node>();
 
-    Utils.walk(query, (node) => {
+    Utils.walk(query, node => {
 
         // unknown qualifier
         // unknown qualifier-value
@@ -105,10 +111,18 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
             bucket.push(new ValidationError(node, node.message));
             return;
         }
-
-        // todo@jrieken undefined variables, recursive variable-usage
+        // todo@jrieken undefined variables, 
+        // todo@jrieken recursive variable - usage
     });
+}
 
+function validateVariableDefinition(node: VariableDefinitionNode, bucket: ValidationError[]) {
+    // var-decl: no OR-statement 
+    Utils.walk(node.value, node => {
+        if (node._type === NodeType.Any && node.tokenType === TokenType.OR) {
+            bucket.push(new ValidationError(node, `OR will be ignored for variable declarations`));
+        }
+    });
 }
 
 function isNumberOrDateLike(node: Node, what: NodeType.Number | NodeType.Date): boolean {

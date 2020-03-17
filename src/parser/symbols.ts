@@ -3,9 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryDocumentNode, Node, Utils, NodeType } from "./nodes";
+import { QueryDocumentNode, Node, Utils, NodeType, VariableDefinitionNode } from "./nodes";
 import { Uri } from "vscode";
-
 
 export enum ValueType {
     Number,
@@ -84,7 +83,7 @@ export interface UserSymbol {
     kind: SymbolKind.User;
     name: string;
     uri: Uri;
-    def: Node;
+    def: VariableDefinitionNode;
 }
 
 export interface StaticSymbol {

@@ -58,7 +58,7 @@ export interface DateNode extends BaseNode {
 
 export interface CompareNode extends BaseNode {
     _type: NodeType.Compare;
-    cmp: TokenType.LessThan | TokenType.LessThanEqual | TokenType.GreaterThan | TokenType.GreaterThanEqual | undefined;
+    cmp: TokenType.LessThan | TokenType.LessThanEqual | TokenType.GreaterThan | TokenType.GreaterThanEqual;
     value: DateNode | NumberNode | MissingNode;
 }
 
@@ -89,7 +89,7 @@ export interface VariableDefinitionNode extends BaseNode {
 export interface OrExpressionNode extends BaseNode {
     _type: NodeType.OrExpression;
     left: Node;
-    right: Node | undefined;
+    right: Node;
 }
 
 export interface QueryDocumentNode extends BaseNode {
@@ -106,7 +106,40 @@ export interface NodeVisitor {
 }
 
 export namespace Utils {
+    export function visit(node: Node, callback: NodeVisitor) {
+        const cb = (node?: Node) => {
+            if (node) {
+                callback(node, undefined);
+            }
+        };
+        cb(node);
+        switch (node._type) {
+            case NodeType.Compare:
+                cb(node.value);
+                break;
+            case NodeType.Range:
+                cb(node.open);
+                cb(node.close);
+                break;
+            case NodeType.QualifiedValue:
+                cb(node.qualifier);
+                cb(node.value);
+                break;
+            case NodeType.VariableDefinition:
+                cb(node.name);
+                cb(node.value);
+                break;
+            case NodeType.OrExpression:
+                cb(node.left);
+                cb(node.right);
+                break;
+            case NodeType.QueryDocument:
+            case NodeType.Query:
+                node.nodes.forEach(cb);
+                break;
 
+        }
+    }
     export function walk(node: Node, callback: NodeVisitor) {
         if (!node) {
             return;
@@ -172,5 +205,66 @@ export namespace Utils {
 
     export function containsPosition(node: Node, offset: number): boolean {
         return node.start <= offset && offset <= node.end;
+    }
+
+    export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string[] {
+        const { text, variableValues } = ctx;
+        function _flatten<T>(...args: (T | T[])[]): T[] {
+            let result: T[] = [];
+            for (let arg of args) {
+                if (Array.isArray(arg)) {
+                    result = result.concat(arg);
+                } else {
+                    result.push(arg);
+                }
+            }
+            return result;
+        }
+
+        function _print(node: Node): string | string[] {
+
+            switch (node._type) {
+                case NodeType.Missing:
+                case NodeType.VariableDefinition:
+                    // no value for those
+                    return '';
+                case NodeType.VariableName:
+                    // look up variable (must be defined first)
+                    return variableValues.get(node.value) || `${node.value}`;
+                case NodeType.Any:
+                case NodeType.Literal:
+                case NodeType.Date:
+                case NodeType.Number:
+                    return text.substring(node.start, node.end);
+                case NodeType.Compare:
+                    // >=aaa etc
+                    const cmp = new Map<TokenType, string>([
+                        [TokenType.GreaterThan, '>'],
+                        [TokenType.GreaterThanEqual, '>='],
+                        [TokenType.LessThan, '<'],
+                        [TokenType.LessThanEqual, '<='],
+                    ]).get(node.cmp);
+                    return `${cmp}${_print(node.value)}`;
+                case NodeType.Range:
+                    // aaa..bbb, *..ccc, ccc..*
+                    return node.open && node.close
+                        ? `${_print(node.open)}..${_print(node.close)}`
+                        : node.open ? `${_print(node.open)}..*` : `*..${_print(node.close!)}`;
+                case NodeType.QualifiedValue:
+                    // aaa:bbb
+                    return `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
+                case NodeType.Query:
+                    // aaa bbb ccc
+                    return node.nodes.map(_print).join(' ');
+                case NodeType.OrExpression:
+                    // each OR-part becomes a separate query
+                    return _flatten(_print(node.left), _print(node.right));
+                case NodeType.QueryDocument:
+                    return _flatten(...node.nodes.map(_print));
+
+            }
+        }
+
+        return <string[]>_print(node);
     }
 }

@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { Node, NodeType } from './parser/nodes';
 import { Utils } from "./parser/nodes";
 import { validateQueryDocument } from './parser/validation';
-import { ValueType, SymbolKind } from './parser/symbols';
+import { SymbolKind } from './parser/symbols';
 import { QueryDocumentProject } from './service';
 
 export function activate(context: vscode.ExtensionContext) {
@@ -186,5 +186,14 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => diagnostcis.set(doc.uri, undefined)));
 	context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(doc => validateDoc(doc)));
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => validateDoc(e.document)));
+
+	// Hover - debug, emit
+	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
+		async provideHover(document: vscode.TextDocument) {
+			const query = project.getOrCreate(document);
+			const lines = await project.emit(query, document.uri);
+			return new vscode.Hover('```\n' + lines.join('\n') + '\n```');
+		}
+	}));
 }
 

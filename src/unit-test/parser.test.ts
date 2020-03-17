@@ -70,5 +70,42 @@ suite('Parser', function () {
         assertNodeTypesDeep('foo OR BAR', NodeType.OrExpression, NodeType.Query, NodeType.Literal, NodeType.Query, NodeType.Literal);
         assertNodeTypesDeep('foo //nothing', NodeType.Query, NodeType.Literal);
     });
+});
+
+
+suite('Print Nodes', function () {
+
+    function assertPrinted(text: string, expected: string[] = [text], variableValues = new Map<string, string>()) {
+        const node = new Parser().parse(text);
+        const actual = Utils.print(node, { text, variableValues });
+        assert.deepEqual(actual, expected);
+    }
+
+    test('simple', function () {
+        assertPrinted('label:bug');
+        assertPrinted('-label:bug');
+        assertPrinted('assignee:@me');
+        assertPrinted('comments:10..20');
+        assertPrinted('comments:10..*');
+        assertPrinted('comments:*..20');
+        assertPrinted('created:>=2020-03-22');
+        assertPrinted('foo NOT bar');
+        assertPrinted('foo NOT bar //comment', ['foo NOT bar']);
+    });
+
+    test('or-expression', function () {
+        assertPrinted('label:bug OR label:foo', ['label:bug', 'label:foo']);
+        assertPrinted('label:bug OR label:foo OR label:"123"', ['label:bug', 'label:foo', 'label:"123"']);
+        assertPrinted('label:bug OR');
+        assertPrinted('OR label:bug');
+        assertPrinted('aaa OR bbb', ['aaa', 'bbb']);
+        assertPrinted('aaa or bbb', ['aaa or bbb']);
+    });
+
+    test('variables', function () {
+        assertPrinted('label:$zzz', ['label:xxx'], new Map([['$zzz', 'xxx']]));
+        assertPrinted('label:$zzz', ['label:$zzz'], new Map());
+        assertPrinted('label:$zzz OR foo $zzz', ['label:xxx', 'foo xxx'], new Map([['$zzz', 'xxx']]));
+    });
 
 });

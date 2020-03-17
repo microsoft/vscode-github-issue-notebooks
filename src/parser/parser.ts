@@ -12,7 +12,10 @@ export class Parser {
     private _token: Token = { type: TokenType.EOF, start: 0, end: 0 };
 
     private _accept<T extends TokenType>(type: T): Token & { type: T; } | undefined {
-        if (this._token?.type === type) {
+        if (this._token.type === TokenType.EOF) {
+            return undefined;
+        }
+        if (this._token.type === type) {
             const value = this._token;
             this._token = this._scanner.next();
             return <Token & { type: T; }>value;
@@ -33,7 +36,7 @@ export class Parser {
             if (this._accept(TokenType.Whitespace) || this._accept(TokenType.NewLine)) {
                 continue;
             }
-            const node = this._parseVariableDefinition() ?? this._parseQuery();
+            const node = this._parseVariableDefinition() ?? this._parseQuery(true);
             if (node) {
                 nodes.push(node);
             }
@@ -41,7 +44,7 @@ export class Parser {
         return this._createContainerNode(nodes, NodeType.QueryDocument);
     }
 
-    private _parseQuery(): QueryNode | OrExpressionNode | undefined {
+    private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
         let nodes: Node[] = [];
         while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
@@ -51,19 +54,30 @@ export class Parser {
             }
 
             // check for OR
-            const tk = this._accept(TokenType.OR);
-            if (tk && nodes.length > 0) {
+            const tk = allowOR && nodes.length > 0 && this._accept(TokenType.OR);
+            if (tk) {
                 // make this a OrExpressionNode
-                // todo@jrieken turn this into a query when there no right-side
-                const left = this._createContainerNode(nodes, NodeType.Query);
-                const right = this._parseQuery();
-                return {
-                    _type: NodeType.OrExpression,
-                    start: left.start,
-                    end: right?.end || tk.end,
-                    left,
-                    right
-                };
+                const anchor = this._token;
+                const right = this._parseQuery(allowOR);
+
+                if (right) {
+                    const left = this._createContainerNode(nodes, NodeType.Query);
+                    return {
+                        _type: NodeType.OrExpression,
+                        start: left.start,
+                        end: right?.end || tk.end,
+                        left,
+                        right
+                    };
+                }
+
+                this._reset(anchor);
+                nodes.push({
+                    _type: NodeType.Any,
+                    tokenType: tk.type,
+                    start: tk.start,
+                    end: tk.end
+                });
             }
 
             // parse the query AS-IS
@@ -73,10 +87,9 @@ export class Parser {
                 ?? this._parseLiteral()
                 ?? this._parseAny(this._token.type);
 
-            if (!node) {
-                throw new Error('no node produced...');
+            if (node) {
+                nodes.push(node);
             }
-            nodes.push(node);
         }
 
         return nodes.length > 0
@@ -273,7 +286,7 @@ export class Parser {
             this._reset(anchor);
             return;
         }
-        const value = this._parseQuery() ?? this._createMissing('query expected');
+        const value = this._parseQuery(false) ?? this._createMissing('query expected');
         return {
             _type: NodeType.VariableDefinition,
             start: name.start,

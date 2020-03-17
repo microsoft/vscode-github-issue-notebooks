@@ -4,8 +4,8 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SymbolTable } from './parser/symbols';
-import { QueryDocumentNode, Node, Utils } from './parser/nodes';
+import { SymbolTable, SymbolKind, UserSymbol } from './parser/symbols';
+import { QueryDocumentNode, Node, Utils, NodeType, VariableDefinitionNode } from './parser/nodes';
 import { Parser } from './parser/parser';
 
 export class QueryDocumentProject {
@@ -62,4 +62,43 @@ export class QueryDocumentProject {
         const range = new vscode.Range(doc.positionAt(node.start), doc.positionAt(node.end));
         return doc.getText(range);
     }
-}
+
+    async emit(query: QueryDocumentNode, uri?: vscode.Uri) {
+        if (!uri) {
+            uri = this._nodeToUri.get(query);
+        }
+        if (!uri) {
+            throw new Error('unknown node');
+        }
+        const variableValues = new Map<string, string>();
+
+        // all user defined
+        const symbols: UserSymbol[] = [];
+        for (let symbol of this.symbols.all()) {
+            if (symbol.kind === SymbolKind.User) {
+                symbols.push(symbol);
+            }
+        }
+
+        // sort by position
+        symbols.sort((a, b) => {
+            if (a.uri.toString() < b.uri.toString()) {
+                return -1;
+            } else if (a.uri.toString() > b.uri.toString()) {
+                return 1;
+            } else {
+                return a.def.start - b.def.start;
+            }
+        });
+
+        // print symbol from definition
+        for (let symbol of symbols) {
+            const text = (await vscode.workspace.openTextDocument(symbol.uri)).getText();
+            const value = Utils.print(symbol.def.value, { text, variableValues });
+            variableValues.set(symbol.name, '' + value);
+        }
+
+        const text = (await vscode.workspace.openTextDocument(uri)).getText();
+        return Utils.print(query, { text, variableValues });
+    }
+};
