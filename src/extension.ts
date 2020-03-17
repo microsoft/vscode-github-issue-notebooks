@@ -9,6 +9,7 @@ import { Utils } from "./parser/nodes";
 import { validateQueryDocument } from './parser/validation';
 import { SymbolKind } from './parser/symbols';
 import { QueryDocumentProject } from './service';
+import { IssuesNotebookProvider } from './notebook';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -16,7 +17,13 @@ export function activate(context: vscode.ExtensionContext) {
 
 	// manage syntax trees
 	const project = new QueryDocumentProject();
-	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => project.delete(doc)));
+	// context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => project.delete(doc)));
+
+
+	// --- NOTEBOOK
+	vscode.window.registerNotebookProvider('github-issues', new IssuesNotebookProvider(project));
+
+	// --- LANGUAGE SMARTS
 
 	vscode.languages.setLanguageConfiguration(selector.language, {
 		wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
@@ -205,6 +212,13 @@ export function activate(context: vscode.ExtensionContext) {
 	// Validation
 	const diagCollection = vscode.languages.createDiagnosticCollection();
 	async function validateAll() {
+		// add all
+		vscode.workspace.textDocuments.forEach(doc => {
+			if (vscode.languages.match(selector, doc)) {
+				project.getOrCreate(doc);
+			}
+		});
+		// validate all
 		for (let { uri, node } of project.all()) {
 			const diags: vscode.Diagnostic[] = [];
 			const errors = validateQueryDocument(node, project.symbols);
@@ -226,12 +240,7 @@ export function activate(context: vscode.ExtensionContext) {
 		clearTimeout(handle);
 		handle = setTimeout(() => validateAll(), 200);
 	}
-	vscode.workspace.textDocuments.forEach(doc => {
-		if (vscode.languages.match(selector, doc)) {
-			project.getOrCreate(doc);
-			validateAllSoon();
-		}
-	});
+	validateAllSoon();
 	context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(() => validateAllSoon()));
 	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => validateAllSoon()));
 	// context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => {

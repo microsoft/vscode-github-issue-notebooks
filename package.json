@@ -3,6 +3,7 @@
 	"displayName": "GitHub Issue Notebooks",
 	"description": "GitHub Issue Notebooks for VS Code",
 	"version": "0.0.1",
+	"enableProposedApi": true,
 	"engines": {
 		"vscode": "^1.43.0"
 	},
@@ -10,6 +11,7 @@
 		"Other"
 	],
 	"activationEvents": [
+		"*",
 		"onLanguage:github-issues"
 	],
 	"main": "./out/extension.js",
@@ -30,6 +32,17 @@
 				"language": "github-issues",
 				"scopeName": "source.github-issues",
 				"path": "./syntaxes/github-issues.tmGrammar.json"
+			}
+		],
+		"notebookProvider": [
+			{
+				"viewType": "github-issues",
+				"displayName": "GitHub Issues Notebook",
+				"selector": [
+					{
+						"filenamePattern": "*.github-issues"
+					}
+				]
 			}
 		]
 	},
