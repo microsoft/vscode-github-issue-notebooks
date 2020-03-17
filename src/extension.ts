@@ -31,19 +31,35 @@ export function activate(context: vscode.ExtensionContext) {
 		comments: { lineComment: '//' }
 	});
 
-	// Hover (debug)
+	// // Hover (debug, ast)
+	// context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
+	// 	async provideHover(document: vscode.TextDocument, position: vscode.Position) {
+	// 		const offset = document.offsetAt(position);
+	// 		const query = project.getOrCreate(document);
+	// 		const stack: Node[] = [];
+	// 		Utils.nodeAt(query, offset, stack);
+	// 		stack.shift();
+
+	// 		return new vscode.Hover(
+	// 			stack.map(node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
+	// 			project.rangeOf(stack[stack.length - 1])
+	// 		);
+	// 	}
+	// }));
+
+	// Hover
 	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
 		async provideHover(document: vscode.TextDocument, position: vscode.Position) {
 			const offset = document.offsetAt(position);
 			const query = project.getOrCreate(document);
-			const stack: Node[] = [];
-			Utils.nodeAt(query, offset, stack);
-			stack.shift();
+			const node = Utils.nodeAt(query, offset);
 
-			return new vscode.Hover(
-				stack.map(node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
-				project.rangeOf(stack[stack.length - 1])
-			);
+			if (node?._type === NodeType.VariableName) {
+				const value = project.bindVariableValues().get(node.value);
+				return new vscode.Hover('```\n' + String(value) + '\n```', project.rangeOf(node));
+			}
+
+			return undefined;
 		}
 	}));
 
@@ -266,14 +282,5 @@ export function activate(context: vscode.ExtensionContext) {
 	// context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => {
 	// 	diagnostcis.set(doc.uri, undefined);
 	// }));
-
-	// Hover - debug, emit
-	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
-		async provideHover(document: vscode.TextDocument) {
-			const query = project.getOrCreate(document);
-			const lines = project.emit(query, document.uri);
-			return new vscode.Hover('```\n' + lines.map((line, i) => `[${i}]: ${line}`).join('\n') + '\n```');
-		}
-	}));
 }
 

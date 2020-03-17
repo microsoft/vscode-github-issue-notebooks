@@ -67,8 +67,11 @@ export class QueryDocumentProject {
 
     emit(query: QueryDocumentNode, uri?: vscode.Uri) {
         const entry = this._lookUp(query, uri);
-        const variableValues = new Map<string, string>();
+        const variableValues = this.bindVariableValues();
+        return Utils.print(query, { text: entry.doc.getText(), variableValues });
+    }
 
+    bindVariableValues() {
         // all user defined
         const symbols: UserSymbol[] = [];
         for (let symbol of this.symbols.all()) {
@@ -76,7 +79,6 @@ export class QueryDocumentProject {
                 symbols.push(symbol);
             }
         }
-
         // sort by position
         symbols.sort((a, b) => {
             if (a.uri.toString() < b.uri.toString()) {
@@ -87,14 +89,13 @@ export class QueryDocumentProject {
                 return a.def.start - b.def.start;
             }
         });
-
         // print symbol from definition
+        const result = new Map<string, string>();
         for (let symbol of symbols) {
             const entry = this._cached.get(symbol.uri.toString())!;
-            const value = Utils.print(symbol.def.value, { text: entry.doc.getText(), variableValues });
-            variableValues.set(symbol.name, '' + value);
+            const value = Utils.print(symbol.def.value, { text: entry.doc.getText(), variableValues: result });
+            result.set(symbol.name, '' + value);
         }
-
-        return Utils.print(query, { text: entry.doc.getText(), variableValues });
+        return result;
     }
-};
+}
