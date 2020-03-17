@@ -164,28 +164,40 @@ export function activate(context: vscode.ExtensionContext) {
 	}));
 
 	// Validation
-	const diagnostcis = vscode.languages.createDiagnosticCollection();
-	async function validateDoc(doc: vscode.TextDocument) {
-		if (vscode.languages.match(selector, doc)) {
-			const query = project.getOrCreate(doc);
-			const errors = validateQueryDocument(query, project.symbols);
-			const diag = [...errors].map(async error => {
-				const result = new vscode.Diagnostic(await project.rangeOf(error.node), error.message);
+	const diagCollection = vscode.languages.createDiagnosticCollection();
+	async function validateAll() {
+		for (let { uri, node } of project.all()) {
+			const diags: vscode.Diagnostic[] = [];
+			const errors = validateQueryDocument(node, project.symbols);
+			for (let error of errors) {
+				const diag = new vscode.Diagnostic(await project.rangeOf(error.node), error.message);
 				if (error.conflictNode) {
-					result.relatedInformation = [new vscode.DiagnosticRelatedInformation(
-						new vscode.Location(doc.uri, await project.rangeOf(error.conflictNode)),
+					diag.relatedInformation = [new vscode.DiagnosticRelatedInformation(
+						new vscode.Location(uri, await project.rangeOf(error.conflictNode)),
 						await project.textOf(error.conflictNode)
 					)];
 				}
-				return result;
-			});
-			diagnostcis.set(doc.uri, await Promise.all(diag));
+				diags.push(diag);
+			}
+			diagCollection.set(uri, diags);
 		}
 	}
-	vscode.workspace.textDocuments.forEach(validateDoc);
-	context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => diagnostcis.set(doc.uri, undefined)));
-	context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(doc => validateDoc(doc)));
-	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(e => validateDoc(e.document)));
+	let handle: NodeJS.Timeout;
+	function validateAllSoon() {
+		clearTimeout(handle);
+		handle = setTimeout(() => validateAll(), 200);
+	}
+	vscode.workspace.textDocuments.forEach(doc => {
+		if (vscode.languages.match(selector, doc)) {
+			project.getOrCreate(doc);
+			validateAllSoon();
+		}
+	});
+	context.subscriptions.push(vscode.workspace.onDidOpenTextDocument(() => validateAllSoon()));
+	context.subscriptions.push(vscode.workspace.onDidChangeTextDocument(() => validateAllSoon()));
+	// context.subscriptions.push(vscode.workspace.onDidCloseTextDocument(doc => {
+	// 	diagnostcis.set(doc.uri, undefined);
+	// }));
 
 	// Hover - debug, emit
 	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
