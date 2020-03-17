@@ -41,7 +41,7 @@ export function activate(context: vscode.ExtensionContext) {
 			stack.shift();
 
 			return new vscode.Hover(
-				stack.map(async node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
+				stack.map(node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
 				project.rangeOf(stack[stack.length - 1])
 			);
 		}
