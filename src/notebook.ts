@@ -37,7 +37,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
         }
         const doc = await vscode.workspace.openTextDocument(cell.uri);
         const query = this.project.getOrCreate(doc);
-        const lines = await this.project.emit(query, doc.uri);
+        const lines = this.project.emit(query, doc.uri);
 
         cell.outputs = lines.map(line => ({
             outputKind: vscode.CellOutputKind.Text,

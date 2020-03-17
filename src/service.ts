@@ -5,13 +5,13 @@
 
 import * as vscode from 'vscode';
 import { SymbolTable, SymbolKind, UserSymbol } from './parser/symbols';
-import { QueryDocumentNode, Node, Utils, NodeType, VariableDefinitionNode } from './parser/nodes';
+import { QueryDocumentNode, Node, Utils } from './parser/nodes';
 import { Parser } from './parser/parser';
 
 export class QueryDocumentProject {
 
     private _nodeToUri = new WeakMap<Node, vscode.Uri>();
-    private _cached = new Map<string, { versionParsed: number, uri: vscode.Uri, node: QueryDocumentNode; }>();
+    private _cached = new Map<string, { versionParsed: number, doc: vscode.TextDocument, node: QueryDocumentNode; }>();
     private _parser = new Parser();
 
     readonly symbols: SymbolTable = new SymbolTable();
@@ -19,13 +19,14 @@ export class QueryDocumentProject {
     getOrCreate(doc: vscode.TextDocument): QueryDocumentNode {
         let value = this._cached.get(doc.uri.toString());
         if (!value || value.versionParsed !== doc.version) {
+            const text = doc.getText();
             value = {
-                node: this._parser.parse(doc.getText()),
+                node: this._parser.parse(text),
                 versionParsed: doc.version,
-                uri: doc.uri
+                doc
             };
             this._cached.set(doc.uri.toString(), value);
-            this.symbols.update(value.node, value.uri);
+            this.symbols.update(value.node, value.doc.uri);
             Utils.walk(value.node, node => this._nodeToUri.set(node, doc.uri));
         }
         return value.node;
@@ -39,37 +40,33 @@ export class QueryDocumentProject {
         return this._cached.values();
     }
 
-    async rangeOf(node: Node, uri?: vscode.Uri) {
+    private _lookUp(node: Node, uri?: vscode.Uri) {
         if (!uri) {
             uri = this._nodeToUri.get(node);
         }
         if (!uri) {
             throw new Error('unknown node');
         }
-        const doc = await vscode.workspace.openTextDocument(uri);
-        const range = new vscode.Range(doc.positionAt(node.start), doc.positionAt(node.end));
-        return range;
+        const entry = this._cached.get(uri.toString());
+        if (!entry) {
+            throw new Error('unknown file' + uri);
+        }
+        return entry;
     }
 
-    async textOf(node: Node, uri?: vscode.Uri) {
-        if (!uri) {
-            uri = this._nodeToUri.get(node);
-        }
-        if (!uri) {
-            throw new Error('unknown node');
-        }
-        const doc = await vscode.workspace.openTextDocument(uri);
+    rangeOf(node: Node, uri?: vscode.Uri) {
+        const entry = this._lookUp(node, uri);
+        return new vscode.Range(entry.doc.positionAt(node.start), entry.doc.positionAt(node.end));
+    }
+
+    textOf(node: Node, uri?: vscode.Uri) {
+        const { doc } = this._lookUp(node, uri);
         const range = new vscode.Range(doc.positionAt(node.start), doc.positionAt(node.end));
         return doc.getText(range);
     }
 
-    async emit(query: QueryDocumentNode, uri?: vscode.Uri) {
-        if (!uri) {
-            uri = this._nodeToUri.get(query);
-        }
-        if (!uri) {
-            throw new Error('unknown node');
-        }
+    emit(query: QueryDocumentNode, uri?: vscode.Uri) {
+        const entry = this._lookUp(query, uri);
         const variableValues = new Map<string, string>();
 
         // all user defined
@@ -93,12 +90,11 @@ export class QueryDocumentProject {
 
         // print symbol from definition
         for (let symbol of symbols) {
-            const text = (await vscode.workspace.openTextDocument(symbol.uri)).getText();
-            const value = Utils.print(symbol.def.value, { text, variableValues });
+            const entry = this._cached.get(symbol.uri.toString())!;
+            const value = Utils.print(symbol.def.value, { text: entry.doc.getText(), variableValues });
             variableValues.set(symbol.name, '' + value);
         }
 
-        const text = (await vscode.workspace.openTextDocument(uri)).getText();
-        return Utils.print(query, { text, variableValues });
+        return Utils.print(query, { text: entry.doc.getText(), variableValues });
     }
 };

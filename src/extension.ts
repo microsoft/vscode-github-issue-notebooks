@@ -10,6 +10,7 @@ import { validateQueryDocument } from './parser/validation';
 import { SymbolKind } from './parser/symbols';
 import { QueryDocumentProject } from './service';
 import { IssuesNotebookProvider } from './notebook';
+import { Scanner, TokenType } from './parser/scanner';
 
 export function activate(context: vscode.ExtensionContext) {
 
@@ -40,8 +41,8 @@ export function activate(context: vscode.ExtensionContext) {
 			stack.shift();
 
 			return new vscode.Hover(
-				(await Promise.all(stack.map(async node => `- \`${await project.textOf(node)}\` (*${node._type}*)\n`))).join(''),
-				await project.rangeOf(stack[stack.length - 1])
+				stack.map(async node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
+				project.rangeOf(stack[stack.length - 1])
 			);
 		}
 	}));
@@ -133,12 +134,12 @@ export function activate(context: vscode.ExtensionContext) {
 				return;
 			}
 
-			let result: Promise<vscode.Location>[] = [];
+			let result: vscode.Location[] = [];
 			for (let entry of project.all()) {
 				Utils.walk(entry.node, (candidate, parent) => {
 					if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
 						if (context.includeDeclaration || parent?._type !== NodeType.VariableDefinition) {
-							result.push(project.rangeOf(candidate, entry.uri).then(range => new vscode.Location(entry.uri, range)));
+							result.push(new vscode.Location(entry.doc.uri, project.rangeOf(candidate)));
 						}
 					}
 				});
@@ -165,25 +166,26 @@ export function activate(context: vscode.ExtensionContext) {
 			const query = project.getOrCreate(document);
 			const offset = document.offsetAt(position);
 			const node = Utils.nodeAt(query, offset);
-			if (node?._type !== NodeType.VariableName) {
-				return;
+
+			if (node?._type === NodeType.VariableName) {
+				// rename variable
+				if (!newName.startsWith('$')) {
+					newName = '$' + newName;
+				}
+				const scanner = new Scanner().reset(newName);
+				if (scanner.next().type !== TokenType.VariableName || scanner.next().type !== TokenType.EOF) {
+					throw new Error(`invalid name: ${newName}`);
+				}
+				const edit = new vscode.WorkspaceEdit();
+				for (let entry of project.all()) {
+					Utils.walk(entry.node, candidate => {
+						if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
+							edit.replace(entry.doc.uri, project.rangeOf(candidate), newName);
+						}
+					});
+				}
+				return edit;
 			}
-			if (!newName.startsWith('$')) {
-				newName = '$' + newName;
-			}
-			const edit = new vscode.WorkspaceEdit();
-			const work: Promise<any>[] = [];
-			for (let entry of project.all()) {
-				Utils.walk(entry.node, candidate => {
-					if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
-						work.push(project.rangeOf(candidate, entry.uri).then(range => {
-							edit.replace(entry.uri, range, newName);
-						}));
-					}
-				});
-			}
-			await Promise.all(work);
-			return edit;
 		}
 	}));
 
@@ -196,13 +198,13 @@ export function activate(context: vscode.ExtensionContext) {
 			if (node?._type !== NodeType.VariableName) {
 				return;
 			}
-			const result: Promise<vscode.DocumentHighlight>[] = [];
+			const result: vscode.DocumentHighlight[] = [];
 			Utils.walk(query, (candidate, parent) => {
 				if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
-					result.push(project.rangeOf(candidate, document.uri).then(range => new vscode.DocumentHighlight(
-						range,
+					result.push(new vscode.DocumentHighlight(
+						project.rangeOf(candidate, document.uri),
 						parent?._type === NodeType.VariableDefinition ? vscode.DocumentHighlightKind.Write : vscode.DocumentHighlightKind.Read
-					)));
+					));
 				}
 			});
 			return Promise.all(result);
@@ -219,20 +221,20 @@ export function activate(context: vscode.ExtensionContext) {
 			}
 		});
 		// validate all
-		for (let { uri, node } of project.all()) {
+		for (let { doc, node } of project.all()) {
 			const diags: vscode.Diagnostic[] = [];
 			const errors = validateQueryDocument(node, project.symbols);
 			for (let error of errors) {
-				const diag = new vscode.Diagnostic(await project.rangeOf(error.node), error.message);
+				const diag = new vscode.Diagnostic(project.rangeOf(error.node), error.message);
 				if (error.conflictNode) {
 					diag.relatedInformation = [new vscode.DiagnosticRelatedInformation(
-						new vscode.Location(uri, await project.rangeOf(error.conflictNode)),
-						await project.textOf(error.conflictNode)
+						new vscode.Location(doc.uri, project.rangeOf(error.conflictNode)),
+						project.textOf(error.conflictNode)
 					)];
 				}
 				diags.push(diag);
 			}
-			diagCollection.set(uri, diags);
+			diagCollection.set(doc.uri, diags);
 		}
 	}
 	let handle: NodeJS.Timeout;
@@ -251,7 +253,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
 		async provideHover(document: vscode.TextDocument) {
 			const query = project.getOrCreate(document);
-			const lines = await project.emit(query, document.uri);
+			const lines = project.emit(query, document.uri);
 			return new vscode.Hover('```\n' + lines.map((line, i) => `[${i}]: ${line}`).join('\n') + '\n```');
 		}
 	}));
