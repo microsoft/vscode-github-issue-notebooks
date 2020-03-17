@@ -213,6 +213,9 @@ export namespace Utils {
     function _flatten<T>(...args: (T | T[])[]): T[] {
         let result: T[] = [];
         for (let arg of args) {
+            if (!arg) {
+                continue;
+            }
             if (Array.isArray(arg)) {
                 result = result.concat(arg);
             } else {

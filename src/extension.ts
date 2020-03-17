@@ -204,7 +204,7 @@ export function activate(context: vscode.ExtensionContext) {
 		async provideHover(document: vscode.TextDocument) {
 			const query = project.getOrCreate(document);
 			const lines = await project.emit(query, document.uri);
-			return new vscode.Hover('```\n' + lines.join('\n') + '\n```');
+			return new vscode.Hover('```\n' + lines.map((line, i) => `[${i}]: ${line}`).join('\n') + '\n```');
 		}
 	}));
 }
