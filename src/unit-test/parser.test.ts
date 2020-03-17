@@ -93,6 +93,11 @@ suite('Print Nodes', function () {
         assertPrinted('foo NOT bar //comment', ['foo NOT bar']);
     });
 
+    test('improper printing', function () {
+        this.skip();
+        assertPrinted('label=bug'); //todo@jrieken
+    });
+
     test('or-expression', function () {
         assertPrinted('label:bug OR label:foo', ['label:bug', 'label:foo']);
         assertPrinted('label:bug OR label:foo OR label:"123"', ['label:bug', 'label:foo', 'label:"123"']);
