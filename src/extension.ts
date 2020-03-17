@@ -141,6 +141,45 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
+	// Rename
+	// todo@jrieken consolidate with find references?
+	context.subscriptions.push(vscode.languages.registerRenameProvider(selector, new class implements vscode.RenameProvider {
+		prepareRename(document: vscode.TextDocument, position: vscode.Position) {
+			const query = project.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const node = Utils.nodeAt(query, offset);
+			if (node?._type !== NodeType.VariableName) {
+				throw Error('Only variables names can be renamed');
+			}
+			return project.rangeOf(node, document.uri);
+		}
+
+		async provideRenameEdits(document: vscode.TextDocument, position: vscode.Position, newName: string) {
+			const query = project.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const node = Utils.nodeAt(query, offset);
+			if (node?._type !== NodeType.VariableName) {
+				return;
+			}
+			if (!newName.startsWith('$')) {
+				newName = '$' + newName;
+			}
+			const edit = new vscode.WorkspaceEdit();
+			const work: Promise<any>[] = [];
+			for (let entry of project.all()) {
+				Utils.walk(entry.node, candidate => {
+					if (candidate._type === NodeType.VariableName && candidate.value === node.value) {
+						work.push(project.rangeOf(candidate, entry.uri).then(range => {
+							edit.replace(entry.uri, range, newName);
+						}));
+					}
+				});
+			}
+			await Promise.all(work);
+			return edit;
+		}
+	}));
+
 	// Document Highlights
 	context.subscriptions.push(vscode.languages.registerDocumentHighlightProvider(selector, new class implements vscode.DocumentHighlightProvider {
 		provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.DocumentHighlight[]> {
