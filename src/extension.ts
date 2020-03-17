@@ -211,6 +211,24 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 
+	// Semantic Tokens
+	const legend = new vscode.SemanticTokensLegend(['keyword'], ['']);
+	context.subscriptions.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new class implements vscode.DocumentSemanticTokensProvider {
+
+		provideDocumentSemanticTokens(document: vscode.TextDocument) {
+			const builder = new vscode.SemanticTokensBuilder();
+			const query = project.getOrCreate(document);
+			Utils.walk(query, node => {
+				if (node._type === NodeType.OrExpression) {
+					const { line, character } = document.positionAt(node.or.start);
+					builder.push(line, character, node.or.end - node.or.start, 0, 0);
+				}
+			});
+			return new vscode.SemanticTokens(builder.build());
+		}
+
+	}, legend));
+
 	// Validation
 	const diagCollection = vscode.languages.createDiagnosticCollection();
 	async function validateAll() {

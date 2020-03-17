@@ -23,7 +23,7 @@
 					"GitHub Issues"
 				],
 				"filenamePatterns": [
-					"*.github-issues"
+					"*.github-issues.txt"
 				]
 			}
 		],

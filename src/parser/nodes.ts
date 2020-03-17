@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { TokenType } from "./scanner";
+import { TokenType, Token } from "./scanner";
 
 export const enum NodeType {
     Any = 'Any',
@@ -12,7 +12,7 @@ export const enum NodeType {
     Literal = 'Literal',
     Missing = 'Missing',
     Number = 'Number',
-    OrExpression = 'BinaryExpression',
+    OrExpression = 'OrExpression',
     QualifiedValue = 'QualifiedValue',
     Query = 'Query',
     QueryDocument = 'QueryDocument',
@@ -88,6 +88,7 @@ export interface QueryNode extends BaseNode {
 
 export interface OrExpressionNode extends BaseNode {
     _type: NodeType.OrExpression;
+    or: Token;
     left: QueryNode;
     right: QueryNode | OrExpressionNode;
 }

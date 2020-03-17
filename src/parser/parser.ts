@@ -66,6 +66,7 @@ export class Parser {
                     const left = this._createContainerNode(nodes, NodeType.Query);
                     return {
                         _type: NodeType.OrExpression,
+                        or: tk,
                         start: left.start,
                         end: right?.end || tk.end,
                         left,
