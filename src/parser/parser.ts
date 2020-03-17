@@ -44,6 +44,8 @@ export class Parser {
         return this._createContainerNode(nodes, NodeType.QueryDocument);
     }
 
+    private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined;
+    private _parseQuery(allowOR: false): QueryNode | undefined;
     private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
         let nodes: Node[] = [];
         while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
@@ -168,7 +170,7 @@ export class Parser {
             _type: NodeType.Compare,
             start: cmp.start,
             end: value.end,
-            cmp: cmp.type,
+            cmp: this._scanner.value(cmp),
             value: value
         };
     }

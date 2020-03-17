@@ -36,11 +36,6 @@ export interface MissingNode extends BaseNode {
     message: string;
 }
 
-export interface QueryNode extends BaseNode {
-    _type: NodeType.Query;
-    nodes: Node[];
-}
-
 export interface LiteralNode extends BaseNode {
     _type: NodeType.Literal;
     value: string;
@@ -58,7 +53,7 @@ export interface DateNode extends BaseNode {
 
 export interface CompareNode extends BaseNode {
     _type: NodeType.Compare;
-    cmp: TokenType.LessThan | TokenType.LessThanEqual | TokenType.GreaterThan | TokenType.GreaterThanEqual;
+    cmp: string;
     value: DateNode | NumberNode | MissingNode;
 }
 
@@ -72,7 +67,7 @@ export interface QualifiedValueNode extends BaseNode {
     _type: NodeType.QualifiedValue;
     not: boolean;
     qualifier: LiteralNode;
-    value: Node;
+    value: SimpleNode;
 }
 
 export interface VariableNameNode extends BaseNode {
@@ -83,22 +78,30 @@ export interface VariableNameNode extends BaseNode {
 export interface VariableDefinitionNode extends BaseNode {
     _type: NodeType.VariableDefinition;
     name: VariableNameNode;
-    value: Node | MissingNode;
+    value: QueryNode | MissingNode;
+}
+
+export interface QueryNode extends BaseNode {
+    _type: NodeType.Query;
+    nodes: SimpleNode[];
 }
 
 export interface OrExpressionNode extends BaseNode {
     _type: NodeType.OrExpression;
-    left: Node;
-    right: Node;
+    left: QueryNode;
+    right: QueryNode | OrExpressionNode;
 }
 
 export interface QueryDocumentNode extends BaseNode {
     _type: NodeType.QueryDocument;
-    nodes: Node[];
+    nodes: (QueryNode | OrExpressionNode | VariableDefinitionNode)[];
 }
 
-export type Node = QueryDocumentNode | QueryNode | OrExpressionNode | VariableDefinitionNode | VariableNameNode
-    | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+
+export type Node = QueryDocumentNode // level 1
+    | QueryNode | OrExpressionNode | VariableDefinitionNode // level 2
+    | SimpleNode;
 
 
 export interface NodeVisitor {
@@ -207,19 +210,20 @@ export namespace Utils {
         return node.start <= offset && offset <= node.end;
     }
 
+    function _flatten<T>(...args: (T | T[])[]): T[] {
+        let result: T[] = [];
+        for (let arg of args) {
+            if (Array.isArray(arg)) {
+                result = result.concat(arg);
+            } else {
+                result.push(arg);
+            }
+        }
+        return result;
+    }
+
     export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string[] {
         const { text, variableValues } = ctx;
-        function _flatten<T>(...args: (T | T[])[]): T[] {
-            let result: T[] = [];
-            for (let arg of args) {
-                if (Array.isArray(arg)) {
-                    result = result.concat(arg);
-                } else {
-                    result.push(arg);
-                }
-            }
-            return result;
-        }
 
         function _print(node: Node): string | string[] {
 
@@ -238,13 +242,7 @@ export namespace Utils {
                     return text.substring(node.start, node.end);
                 case NodeType.Compare:
                     // >=aaa etc
-                    const cmp = new Map<TokenType, string>([
-                        [TokenType.GreaterThan, '>'],
-                        [TokenType.GreaterThanEqual, '>='],
-                        [TokenType.LessThan, '<'],
-                        [TokenType.LessThanEqual, '<='],
-                    ]).get(node.cmp);
-                    return `${cmp}${_print(node.value)}`;
+                    return `${node.cmp}${_print(node.value)}`;
                 case NodeType.Range:
                     // aaa..bbb, *..ccc, ccc..*
                     return node.open && node.close
