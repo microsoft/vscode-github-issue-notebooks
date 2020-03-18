@@ -8,7 +8,7 @@ import { SymbolTable, SymbolKind, UserSymbol } from './parser/symbols';
 import { QueryDocumentNode, Node, Utils } from './parser/nodes';
 import { Parser } from './parser/parser';
 
-export class QueryDocumentProject {
+export class Project {
 
     private _nodeToUri = new WeakMap<Node, vscode.Uri>();
     private _cached = new Map<string, { versionParsed: number, doc: vscode.TextDocument, node: QueryDocumentNode; }>();
@@ -98,4 +98,29 @@ export class QueryDocumentProject {
         }
         return result;
     }
+}
+
+
+export interface ProjectAssociation {
+    has(uri: vscode.Uri): boolean;
+}
+
+export class ProjectContainer {
+
+    private readonly _associations = new Map<ProjectAssociation, Project>();
+
+    register(association: ProjectAssociation, project: Project) {
+        this._associations.set(association, project);
+    }
+
+    lookupProject(uri: vscode.Uri): Project {
+        for (let [association, value] of this._associations) {
+            if (association.has(uri)) {
+                return value;
+            }
+        }
+        console.log('RETURNING EMPTY project for ' + uri.toString());
+        return new Project();
+    }
+
 }

@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { QueryDocumentProject } from './service';
+import { Project, ProjectContainer } from './project';
 
 interface RawNotebookCell {
     language: string;
@@ -14,9 +14,14 @@ interface RawNotebookCell {
 
 export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
-    constructor(readonly project: QueryDocumentProject) { }
+    constructor(readonly container: ProjectContainer) { }
 
     async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
+
+        // todo@API unregister?
+        this.container.register({
+            has: (uri) => editor.document.cells.find(cell => cell.uri.toString() === uri.toString()) !== undefined
+        }, new Project());
 
         editor.document.languages = ['github-issues'];
 
@@ -36,8 +41,9 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
             return;
         }
         const doc = await vscode.workspace.openTextDocument(cell.uri);
-        const query = this.project.getOrCreate(doc);
-        const lines = this.project.emit(query, doc.uri);
+        const project = this.container.lookupProject(doc.uri);
+        const query = project.getOrCreate(doc);
+        const lines = project.emit(query, doc.uri);
 
         cell.outputs = lines.map(line => ({
             outputKind: vscode.CellOutputKind.Text,
