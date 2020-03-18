@@ -110,16 +110,18 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 			bucket.push(new ValidationError(node, node.message));
 			return;
 		}
-		// todo@jrieken undefined variables, 
-		// todo@jrieken recursive variable - usage
+		// todo@jrieken undefined variables
 	});
 }
 
-function validateVariableDefinition(node: VariableDefinitionNode, bucket: ValidationError[]) {
+function validateVariableDefinition(defNode: VariableDefinitionNode, bucket: ValidationError[]) {
 	// var-decl: no OR-statement 
-	Utils.walk(node.value, node => {
+	Utils.walk(defNode.value, node => {
 		if (node._type === NodeType.Any && node.tokenType === TokenType.OR) {
-			bucket.push(new ValidationError(node, `OR will be ignored for variable declarations`));
+			bucket.push(new ValidationError(node, `OR is not supported when defining a variable`));
+		}
+		if (node._type === NodeType.VariableName && node.value === defNode.name.value) {
+			bucket.push(new ValidationError(node, `Cannot reference a variable from its definition`));
 		}
 	});
 }
