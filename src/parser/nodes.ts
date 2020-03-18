@@ -257,7 +257,15 @@ export namespace Utils {
 					return `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
 				case NodeType.Query:
 					// aaa bbb ccc
-					return node.nodes.map(_print).join(' ');
+					let result = '';
+					let lastEnd = -1;
+					for (let child of node.nodes) {
+						let value = _print(child);
+						result += lastEnd !== -1 && child.start !== lastEnd ? ' ' : '';
+						result += value;
+						lastEnd = child.end;
+					}
+					return result;
 				case NodeType.OrExpression:
 					// each OR-part becomes a separate query
 					return _flatten(_print(node.left), _print(node.right));

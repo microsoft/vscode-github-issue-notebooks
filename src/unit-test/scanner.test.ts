@@ -27,6 +27,9 @@ suite('Scanner', function () {
 		assertTokenTypes('2020-03-11T12:30:00+12:88', TokenType.DateTime);
 		assertTokenTypes('2020-03-11', TokenType.Date);
 		assertTokenTypes('2', TokenType.Number);
+		assertTokenTypes('2dd', TokenType.Literal);
+		assertTokenTypes('dd2', TokenType.Literal);
+		assertTokenTypes('dd', TokenType.Literal);
 		assertTokenTypes('"abc"', TokenType.QuotedLiteral);
 		assertTokenTypes('"a b-c 123"', TokenType.QuotedLiteral);
 		assertTokenTypes(':', TokenType.Colon);

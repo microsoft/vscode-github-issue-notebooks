@@ -92,9 +92,12 @@ suite('Print Nodes', function () {
 		assertPrinted('foo NOT bar //comment', ['foo NOT bar']);
 	});
 
-	test('improper printing', function () {
-		this.skip();
-		assertPrinted('label=bug'); //todo@jrieken
+	test('print bogous nodes', function () {
+		assertPrinted('label:bug');
+		assertPrinted('label:bug123');
+		assertPrinted('label=bug');
+		assertPrinted('label=bug foo=b#ar');
+		assertPrinted('label=bug foo=2020-04-19ar');
 	});
 
 	test('or-expression', function () {
