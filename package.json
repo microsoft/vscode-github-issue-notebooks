@@ -2,6 +2,7 @@
 	"name": "vscode-github-issue-notebooks",
 	"displayName": "GitHub Issue Notebooks",
 	"description": "GitHub Issue Notebooks for VS Code",
+	"publisher": "vscode",
 	"version": "0.0.1",
 	"enableProposedApi": true,
 	"engines": {
@@ -69,5 +70,8 @@
 		"mocha": "^7.0.1",
 		"typescript": "^3.8.3",
 		"vscode-test": "^1.3.0"
+	},
+	"dependencies": {
+		"@octokit/rest": "^17.1.0"
 	}
 }

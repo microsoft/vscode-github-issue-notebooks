@@ -5,6 +5,7 @@
 
 import * as vscode from 'vscode';
 import { Project, ProjectContainer } from './project';
+import { Octokit } from '@octokit/rest';
 
 interface RawNotebookCell {
 	language: string;
@@ -14,7 +15,28 @@ interface RawNotebookCell {
 
 export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
-	constructor(readonly container: ProjectContainer) { }
+	private _octokit = new Octokit();
+
+	constructor(
+		readonly container: ProjectContainer,
+	) { }
+
+	private async _withOctokit() {
+		try {
+			let [first] = await vscode.authentication.getSessions('github', []);
+			if (!first) {
+				first = await vscode.authentication.login('github', []);
+			}
+			const token = await first.getAccessToken();
+			this._octokit = new Octokit({ auth: token });
+
+		} catch (err) {
+			// no token
+			console.warn('FAILED TO AUTHENTICATE');
+			console.warn(err);
+		}
+		return this._octokit;
+	}
 
 	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
 
@@ -45,10 +67,67 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const query = project.getOrCreate(doc);
 		const lines = project.emit(query, doc.uri);
 
-		cell.outputs = lines.map(line => ({
-			outputKind: vscode.CellOutputKind.Text,
-			text: line
-		}));
+		try {
+			type SearchIssuesAndPullRequestsResponseItemsItem = {
+				assignee: null;
+				body: string;
+				closed_at: null;
+				comments: number;
+				comments_url: string;
+				created_at: string;
+				events_url: string;
+				html_url: string;
+				id: number;
+				labels_url: string;
+				milestone: null;
+				node_id: string;
+				number: number;
+				repository_url: string;
+				score: number;
+				state: string;
+				title: string;
+				updated_at: string;
+				url: string;
+				// labels: Array<SearchIssuesAndPullRequestsResponseItemsItemLabelsItem>;
+				// pull_request: SearchIssuesAndPullRequestsResponseItemsItemPullRequest;
+				// user: SearchIssuesAndPullRequestsResponseItemsItemUser;
+			};
+
+			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
+
+			for (let line of lines) {
+				const octokit = await this._withOctokit();
+				const options = octokit.search.issuesAndPullRequests.endpoint.merge({ q: line, per_page: 100, });
+				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
+				allItems = allItems.concat(items);
+			}
+
+			// markdown
+			const seen = new Set<number>();
+			let md = '';
+			for (let item of allItems) {
+				if (seen.has(item.id)) {
+					continue;
+				}
+				md += `- ${item.title} [#${item.number}](${item.html_url})\n`;
+				seen.add(item.id);
+			}
+
+			cell.outputs = [{
+				outputKind: vscode.CellOutputKind.Rich,
+				data: {
+					['text/markdown']: md,
+					['text/plain']: lines.join('\n\n')
+				}
+			}];
+
+		} catch (err) {
+			console.error(err);
+			cell.outputs = [{
+				outputKind: vscode.CellOutputKind.Text,
+				text: JSON.stringify(err)
+			}];
+		}
 	}
 
 	async save(document: vscode.NotebookDocument): Promise<boolean> {
