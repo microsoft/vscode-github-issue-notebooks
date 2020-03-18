@@ -115,4 +115,82 @@ suite('Print Nodes', function () {
 		assertPrinted('label:$zzz OR foo $zzz', ['label:xxx', 'foo xxx'], new Map([['$zzz', 'xxx']]));
 	});
 
+
+	test('GH Samples', function () {
+		// all from https://help.github.com/en/github/searching-for-information-on-github/understanding-the-search-syntax
+		assertPrinted('cats stars:>1000');
+		assertPrinted('cats topics:>=5');
+		assertPrinted('cats size:<10000');
+		assertPrinted('cats stars:<=50');
+		assertPrinted('cats stars:10..*');
+		assertPrinted('cats stars:*..10');
+		assertPrinted('cats stars:10..50');
+		assertPrinted('cats created:>2016-04-29');
+		assertPrinted('cats created:>=2017-04-01');
+		assertPrinted('cats pushed:<2012-07-05');
+		assertPrinted('cats created:<=2012-07-04');
+		assertPrinted('cats pushed:2016-04-30..2016-07-04');
+		assertPrinted('cats created:2012-04-30..*');
+		assertPrinted('cats created:*..2012-04-30');
+		assertPrinted('cats created:2017-01-01T01:00:00+07:00..2017-03-01T15:30:15+07:00');
+		assertPrinted('cats created:2016-03-21T14:11:00Z..2016-04-07T20:45:00Z');
+		assertPrinted('hello NOT world');
+		assertPrinted('cats stars:>10 -language:javascript');
+		assertPrinted('mentions:defunkt -org:github');
+		assertPrinted('cats NOT "hello world"');
+		assertPrinted('build label:"bug fix"');
+		assertPrinted('author:nat');
+		assertPrinted('is:issue assignee:@me');
+	});
+
+	test('GH Samples 2', function () {
+		// https://help.github.com/en/github/searching-for-information-on-github/searching-issues-and-pull-requests
+		// USE [...document.querySelectorAll('a[href*="https://github.com/search?"]')].map(a => a.textContent).join('\n')
+		assertPrinted('cat type:pr');
+		assertPrinted('github commenter:defunkt type:issue');
+		assertPrinted('warning in:title');
+		assertPrinted('error in:title,body');
+		assertPrinted('shipit in:comments');
+		assertPrinted('user:defunkt ubuntu');
+		assertPrinted('org:github');
+		assertPrinted('repo:mozilla/shumway created:<2012-03-01');
+		assertPrinted('performance is:open is:issue');
+		assertPrinted('is:public');
+		assertPrinted('is:private cupcake');
+		assertPrinted('cool author:gjtorikian');
+		assertPrinted('bootstrap in:body author:mdo');
+		assertPrinted('author:app/robot');
+		assertPrinted('resque mentions:defunkt');
+		assertPrinted('involves:defunkt involves:jlord');
+		assertPrinted('NOT bootstrap in:body involves:mdo');
+		assertPrinted('repo:desktop/desktop is:open linked:pr');
+		assertPrinted('repo:desktop/desktop is:closed linked:issue');
+		assertPrinted('repo:desktop/desktop is:open -linked:pr');
+		assertPrinted('repo:desktop/desktop is:open -linked:issue');
+		assertPrinted('broken in:body -label:bug label:priority');
+		assertPrinted('e1109ab');
+		assertPrinted('0eff326d6213c is:merged');
+		assertPrinted('language:ruby state:open');
+		assertPrinted('state:closed comments:>100');
+		assertPrinted('comments:500..1000');
+		assertPrinted('interactions:>2000');
+		assertPrinted('interactions:500..1000');
+		assertPrinted('reactions:>1000');
+		assertPrinted('reactions:500..1000');
+		assertPrinted('draft:true');
+		assertPrinted('draft:false');
+		assertPrinted('type:pr team-review-requested:atom/design');
+		assertPrinted('language:c# created:<2011-01-01 state:open');
+		assertPrinted('weird in:body updated:>=2013-02-01');
+		assertPrinted('language:swift closed:>2014-06-11');
+		assertPrinted('language:javascript merged:<2011-01-01');
+		assertPrinted('fast in:title language:ruby merged:>=2014-05-01');
+		assertPrinted('archived:true GNOME');
+		assertPrinted('archived:false GNOME');
+		assertPrinted('code of conduct is:locked is:issue archived:false');
+		assertPrinted('code of conduct is:unlocked is:issue archived:false');
+		assertPrinted('priority no:label');
+		assertPrinted('sprint no:milestone type:issue');
+		assertPrinted('important no:assignee language:java type:issue');
+	});
 });
