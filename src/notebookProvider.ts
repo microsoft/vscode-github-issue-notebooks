@@ -42,9 +42,11 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
 
 		// todo@API unregister?
-		this.container.register({
-			has: (uri) => editor.document.cells.find(cell => cell.uri.toString() === uri.toString()) !== undefined
-		}, new Project());
+		this.container.register(
+			editor.document.uri,
+			{ has: (uri) => editor.document.cells.find(cell => cell.uri.toString() === uri.toString()) !== undefined },
+			new Project()
+		);
 
 		editor.document.languages = ['github-issues'];
 
@@ -69,31 +71,6 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const lines = project.emit(query, doc.uri);
 
 		try {
-			type SearchIssuesAndPullRequestsResponseItemsItem = {
-				assignee: null;
-				body: string;
-				closed_at: null;
-				comments: number;
-				comments_url: string;
-				created_at: string;
-				events_url: string;
-				html_url: string;
-				id: number;
-				labels_url: string;
-				milestone: null;
-				node_id: string;
-				number: number;
-				repository_url: string;
-				score: number;
-				state: string;
-				title: string;
-				updated_at: string;
-				url: string;
-				// labels: Array<SearchIssuesAndPullRequestsResponseItemsItemLabelsItem>;
-				// pull_request: SearchIssuesAndPullRequestsResponseItemsItemPullRequest;
-				// user: SearchIssuesAndPullRequestsResponseItemsItemUser;
-			};
-
 			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 
 			for (let line of lines) {
@@ -145,3 +122,61 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		return true;
 	}
 }
+
+//#region COPY of type definitions that are well hidden inside @octokit/types
+declare type SearchIssuesAndPullRequestsResponseItemsItemUser = {
+	avatar_url: string;
+	events_url: string;
+	followers_url: string;
+	following_url: string;
+	gists_url: string;
+	gravatar_id: string;
+	html_url: string;
+	id: number;
+	login: string;
+	node_id: string;
+	organizations_url: string;
+	received_events_url: string;
+	repos_url: string;
+	starred_url: string;
+	subscriptions_url: string;
+	type: string;
+	url: string;
+};
+declare type SearchIssuesAndPullRequestsResponseItemsItemPullRequest = {
+	diff_url: null;
+	html_url: null;
+	patch_url: null;
+};
+declare type SearchIssuesAndPullRequestsResponseItemsItemLabelsItem = {
+	color: string;
+	id: number;
+	name: string;
+	node_id: string;
+	url: string;
+};
+declare type SearchIssuesAndPullRequestsResponseItemsItem = {
+	assignee: null;
+	body: string;
+	closed_at: null;
+	comments: number;
+	comments_url: string;
+	created_at: string;
+	events_url: string;
+	html_url: string;
+	id: number;
+	labels: Array<SearchIssuesAndPullRequestsResponseItemsItemLabelsItem>;
+	labels_url: string;
+	milestone: null;
+	node_id: string;
+	number: number;
+	pull_request: SearchIssuesAndPullRequestsResponseItemsItemPullRequest;
+	repository_url: string;
+	score: number;
+	state: string;
+	title: string;
+	updated_at: string;
+	url: string;
+	user: SearchIssuesAndPullRequestsResponseItemsItemUser;
+};
+//#endregion

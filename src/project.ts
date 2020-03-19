@@ -107,20 +107,23 @@ export interface ProjectAssociation {
 
 export class ProjectContainer {
 
-	private readonly _associations = new Map<ProjectAssociation, Project>();
+	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
 
-	register(association: ProjectAssociation, project: Project) {
-		this._associations.set(association, project);
+	register(uri: vscode.Uri, association: ProjectAssociation, project: Project) {
+		this._associations.set(uri.toString(), [association, project]);
 	}
 
 	lookupProject(uri: vscode.Uri): Project {
-		for (let [association, value] of this._associations) {
+		for (let [association, value] of this._associations.values()) {
 			if (association.has(uri)) {
 				return value;
 			}
 		}
-		console.log('RETURNING EMPTY project for ' + uri.toString());
-		return new Project();
+		console.log('returning AD-HOC project for ' + uri.toString());
+		const project = new Project();
+		const association = { has: (candidate: vscode.Uri) => candidate.toString() === uri.toString() };
+		this._associations.set(uri.toString(), [association, project]);
+		return project;
 	}
 
 }
