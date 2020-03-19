@@ -11,6 +11,7 @@ interface RawNotebookCell {
 	language: string;
 	value: string;
 	kind: vscode.CellKind;
+	outputs: vscode.CellOutput[];
 }
 
 export class IssuesNotebookProvider implements vscode.NotebookProvider {
@@ -53,9 +54,9 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			raw = <RawNotebookCell[]>JSON.parse(contents);
 		} catch {
 			//?
-			raw = [{ kind: vscode.CellKind.Code, language: 'github-issues', value: '' }];
+			raw = [{ kind: vscode.CellKind.Code, language: 'github-issues', value: '', outputs: [] }];
 		}
-		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, []));
+		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, cell.outputs ?? []));
 	}
 
 	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined): Promise<void> {
@@ -136,7 +137,8 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
-				value: cell.getContent()
+				value: cell.getContent(),
+				outputs: cell.outputs
 			});
 		}
 		await vscode.workspace.fs.writeFile(document.uri, Buffer.from(JSON.stringify(contents)));
