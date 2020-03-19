@@ -45,7 +45,34 @@
 					}
 				]
 			}
-		]
+		],
+		"commands": [
+			{
+				"title": "Clear Notebook Cell Output",
+				"command": "github-issues.clearCellOutput",
+				"icon": "$(clear-all)"
+			},
+			{
+				"title": "Clear All Notebook Cells Output",
+				"command": "github-issues.clearAllCellsOutput",
+				"icon": "$(clear-all)"
+			}
+		],
+		"menus": {
+			"editor/title": [
+				{
+					"command": "github-issues.clearAllCellsOutput",
+					"group": "navigation",
+					"when": "notebookEditorFocused"
+				}
+			],
+			"notebook/cell/title": [
+				{
+					"command": "github-issues.clearCellOutput",
+					"when": "notebookCellType == code"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",

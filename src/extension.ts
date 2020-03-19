@@ -12,5 +12,16 @@ export function activate(context: vscode.ExtensionContext) {
 	const projectContainer = new ProjectContainer();
 	context.subscriptions.push(vscode.window.registerNotebookProvider('github-issues', new IssuesNotebookProvider(projectContainer)));
 	context.subscriptions.push(registerLanguageProvider(projectContainer));
+
+	// commands
+	context.subscriptions.push(vscode.commands.registerCommand('github-issues.clearAllCellsOutput', () => {
+		if (vscode.window.activeNotebookDocument) {
+			vscode.window.activeNotebookDocument.cells.forEach(cell => cell.outputs = []);
+		}
+	}));
+
+	context.subscriptions.push(vscode.commands.registerCommand('github-issues.clearCellOutput', (cell: vscode.NotebookCell) => {
+		cell.outputs = [];
+	}));
 }
 
