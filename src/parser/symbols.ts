@@ -79,6 +79,11 @@ export const requiresPrType = new Set<string>([
 ]);
 
 
+export const sortValues = new Set<string>([
+	'comments', 'reactions', 'reactions-+1', 'reactions--1', 'reactions-smile',
+	'reactions-thinking_face', 'reactions-heart', 'reactions-tada', 'created', 'updated'
+]);
+
 export const enum SymbolKind {
 	User, Static
 }

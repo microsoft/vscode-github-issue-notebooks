@@ -159,6 +159,10 @@ export namespace Utils {
 					stack.unshift(node.left);
 					stack.unshift(node);
 					break;
+				case NodeType.SortBy:
+					stack.unshift(node.criteria);
+					stack.unshift(node);
+					break;
 				case NodeType.Query:
 					if (node.sortby) {
 						stack.unshift(node.sortby);

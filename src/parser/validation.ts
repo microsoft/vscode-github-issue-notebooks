@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils } from "./nodes";
-import { ValueType, SymbolTable, SymbolKind, StaticSymbol } from "./symbols";
+import { ValueType, SymbolTable, SymbolKind, StaticSymbol, sortValues } from "./symbols";
 import { TokenType } from "./scanner";
 
 export class ValidationError {
@@ -106,9 +106,10 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 		}
 
 		// sortby types
-		if (node._type === NodeType.SortBy && node.criteria._type === NodeType.Literal) {
-			//todo@jrieken check that this is a supported one
-
+		if (node._type === NodeType.SortBy) {
+			if (node.criteria._type === NodeType.Literal && !sortValues.has(node.criteria.value)) {
+				bucket.push(new ValidationError(node.criteria, `Unknown value, must be one of: ${[...sortValues].join(', ')}`));
+			}
 		}
 
 		// missing nodes

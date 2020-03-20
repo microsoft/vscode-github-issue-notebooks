@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { Node, NodeType, Utils } from './parser/nodes';
 import { validateQueryDocument } from './parser/validation';
-import { SymbolKind } from './parser/symbols';
+import { SymbolKind, sortValues } from './parser/symbols';
 import { ProjectContainer } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
 
@@ -90,29 +90,35 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			const node = Utils.nodeAt(query, offset, parents);
 			const parent = parents[parents.length - 2];
 
-			const result: vscode.CompletionItem[] = [];
+
+			if (parent._type === NodeType.SortBy) {
+				// complete the sortby statement
+				return [...sortValues].map(value => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
+			}
+
 			if (node === query || node?._type === NodeType.Literal) {
 				// globals
 				// todo@jrieken values..
-				for (let symbol of project.symbols.all()) {
-					result.push(new vscode.CompletionItem(
-						symbol.name,
-						symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Enum : vscode.CompletionItemKind.Variable)
-					);
-				}
+				return [...project.symbols.all()].map(symbol => new vscode.CompletionItem(
+					symbol.name,
+					symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Enum : vscode.CompletionItemKind.Variable)
+				);
+			}
 
-			} else if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
+			if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
 				// complete a qualified expression
+				const result: vscode.CompletionItem[] = [];
 				const symbol = project.symbols.get(parent.qualifier.value);
 				if (symbol?.kind === SymbolKind.Static && Array.isArray(symbol.value)) {
+
 					for (let set of symbol.value) {
 						for (let value of set) {
 							result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
 						}
 					}
 				}
+				return result;
 			}
-			return result;
 		}
 	}, ':', '$'));
 
