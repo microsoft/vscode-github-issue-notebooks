@@ -162,6 +162,7 @@ declare type SearchIssuesAndPullRequestsResponseItemsItemLabelsItem = {
 };
 declare type SearchIssuesAndPullRequestsResponseItemsItem = {
 	assignee: null | SearchIssuesAndPullRequestsResponseItemsItemUser;
+	assignees: null | Array<SearchIssuesAndPullRequestsResponseItemsItemUser>;
 	body: string;
 	closed_at: null;
 	comments: number;
