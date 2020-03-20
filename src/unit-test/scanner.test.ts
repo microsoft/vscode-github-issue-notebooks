@@ -55,6 +55,10 @@ suite('Scanner', function () {
 		assertTokenTypes('// aaaaaaa', TokenType.LineComment);
 		assertTokenTypes('//', TokenType.LineComment);
 		assertTokenTypes('// aaaa aaa', TokenType.LineComment);
+		assertTokenTypes('sortby', TokenType.SortBy);
+		assertTokenTypes('fsortby', TokenType.Literal);
+		assertTokenTypes('sortbyf', TokenType.Literal);
+		assertTokenTypes('fsortbyf', TokenType.Literal);
 	});
 
 	test('Sequence', function () {

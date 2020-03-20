@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryNode, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode } from "./nodes";
+import { QueryNode, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SortByNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
 export class Parser {
@@ -48,6 +48,7 @@ export class Parser {
 	private _parseQuery(allowOR: false): QueryNode | undefined;
 	private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
 		let nodes: Node[] = [];
+		let sortby: SortByNode | undefined;
 		while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
 			// skip over whitespace
@@ -56,19 +57,23 @@ export class Parser {
 			}
 
 			// check for OR
-			const tk = allowOR && nodes.length > 0 && this._accept(TokenType.OR);
-			if (tk) {
+			const orTkn = allowOR && nodes.length > 0 && this._accept(TokenType.OR);
+			if (orTkn) {
 				// make this a OrExpressionNode
 				const anchor = this._token;
 				const right = this._parseQuery(allowOR);
 
 				if (right) {
 					const left = this._createContainerNode(nodes, NodeType.Query);
+					if (sortby) {
+						left.sortby = sortby;
+						left.end = sortby.criteria.end;
+					}
 					return {
 						_type: NodeType.OrExpression,
-						or: tk,
+						or: orTkn,
 						start: left.start,
-						end: right?.end || tk.end,
+						end: right?.end || orTkn.end,
 						left,
 						right
 					};
@@ -77,10 +82,29 @@ export class Parser {
 				this._reset(anchor);
 				nodes.push({
 					_type: NodeType.Any,
-					tokenType: tk.type,
-					start: tk.start,
-					end: tk.end
+					tokenType: orTkn.type,
+					start: orTkn.start,
+					end: orTkn.end
 				});
+			}
+
+			// sortby-logic:
+			// (a) we have parse sortby but the query isn't at its end -> treat as normal text
+			// (b) parse sortby and keep it for potential use
+			if (sortby) {
+				nodes.push({
+					_type: NodeType.Literal,
+					start: sortby.keyword.start,
+					end: sortby.keyword.end,
+					value: this._scanner.value(sortby.keyword)
+				});
+				if (sortby.criteria._type !== NodeType.Missing) {
+					nodes.push(sortby.criteria);
+				}
+				sortby = undefined;
+			}
+			if (nodes.length > 0 && (sortby = this._parseSortBy())) {
+				continue;
 			}
 
 			// parse the query AS-IS
@@ -95,9 +119,31 @@ export class Parser {
 			}
 		}
 
-		return nodes.length > 0
-			? this._createContainerNode(nodes, NodeType.Query)
-			: undefined;
+		if (nodes.length === 0) {
+			return undefined;
+		}
+
+		const result = this._createContainerNode(nodes, NodeType.Query);
+		if (sortby) {
+			result.sortby = sortby;
+			result.end = sortby.criteria.end;
+		}
+		return result;
+	}
+
+	private _parseSortBy(): SortByNode | undefined {
+		const keyword = this._accept(TokenType.SortBy);
+		if (keyword) {
+			while (this._accept(TokenType.Whitespace)) { }
+			const criteria = this._parseLiteral() ?? this._createMissing('expected sort criteria');
+			return {
+				_type: NodeType.SortBy,
+				start: keyword.start,
+				end: criteria.end,
+				criteria,
+				keyword
+			};
+		}
 	}
 
 	private _parseAny(type: TokenType): AnyNode | undefined {

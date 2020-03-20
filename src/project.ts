@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { SymbolTable, SymbolKind, UserSymbol } from './parser/symbols';
-import { QueryDocumentNode, Node, Utils } from './parser/nodes';
+import { QueryDocumentNode, Node, Utils, NodeType } from './parser/nodes';
 import { Parser } from './parser/parser';
 
 export class Project {
@@ -65,10 +65,21 @@ export class Project {
 		return doc.getText(range);
 	}
 
-	emit(query: QueryDocumentNode, uri?: vscode.Uri) {
+	queryData(query: QueryDocumentNode, uri?: vscode.Uri) {
 		const entry = this._lookUp(query, uri);
 		const variableValues = this.bindVariableValues();
-		return Utils.print(query, { text: entry.doc.getText(), variableValues });
+
+		const result: { q: string; sort?: string; }[] = [];
+		const ctx = { text: entry.doc.getText(), variableValues };
+		Utils.walk(query, node => {
+			if (node._type === NodeType.Query) {
+				result.push({
+					q: Utils.print(node, ctx),
+					sort: node.sortby && Utils.print(node.sortby, ctx)
+				});
+			}
+		});
+		return result;
 	}
 
 	bindVariableValues() {
@@ -94,7 +105,7 @@ export class Project {
 		for (let symbol of symbols) {
 			const entry = this._cached.get(symbol.uri.toString())!;
 			const value = Utils.print(symbol.def.value, { text: entry.doc.getText(), variableValues: result });
-			result.set(symbol.name, '' + value);
+			result.set(symbol.name, value);
 		}
 		return result;
 	}

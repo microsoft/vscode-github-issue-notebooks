@@ -69,6 +69,12 @@ suite('Parser', function () {
 		assertNodeTypesDeep('foo OR BAR', NodeType.OrExpression, NodeType.Query, NodeType.Literal, NodeType.Query, NodeType.Literal);
 		assertNodeTypesDeep('foo //nothing', NodeType.Query, NodeType.Literal);
 	});
+
+	test('Query with sortby', function () {
+		assertNodeTypes('label:foo sortby comments', NodeType.QualifiedValue);
+		assertNodeTypes('label:foo sortby sortby comments', NodeType.QualifiedValue, NodeType.Literal);
+		assertNodeTypesDeep('label:123 sortby sortby comments', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.Literal, NodeType.SortBy);
+	});
 });
 
 

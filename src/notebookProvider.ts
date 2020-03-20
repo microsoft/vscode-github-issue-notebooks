@@ -68,14 +68,15 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const doc = await vscode.workspace.openTextDocument(cell.uri);
 		const project = this.container.lookupProject(doc.uri);
 		const query = project.getOrCreate(doc);
-		const lines = project.emit(query, doc.uri);
+
+		const allQueryData = project.queryData(query, doc.uri);
 
 		try {
 			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 
-			for (let line of lines) {
+			for (let queryData of allQueryData) {
 				const octokit = await this._withOctokit();
-				const options = octokit.search.issuesAndPullRequests.endpoint.merge({ q: line, per_page: 100, });
+				const options = octokit.search.issuesAndPullRequests.endpoint.merge({ q: queryData.q, sort: queryData.sort, per_page: 100, });
 				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
 				allItems = allItems.concat(items);
 			}
@@ -100,7 +101,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				outputKind: vscode.CellOutputKind.Rich,
 				data: {
 					['text/markdown']: md,
-					['text/plain']: lines.join('\n\n')
+					['text/plain']: allQueryData.map(d => `${d.q}, ${d.sort || 'default'} sort`).join('\n\n')
 				}
 			}];
 

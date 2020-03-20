@@ -8,7 +8,7 @@ import { Node, NodeType, Utils } from './parser/nodes';
 import { validateQueryDocument } from './parser/validation';
 import { SymbolKind } from './parser/symbols';
 import { ProjectContainer } from './project';
-import { Scanner, TokenType } from './parser/scanner';
+import { Scanner, TokenType, Token } from './parser/scanner';
 
 
 export function registerLanguageProvider(container: ProjectContainer): vscode.Disposable {
@@ -26,6 +26,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	// dispoables.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
 	// 	async provideHover(document: vscode.TextDocument, position: vscode.Position) {
 	// 		const offset = document.offsetAt(position);
+	// 		const project = container.lookupProject(document.uri);
 	// 		const query = project.getOrCreate(document);
 	// 		const stack: Node[] = [];
 	// 		Utils.nodeAt(query, offset, stack);
@@ -234,12 +235,23 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			const builder = new vscode.SemanticTokensBuilder();
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
+
+			const tokens: Token[] = [];
+
 			Utils.walk(query, node => {
 				if (node._type === NodeType.OrExpression) {
-					const { line, character } = document.positionAt(node.or.start);
-					builder.push(line, character, node.or.end - node.or.start, 0, 0);
+					tokens.push(node.or);
+				}
+				if (node._type === NodeType.SortBy) {
+					tokens.push(node.keyword);
 				}
 			});
+
+			for (let token of tokens.sort((a, b) => a.start - b.start)) {
+				const { line, character } = document.positionAt(token.start);
+				builder.push(line, character, token.end - token.start, 0, 0);
+			}
+
 			return new vscode.SemanticTokens(builder.build());
 		}
 

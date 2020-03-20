@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils } from "./nodes";
-import { ValueType, SymbolTable, SymbolKind } from "./symbols";
+import { ValueType, SymbolTable, SymbolKind, StaticSymbol } from "./symbols";
 import { TokenType } from "./scanner";
 
 export class ValidationError {
@@ -103,6 +103,12 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 				bucket.push(new ValidationError(node, `Range must start and end with equals types`));
 				return;
 			}
+		}
+
+		// sortby types
+		if (node._type === NodeType.SortBy && node.criteria._type === NodeType.Literal) {
+			//todo@jrieken check that this is a supported one
+
 		}
 
 		// missing nodes

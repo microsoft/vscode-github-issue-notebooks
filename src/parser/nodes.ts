@@ -14,6 +14,7 @@ export const enum NodeType {
 	Number = 'Number',
 	OrExpression = 'OrExpression',
 	QualifiedValue = 'QualifiedValue',
+	SortBy = 'SortBy',
 	Query = 'Query',
 	QueryDocument = 'QueryDocument',
 	Range = 'Range',
@@ -81,14 +82,21 @@ export interface VariableDefinitionNode extends BaseNode {
 	value: QueryNode | MissingNode;
 }
 
+export interface SortByNode extends BaseNode {
+	_type: NodeType.SortBy;
+	keyword: Token & { type: TokenType.SortBy; };
+	criteria: LiteralNode | MissingNode;
+}
+
 export interface QueryNode extends BaseNode {
 	_type: NodeType.Query;
 	nodes: SimpleNode[];
+	sortby?: SortByNode;
 }
 
 export interface OrExpressionNode extends BaseNode {
 	_type: NodeType.OrExpression;
-	or: Token;
+	or: Token & { type: TokenType.OR; };
 	left: QueryNode;
 	right: QueryNode | OrExpressionNode;
 }
@@ -98,7 +106,7 @@ export interface QueryDocumentNode extends BaseNode {
 	nodes: (QueryNode | OrExpressionNode | VariableDefinitionNode)[];
 }
 
-export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode | SortByNode;
 
 export type Node = QueryDocumentNode // level 1
 	| QueryNode | OrExpressionNode | VariableDefinitionNode // level 2
@@ -110,40 +118,6 @@ export interface NodeVisitor {
 }
 
 export namespace Utils {
-	export function visit(node: Node, callback: NodeVisitor) {
-		const cb = (node?: Node) => {
-			if (node) {
-				callback(node, undefined);
-			}
-		};
-		cb(node);
-		switch (node._type) {
-			case NodeType.Compare:
-				cb(node.value);
-				break;
-			case NodeType.Range:
-				cb(node.open);
-				cb(node.close);
-				break;
-			case NodeType.QualifiedValue:
-				cb(node.qualifier);
-				cb(node.value);
-				break;
-			case NodeType.VariableDefinition:
-				cb(node.name);
-				cb(node.value);
-				break;
-			case NodeType.OrExpression:
-				cb(node.left);
-				cb(node.right);
-				break;
-			case NodeType.QueryDocument:
-			case NodeType.Query:
-				node.nodes.forEach(cb);
-				break;
-
-		}
-	}
 	export function walk(node: Node, callback: NodeVisitor) {
 		if (!node) {
 			return;
@@ -185,8 +159,17 @@ export namespace Utils {
 					stack.unshift(node.left);
 					stack.unshift(node);
 					break;
-				case NodeType.QueryDocument:
 				case NodeType.Query:
+					if (node.sortby) {
+						stack.unshift(node.sortby);
+						stack.unshift(node);
+					}
+					for (let child of node.nodes.reverse()) {
+						stack.unshift(child);
+						stack.unshift(node);
+					}
+					break;
+				case NodeType.QueryDocument:
 					for (let child of node.nodes.reverse()) {
 						stack.unshift(child);
 						stack.unshift(node);
@@ -226,7 +209,9 @@ export namespace Utils {
 		return result;
 	}
 
-	export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string[] {
+	export function print(node: QueryDocumentNode | OrExpressionNode, ctx: { text: string, variableValues: Map<string, string>; }): string[];
+	export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string;
+	export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string | string[] {
 		const { text, variableValues } = ctx;
 
 		function _print(node: Node): string | string[] {
@@ -236,6 +221,9 @@ export namespace Utils {
 				case NodeType.VariableDefinition:
 					// no value for those
 					return '';
+				case NodeType.SortBy:
+					return text.substring(node.criteria.start, node.criteria.end);
+
 				case NodeType.VariableName:
 					// look up variable (must be defined first)
 					return variableValues.get(node.value) || `${node.value}`;
@@ -257,6 +245,7 @@ export namespace Utils {
 					return `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
 				case NodeType.Query:
 					// aaa bbb ccc
+					// note: ignores `sortby`-part
 					let result = '';
 					let lastEnd = -1;
 					for (let child of node.nodes) {
@@ -271,10 +260,9 @@ export namespace Utils {
 					return _flatten(_print(node.left), _print(node.right));
 				case NodeType.QueryDocument:
 					return _flatten(...node.nodes.map(_print));
-
 			}
 		}
 
-		return <string[]>_print(node);
+		return _print(node);
 	}
 }
