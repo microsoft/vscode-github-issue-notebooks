@@ -72,7 +72,9 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const allQueryData = project.queryData(query, doc.uri);
 
 		try {
-			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
+
+			const seen = new Set<number>();
+			let md = '';
 
 			for (let queryData of allQueryData) {
 				const octokit = await this._withOctokit();
@@ -80,24 +82,21 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 					q: queryData.q, sort: queryData.sort, order: queryData.order,
 					per_page: 100,
 				});
+
 				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
-				allItems = allItems.concat(items);
-			}
+				for (let item of items) {
+					if (seen.has(item.id)) {
+						continue;
+					}
+					// markdown
+					if (item.assignee) {
+						md += `- [#${item.number}](${item.html_url}) ${item.title} - [@${item.assignee.login}](${item.assignee.html_url})\n`;
+					} else {
+						md += `- [#${item.number}](${item.html_url}) ${item.title}\n`;
 
-			// markdown
-			const seen = new Set<number>();
-			let md = '';
-			for (let item of allItems) {
-				if (seen.has(item.id)) {
-					continue;
+					}
+					seen.add(item.id);
 				}
-				if (item.assignee) {
-					md += `- [#${item.number}](${item.html_url}) ${item.title} - [@${item.assignee.login}](${item.assignee.html_url})\n`;
-				} else {
-					md += `- [#${item.number}](${item.html_url}) ${item.title}\n`;
-
-				}
-				seen.add(item.id);
 			}
 
 			cell.outputs = [{
