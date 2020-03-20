@@ -87,7 +87,12 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				if (seen.has(item.id)) {
 					continue;
 				}
-				md += `- ${item.title} [#${item.number}](${item.html_url})\n`;
+				if (item.assignee) {
+					md += `- [#${item.number}](${item.html_url}) ${item.title} - [@${item.assignee.login}](${item.assignee.html_url})\n`;
+				} else {
+					md += `- [#${item.number}](${item.html_url}) ${item.title}\n`;
+
+				}
 				seen.add(item.id);
 			}
 
@@ -156,7 +161,7 @@ declare type SearchIssuesAndPullRequestsResponseItemsItemLabelsItem = {
 	url: string;
 };
 declare type SearchIssuesAndPullRequestsResponseItemsItem = {
-	assignee: null;
+	assignee: null | SearchIssuesAndPullRequestsResponseItemsItemUser;
 	body: string;
 	closed_at: null;
 	comments: number;
