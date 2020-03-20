@@ -71,9 +71,9 @@ suite('Parser', function () {
 	});
 
 	test('Query with sortby', function () {
-		assertNodeTypes('label:foo sortby comments', NodeType.QualifiedValue);
-		assertNodeTypes('label:foo sortby sortby comments', NodeType.QualifiedValue, NodeType.Literal);
-		assertNodeTypesDeep('label:123 sortby sortby comments', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.Literal, NodeType.SortBy);
+		assertNodeTypes('label:foo sort asc by comments', NodeType.QualifiedValue);
+		assertNodeTypes('label:foo sortby sort desc by comments', NodeType.QualifiedValue, NodeType.Literal);
+		assertNodeTypesDeep('label:123 sort asc by sort asc by comments', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.Literal, NodeType.SortBy, NodeType.Literal);
 	});
 });
 

@@ -132,7 +132,7 @@ export class Parser {
 	}
 
 	private _parseSortBy(): SortByNode | undefined {
-		const keyword = this._accept(TokenType.SortBy);
+		const keyword = this._accept(TokenType.SortAscBy) ?? this._accept(TokenType.SortDescBy);
 		if (keyword) {
 			while (this._accept(TokenType.Whitespace)) { }
 			const criteria = this._parseLiteral() ?? this._createMissing('expected sort criteria');

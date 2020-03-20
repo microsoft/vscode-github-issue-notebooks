@@ -22,22 +22,22 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 		comments: { lineComment: '//' }
 	});
 
-	// // Hover (debug, ast)
-	// dispoables.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
-	// 	async provideHover(document: vscode.TextDocument, position: vscode.Position) {
-	// 		const offset = document.offsetAt(position);
-	// 		const project = container.lookupProject(document.uri);
-	// 		const query = project.getOrCreate(document);
-	// 		const stack: Node[] = [];
-	// 		Utils.nodeAt(query, offset, stack);
-	// 		stack.shift();
+	// Hover (debug, ast)
+	dispoables.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
+		async provideHover(document: vscode.TextDocument, position: vscode.Position) {
+			const offset = document.offsetAt(position);
+			const project = container.lookupProject(document.uri);
+			const query = project.getOrCreate(document);
+			const stack: Node[] = [];
+			Utils.nodeAt(query, offset, stack);
+			stack.shift();
 
-	// 		return new vscode.Hover(
-	// 			stack.map(node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
-	// 			project.rangeOf(stack[stack.length - 1])
-	// 		);
-	// 	}
-	// }));
+			return new vscode.Hover(
+				stack.map(node => `- \`${project.textOf(node)}\` (*${node._type}*)\n`).join(''),
+				project.rangeOf(stack[stack.length - 1])
+			);
+		}
+	}));
 
 	// Hover
 	dispoables.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {

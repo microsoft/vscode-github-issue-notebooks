@@ -84,7 +84,7 @@ export interface VariableDefinitionNode extends BaseNode {
 
 export interface SortByNode extends BaseNode {
 	_type: NodeType.SortBy;
-	keyword: Token & { type: TokenType.SortBy; };
+	keyword: Token & { type: TokenType.SortAscBy | TokenType.SortDescBy; };
 	criteria: LiteralNode | MissingNode;
 }
 

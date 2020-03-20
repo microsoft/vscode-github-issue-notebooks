@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { SymbolTable, SymbolKind, UserSymbol } from './parser/symbols';
 import { QueryDocumentNode, Node, Utils, NodeType } from './parser/nodes';
 import { Parser } from './parser/parser';
+import { TokenType } from './parser/scanner';
 
 export class Project {
 
@@ -69,13 +70,14 @@ export class Project {
 		const entry = this._lookUp(query, uri);
 		const variableValues = this.bindVariableValues();
 
-		const result: { q: string; sort?: string; }[] = [];
+		const result: { q: string; sort?: string; order?: string; }[] = [];
 		const ctx = { text: entry.doc.getText(), variableValues };
 		Utils.walk(query, node => {
 			if (node._type === NodeType.Query) {
 				result.push({
 					q: Utils.print(node, ctx),
-					sort: node.sortby && Utils.print(node.sortby, ctx)
+					sort: node.sortby && Utils.print(node.sortby, ctx),
+					order: node.sortby && node.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
 				});
 			}
 		});

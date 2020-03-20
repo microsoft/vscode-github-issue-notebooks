@@ -76,7 +76,10 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 			for (let queryData of allQueryData) {
 				const octokit = await this._withOctokit();
-				const options = octokit.search.issuesAndPullRequests.endpoint.merge({ q: queryData.q, sort: queryData.sort, per_page: 100, });
+				const options = octokit.search.issuesAndPullRequests.endpoint.merge({
+					q: queryData.q, sort: queryData.sort, order: queryData.order,
+					per_page: 100,
+				});
 				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
 				allItems = allItems.concat(items);
 			}
