@@ -10,24 +10,28 @@ import { Project } from '../../project';
 
 suite('Project', () => {
 
-	test('asQueryData', () => {
+	test('asQueryData', async function () {
 
-		async function assertQueryData(content: string, expected: string[] = [content]) {
+		async function assertQueryData(content: string, expected: { q: string; sort?: string; order?: string; }[] = [{ q: content }]) {
 			const doc = await vscode.workspace.openTextDocument({ language: 'github-issues', content });
 			const project = new Project();
 			project.getOrCreate(doc);
-
 			const data = project.queryData(doc);
-			for (let item of data) {
-				assert.equal(item.q, expected.shift());
+			for (let actualItem of data) {
+				const expectedItem = expected.shift();
+				assert.equal(actualItem.q, expectedItem?.q);
+				assert.ok(!expectedItem?.order || expectedItem.order === actualItem.order);
+				assert.ok(!expectedItem?.sort || expectedItem.sort === actualItem.sort);
 			}
 			assert.equal(expected.length, 0, expected.toString());
 		}
 
-		assertQueryData('foo repo:bar');
-		assertQueryData('$bar=bazz\n$bar repo:bar', ['bazz repo:bar']);
-		assertQueryData('$bar=bazz', []);
-		assertQueryData('foo OR bar', ['foo', 'bar']);
-
+		await assertQueryData('foo repo:bar');
+		await assertQueryData('foo repo:bar sort asc by comments', [{ q: 'foo repo:bar', order: 'asc', sort: 'comments' }]);
+		await assertQueryData('$bar=bazz\n$bar repo:bar', [{ q: 'bazz repo:bar' }]);
+		await assertQueryData('$bar=bazz', []);
+		await assertQueryData('foo OR bar', [{ q: 'foo' }, { q: 'bar' }]);
+		// await assertQueryData('$a=foo repo:bar sort asc by comments\n$a', [{ q: 'foo repo:bar', order: 'asc', sort: 'comments' }]);
 	});
+
 });
