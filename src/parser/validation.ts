@@ -38,7 +38,7 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 		if (node._type === NodeType.QualifiedValue) {
 
 			// check name
-			const info = symbols.get(node.qualifier.value);
+			const info = symbols.getFirst(node.qualifier.value);
 			if (!info || info.kind !== SymbolKind.Static) {
 				bucket.push(new ValidationError(node.qualifier, `Unknown qualifier: '${node.qualifier.value}'`));
 				return;
@@ -90,7 +90,7 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 		}
 
 		if (node._type === NodeType.VariableName) {
-			const info = symbols.get(node.value);
+			const info = symbols.getFirst(node.value);
 			if (!info || info.kind !== SymbolKind.User) {
 				bucket.push(new ValidationError(node, `Unknown variable`));
 				return;

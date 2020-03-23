@@ -124,7 +124,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
 				// complete a qualified expression
 				const result: vscode.CompletionItem[] = [];
-				const symbol = project.symbols.get(parent.qualifier.value);
+				const symbol = project.symbols.getFirst(parent.qualifier.value);
 				if (symbol?.kind === SymbolKind.Static && Array.isArray(symbol.value)) {
 
 					for (let set of symbol.value) {

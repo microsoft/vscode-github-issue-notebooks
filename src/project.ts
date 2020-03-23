@@ -105,16 +105,8 @@ export class Project {
 				symbols.push(symbol);
 			}
 		}
-		// sort by position
-		symbols.sort((a, b) => {
-			if (a.uri.toString() < b.uri.toString()) {
-				return -1;
-			} else if (a.uri.toString() > b.uri.toString()) {
-				return 1;
-			} else {
-				return a.def.start - b.def.start;
-			}
-		});
+		// sort by recency
+		symbols.sort(SymbolTable.compareByTimestamp);
 		// print symbol from definition
 		const result = new Map<string, string>();
 		for (let symbol of symbols) {

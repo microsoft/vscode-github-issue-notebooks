@@ -69,6 +69,11 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const project = this.container.lookupProject(doc.uri);
 		const allQueryData = project.queryData(doc);
 
+		// update all symbols defined in the cell so that
+		// more recent values win
+		const query = project.getOrCreate(doc);
+		project.symbols.update(query, doc.uri);
+
 		try {
 
 			const seen = new Set<number>();

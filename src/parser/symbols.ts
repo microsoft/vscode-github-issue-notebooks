@@ -93,6 +93,7 @@ export interface UserSymbol {
 	name: string;
 	uri: Uri;
 	def: VariableDefinitionNode;
+	timestamp: number;
 }
 
 export interface StaticSymbol {
@@ -131,16 +132,17 @@ export class SymbolTable {
 		Utils.walk(query, node => {
 			if (node._type === NodeType.VariableDefinition) {
 				this._data.add({
+					timestamp: Date.now(),
 					kind: SymbolKind.User,
 					name: node.name.value,
 					def: node,
-					uri
+					uri,
 				});
 			}
 		});
 	}
 
-	get(name: string): SymbolInfo | undefined {
+	getFirst(name: string): SymbolInfo | undefined {
 		for (let info of this._data) {
 			if (info.name === name) {
 				return info;
@@ -158,5 +160,9 @@ export class SymbolTable {
 
 	all(): Iterable<SymbolInfo> {
 		return this._data;
+	}
+
+	static compareByTimestamp(a: UserSymbol, b: UserSymbol): number {
+		return a.timestamp - b.timestamp;
 	}
 }
