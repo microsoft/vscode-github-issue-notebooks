@@ -75,6 +75,10 @@ export class Scanner {
 	private _value: string = '';
 	private _pos: number = 0;
 
+	get pos(): number {
+		return this._pos;
+	}
+
 	reset(value: string) {
 		this._value = value;
 		this._pos = 0;

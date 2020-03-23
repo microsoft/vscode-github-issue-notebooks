@@ -87,22 +87,38 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			const query = project.getOrCreate(document);
 			const offset = document.offsetAt(position);
 			const parents: Node[] = [];
-			const node = Utils.nodeAt(query, offset, parents);
+			const node = Utils.nodeAt(query, offset, parents) ?? query;
 			const parent = parents[parents.length - 2];
 
-
-			if (parent._type === NodeType.SortBy) {
+			if (parent?._type === NodeType.SortBy) {
 				// complete the sortby statement
 				return [...sortValues].map(value => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
 			}
 
-			if (node === query || node?._type === NodeType.Literal) {
+			if (node?._type === NodeType.Query || node._type === NodeType.Literal) {
 				// globals
-				// todo@jrieken values..
-				return [...project.symbols.all()].map(symbol => new vscode.CompletionItem(
+				const result = [...project.symbols.all()].map(symbol => new vscode.CompletionItem(
 					symbol.name,
 					symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Enum : vscode.CompletionItemKind.Variable)
 				);
+
+				if (node._type !== NodeType.Query || !node.sortby) {
+					// sort by
+					result.push({
+						label: 'sort asc by',
+						kind: vscode.CompletionItemKind.Keyword,
+						insertText: 'sort asc by ',
+						command: { command: 'editor.action.triggerSuggest', title: '' }
+					});
+					result.push({
+						label: 'sort desc by',
+						kind: vscode.CompletionItemKind.Keyword,
+						insertText: 'sort desc by ',
+						command: { command: 'editor.action.triggerSuggest', title: '' }
+					});
+				}
+
+				return result;
 			}
 
 			if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryNode, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SortByNode } from "./nodes";
+import { QueryNode, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SortByNode, SimpleNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
 export class Parser {
@@ -28,7 +28,7 @@ export class Parser {
 	}
 
 	parse(value: string): QueryDocumentNode {
-		const nodes: Node[] = [];
+		const nodes: (VariableDefinitionNode | OrExpressionNode | QueryNode)[] = [];
 		this._scanner.reset(value);
 		this._token = this._scanner.next();
 		while (this._token.type !== TokenType.EOF) {
@@ -41,13 +41,20 @@ export class Parser {
 				nodes.push(node);
 			}
 		}
-		return this._createContainerNode(nodes, NodeType.QueryDocument);
+		return {
+			_type: NodeType.QueryDocument,
+			start: 0,
+			end: value.length,
+			nodes
+		};
 	}
 
 	private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined;
 	private _parseQuery(allowOR: false): QueryNode | undefined;
 	private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
-		let nodes: Node[] = [];
+
+		const start = this._token.start;
+		const nodes: SimpleNode[] = [];
 		let sortby: SortByNode | undefined;
 		while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
@@ -64,11 +71,13 @@ export class Parser {
 				const right = this._parseQuery(allowOR);
 
 				if (right) {
-					const left = this._createContainerNode(nodes, NodeType.Query);
-					if (sortby) {
-						left.sortby = sortby;
-						left.end = sortby.criteria.end;
-					}
+					const left: QueryNode = {
+						_type: NodeType.Query,
+						start,
+						end: this._scanner.pos,
+						sortby,
+						nodes,
+					};
 					return {
 						_type: NodeType.OrExpression,
 						or: orTkn,
@@ -123,12 +132,13 @@ export class Parser {
 			return undefined;
 		}
 
-		const result = this._createContainerNode(nodes, NodeType.Query);
-		if (sortby) {
-			result.sortby = sortby;
-			result.end = sortby.criteria.end;
-		}
-		return result;
+		return {
+			_type: NodeType.Query,
+			start,
+			end: this._scanner.pos,
+			sortby,
+			nodes,
+		};
 	}
 
 	private _parseSortBy(): SortByNode | undefined {
@@ -351,17 +361,6 @@ export class Parser {
 			start: this._token!.start,
 			end: this._token!.start,
 			message
-		};
-	}
-
-	private _createContainerNode(nodes: Node[], type: NodeType.Query): QueryNode;
-	private _createContainerNode(nodes: Node[], type: NodeType.QueryDocument): QueryDocumentNode;
-	private _createContainerNode(nodes: Node[], type: NodeType) {
-		return {
-			_type: type,
-			start: nodes[0]?.start ?? 0,
-			end: nodes[nodes.length - 1]?.end ?? 0,
-			nodes
 		};
 	}
 }
