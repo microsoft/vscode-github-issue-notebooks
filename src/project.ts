@@ -69,18 +69,31 @@ export class Project {
 	queryData(query: QueryDocumentNode, uri?: vscode.Uri) {
 		const entry = this._lookUp(query, uri);
 		const variableValues = this.bindVariableValues();
-
 		const result: { q: string; sort?: string; order?: string; }[] = [];
 		const ctx = { text: entry.doc.getText(), variableValues };
-		Utils.walk(query, node => {
-			if (node._type === NodeType.Query) {
-				result.push({
-					q: Utils.print(node, ctx),
-					sort: node.sortby && Utils.print(node.sortby, ctx),
-					order: node.sortby && node.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
-				});
+
+		function fillInQueryData(node: Node) {
+			switch (node._type) {
+				case NodeType.Query:
+					result.push({
+						q: Utils.print(node, ctx),
+						sort: node.sortby && Utils.print(node.sortby, ctx),
+						order: node.sortby && node.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
+					});
+					break;
+				case NodeType.OrExpression:
+					result.push({
+						q: Utils.print(node.left, ctx),
+						sort: node.left.sortby && Utils.print(node.left.sortby, ctx),
+						order: node.left.sortby && node.left.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
+					});
+					// recurse
+					fillInQueryData(node.right);
 			}
-		});
+		}
+
+		query.nodes.forEach(fillInQueryData);
+
 		return result;
 	}
 
