@@ -41,9 +41,9 @@ export class Project {
 		return this._cached.values();
 	}
 
-	private _lookUp(node: Node, uri?: vscode.Uri) {
+	private _lookUp(node?: Node, uri?: vscode.Uri) {
 		if (!uri) {
-			uri = this._nodeToUri.get(node);
+			uri = this._nodeToUri.get(node!);
 		}
 		if (!uri) {
 			throw new Error('unknown node');
@@ -66,10 +66,10 @@ export class Project {
 		return doc.getText(range);
 	}
 
-	queryData(query: QueryDocumentNode, uri?: vscode.Uri) {
-		const entry = this._lookUp(query, uri);
+	queryData(doc: vscode.TextDocument) {
+		const entry = this._lookUp(undefined, doc.uri);
+
 		const variableValues = this.bindVariableValues();
-		const result: { q: string; sort?: string; order?: string; }[] = [];
 		const ctx = { text: entry.doc.getText(), variableValues };
 
 		function fillInQueryData(node: Node) {
@@ -92,8 +92,8 @@ export class Project {
 			}
 		}
 
-		query.nodes.forEach(fillInQueryData);
-
+		const result: { q: string; sort?: string; order?: string; }[] = [];
+		entry.node.nodes.forEach(fillInQueryData);
 		return result;
 	}
 
