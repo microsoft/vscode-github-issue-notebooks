@@ -67,8 +67,6 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		}
 		const doc = await vscode.workspace.openTextDocument(cell.uri);
 		const project = this.container.lookupProject(doc.uri);
-		const query = project.getOrCreate(doc);
-
 		const allQueryData = project.queryData(doc);
 
 		try {
