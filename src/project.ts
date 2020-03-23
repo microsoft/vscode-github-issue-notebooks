@@ -92,7 +92,7 @@ export class Project {
 			}
 		}
 
-		const result: { q: string; sort?: string; order?: string; }[] = [];
+		const result: { q: string; sort?: string; order?: 'asc' | 'desc'; }[] = [];
 		entry.node.nodes.forEach(fillInQueryData);
 		return result;
 	}

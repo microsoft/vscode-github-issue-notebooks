@@ -76,30 +76,41 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 		try {
 
-			const seen = new Set<number>();
-			let md = '';
-
+			// fetch
+			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 			for (let queryData of allQueryData) {
 				const octokit = await this._withOctokit();
 				const options = octokit.search.issuesAndPullRequests.endpoint.merge({
-					q: queryData.q, sort: queryData.sort, order: queryData.order,
+					q: queryData.q,
+					sort: queryData.sort,
+					order: queryData.order,
 					per_page: 100,
 				});
-
 				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
-				for (let item of items) {
-					if (seen.has(item.id)) {
-						continue;
-					}
-					// markdown
-					if (item.assignee) {
-						md += `- [#${item.number}](${item.html_url}) ${item.title} - [@${item.assignee.login}](${item.assignee.html_url})\n`;
-					} else {
-						md += `- [#${item.number}](${item.html_url}) ${item.title}\n`;
+				allItems = allItems.concat(items);
+			}
 
-					}
-					seen.add(item.id);
+			// sort
+			const [first] = allQueryData;
+			const comparator = allQueryData.length >= 2 && allQueryData.every(item => item.sort === first.sort) && cmp.byName.get(first.sort!);
+			if (comparator) {
+				allItems.sort(first.sort === 'asc' ? cmp.invert(comparator) : comparator);
+			}
+
+			// "render"
+			const seen = new Set<number>();
+			let md = '';
+			for (let item of allItems) {
+				if (seen.has(item.id)) {
+					continue;
 				}
+				// markdown
+				md += `- [#${item.number}](${item.html_url}) ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
+				if (item.assignee) {
+					md += `- [@${item.assignee.login}](${item.assignee.html_url})\n`;
+				}
+				md += '\n';
+				seen.add(item.id);
 			}
 
 			cell.outputs = [{
@@ -131,6 +142,33 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		}
 		await vscode.workspace.fs.writeFile(document.uri, Buffer.from(JSON.stringify(contents)));
 		return true;
+	}
+}
+
+namespace cmp {
+
+	export type ItemComparator = (a: SearchIssuesAndPullRequestsResponseItemsItem, b: SearchIssuesAndPullRequestsResponseItemsItem) => number;
+
+	export const byName = new Map([
+		['comments', compareByComments],
+		['created', compareByCreated],
+		['updated', compareByUpdated],
+	]);
+
+	export function invert<T>(compare: (a: T, b: T) => number) {
+		return (a: T, b: T) => compare(a, b) * -1;
+	}
+
+	export function compareByComments(a: SearchIssuesAndPullRequestsResponseItemsItem, b: SearchIssuesAndPullRequestsResponseItemsItem): number {
+		return a.comments - b.comments;
+	}
+
+	export function compareByCreated(a: SearchIssuesAndPullRequestsResponseItemsItem, b: SearchIssuesAndPullRequestsResponseItemsItem): number {
+		return Date.parse(a.created_at) - Date.parse(b.created_at);
+	}
+
+	export function compareByUpdated(a: SearchIssuesAndPullRequestsResponseItemsItem, b: SearchIssuesAndPullRequestsResponseItemsItem): number {
+		return Date.parse(a.updated_at) - Date.parse(b.updated_at);
 	}
 }
 
