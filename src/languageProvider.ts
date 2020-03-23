@@ -68,7 +68,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 				if (Utils.nodeAt(query, offset, parents)) {
 					let last: vscode.SelectionRange | undefined;
 					for (let node of parents) {
-						let selRange = new vscode.SelectionRange(await project.rangeOf(node), last);
+						let selRange = new vscode.SelectionRange(project.rangeOf(node), last);
 						last = selRange;
 					}
 					if (last) {
@@ -151,7 +151,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			const result: vscode.Location[] = [];
 			for (const symbol of project.symbols.getAll(node.value)) {
 				if (symbol.kind === SymbolKind.User) {
-					result.push(new vscode.Location(symbol.uri, await project.rangeOf(symbol.def, symbol.uri)));
+					result.push(new vscode.Location(symbol.uri, project.rangeOf(symbol.def, symbol.uri)));
 				}
 			}
 			return result;
