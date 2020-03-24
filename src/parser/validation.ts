@@ -44,12 +44,6 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 				return;
 			}
 
-			// check value
-			if (node.value._type === NodeType.VariableName) {
-				// trust all variables...
-				return;
-			}
-
 			if (Array.isArray(info.value)) {
 				const value = node.value._type === NodeType.Literal ? node.value.value : '';
 				if (mutual.has(value)) {
@@ -75,16 +69,17 @@ function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sym
 					bucket.push(new ValidationError(node.value, `Unknown value, must be one of: ${info.value.map(set => [...set].join(', ')).join(', ')}`));
 					return;
 				}
-			}
-
-			if (info.value === ValueType.Date && !isNumberOrDateLike(node.value, NodeType.Date)) {
+			} else if (node.value._type === NodeType.VariableName) {
+				// check value
+				// trust all variables...
+				const symbol = symbols.getFirst(node.value.value);
+				if (symbol?.kind !== SymbolKind.User || symbol.type !== info.value) {
+					bucket.push(new ValidationError(node.value, `Invalid value, expected ${info.value}`));
+				}
+			} else if (info.value === ValueType.Date && !isNumberOrDateLike(node.value, NodeType.Date)) {
 				bucket.push(new ValidationError(node.value, `Invalid value, expected date`));
-				return;
-			}
-
-			if (info.value === ValueType.Number && !isNumberOrDateLike(node.value, NodeType.Number)) {
+			} else if (info.value === ValueType.Number && !isNumberOrDateLike(node.value, NodeType.Number)) {
 				bucket.push(new ValidationError(node.value, `Invalid value, expected number`));
-				return;
 			}
 			// range from..to => from < to
 		}

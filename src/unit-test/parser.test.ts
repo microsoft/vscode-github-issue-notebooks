@@ -7,6 +7,7 @@ import { suite, test } from 'mocha';
 import { NodeType, QueryNode, Utils } from '../parser/nodes';
 import { Parser } from '../parser/parser';
 import * as assert from 'assert';
+import { ValueType } from '../parser/symbols';
 
 suite('Parser', function () {
 
@@ -80,8 +81,12 @@ suite('Parser', function () {
 
 suite('Print Nodes', function () {
 
-	function assertPrinted(text: string, expected: string[] = [text], variableValues = new Map<string, string>()) {
+	function assertPrinted(text: string, expected: string[] = [text], values = new Map<string, string>()) {
 		const node = new Parser().parse(text);
+		const variableValues = new Map<string, { value: string; type: ValueType; }>();
+		for (let [key, value] of values) {
+			variableValues.set(key, { value, type: ValueType.Query });
+		}
 		const actual = Utils.print(node, { text, variableValues });
 		assert.deepEqual(actual, expected);
 	}

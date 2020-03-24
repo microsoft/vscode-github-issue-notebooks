@@ -7,18 +7,19 @@ import { QueryDocumentNode, Node, Utils, NodeType, VariableDefinitionNode } from
 import { Uri } from "vscode";
 
 export enum ValueType {
-	Number,
-	Date,
-	BaseBranch,
-	HeadBranch,
-	Label,
-	Language,
-	Milestone,
-	Orgname,
-	ProjectBoard,
-	Repository,
-	Teamname,
-	Username,
+	Query = 'query',
+	Number = 'number',
+	Date = 'date',
+	BaseBranch = 'baseBranch',
+	HeadBranch = 'headBranch',
+	Label = 'label',
+	Language = 'language',
+	Milestone = 'milestone',
+	Orgname = 'orgname',
+	ProjectBoard = 'projectBoard',
+	Repository = 'repository',
+	Teamname = 'teamname',
+	Username = 'username',
 }
 
 export type Value = ValueType | Set<string>[];
@@ -94,6 +95,7 @@ export interface UserSymbol {
 	uri: Uri;
 	def: VariableDefinitionNode;
 	timestamp: number;
+	type: ValueType;
 }
 
 export interface StaticSymbol {
@@ -128,6 +130,44 @@ export class SymbolTable {
 			}
 		}
 
+		const getType = (def: VariableDefinitionNode): ValueType => {
+			if (def.value._type !== NodeType.Query) {
+				return ValueType.Query;
+			}
+			if (def.value.nodes.length !== 1) {
+				return ValueType.Query;
+			}
+			const [node] = def.value.nodes;
+			switch (node._type) {
+				case NodeType.Compare:
+					// foo:>number/data
+					if (node.value._type === NodeType.Date) {
+						return ValueType.Date;
+					} else if (node.value._type === NodeType.Number) {
+						return ValueType.Number;
+					} else {
+						return ValueType.Query;
+					}
+				case NodeType.Range:
+					// foo:date/number..date/number
+					if (node.open?._type === NodeType.Date || node.close?._type === NodeType.Date) {
+						return ValueType.Date;
+					} else if (node.open?._type === NodeType.Number || node.close?._type === NodeType.Number) {
+						return ValueType.Number;
+					} else {
+						return ValueType.Query;
+					}
+				case NodeType.Date:
+					return ValueType.Date;
+				case NodeType.Number:
+					return ValueType.Number;
+				case NodeType.VariableName:
+					return this._findUserSymbol(node.value)?.type ?? ValueType.Query;
+			}
+
+			return ValueType.Query;
+		};
+
 		// add new - all defined variables
 		Utils.walk(query, node => {
 			if (node._type === NodeType.VariableDefinition) {
@@ -137,9 +177,20 @@ export class SymbolTable {
 					name: node.name.value,
 					def: node,
 					uri,
+					type: getType(node)
 				});
 			}
 		});
+	}
+
+	private _findUserSymbol(name: string): UserSymbol | undefined {
+		let candidates: UserSymbol[] = [];
+		for (let info of this._data) {
+			if (info.name === name && info.kind === SymbolKind.User) {
+				candidates.push(info);
+			}
+		}
+		return candidates.sort(SymbolTable.compareByTimestamp)[0];
 	}
 
 	getFirst(name: string): SymbolInfo | undefined {

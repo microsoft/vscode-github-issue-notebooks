@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { TokenType, Token } from "./scanner";
+import { ValueType } from "./symbols";
 
 export const enum NodeType {
 	Any = 'Any',
@@ -213,9 +214,9 @@ export namespace Utils {
 		return result;
 	}
 
-	export function print(node: QueryDocumentNode | OrExpressionNode, ctx: { text: string, variableValues: Map<string, string>; }): string[];
-	export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string;
-	export function print(node: Node, ctx: { text: string, variableValues: Map<string, string>; }): string | string[] {
+	export function print(node: QueryDocumentNode | OrExpressionNode, ctx: { text: string, variableValues: Map<string, { value: string; type: ValueType; }>; }): string[];
+	export function print(node: Node, ctx: { text: string, variableValues: Map<string, { value: string; type: ValueType; }>; }): string;
+	export function print(node: Node, ctx: { text: string, variableValues: Map<string, { value: string; type: ValueType; }>; }): string | string[] {
 		const { text, variableValues } = ctx;
 
 		function _print(node: Node): string | string[] {
@@ -230,7 +231,7 @@ export namespace Utils {
 
 				case NodeType.VariableName:
 					// look up variable (must be defined first)
-					return variableValues.get(node.value) || `${node.value}`;
+					return variableValues.get(node.value)?.value ?? `${node.value}`;
 				case NodeType.Any:
 				case NodeType.Literal:
 				case NodeType.Date:

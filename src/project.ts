@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SymbolTable, SymbolKind, UserSymbol } from './parser/symbols';
+import { SymbolTable, SymbolKind, UserSymbol, ValueType } from './parser/symbols';
 import { QueryDocumentNode, Node, Utils, NodeType } from './parser/nodes';
 import { Parser } from './parser/parser';
 import { TokenType } from './parser/scanner';
@@ -108,11 +108,11 @@ export class Project {
 		// sort by recency
 		symbols.sort(SymbolTable.compareByTimestamp);
 		// print symbol from definition
-		const result = new Map<string, string>();
+		const result = new Map<string, { value: string; type: ValueType; }>();
 		for (let symbol of symbols) {
 			const entry = this._cached.get(symbol.uri.toString())!;
 			const value = Utils.print(symbol.def.value, { text: entry.doc.getText(), variableValues: result });
-			result.set(symbol.name, value);
+			result.set(symbol.name, { value, type: symbol.type });
 		}
 		return result;
 	}
