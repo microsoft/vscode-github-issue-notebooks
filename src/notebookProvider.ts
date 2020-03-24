@@ -99,23 +99,29 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 			// "render"
 			const seen = new Set<number>();
+			let html = getHtmlStub();
 			let md = '';
 			for (let item of allItems) {
 				if (seen.has(item.id)) {
 					continue;
 				}
+				seen.add(item.id);
+
 				// markdown
 				md += `- [#${item.number}](${item.html_url}) ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
 				if (item.assignee) {
 					md += `- [@${item.assignee.login}](${item.assignee.html_url})\n`;
 				}
 				md += '\n';
-				seen.add(item.id);
+
+				// html
+				html += renderItemAsHtml(item);
 			}
 
 			cell.outputs = [{
 				outputKind: vscode.CellOutputKind.Rich,
 				data: {
+					['text/html']: html,
 					['text/markdown']: md,
 					['text/plain']: allQueryData.map(d => `${d.q}, ${d.sort || 'default'} sort`).join('\n\n')
 				}
@@ -170,6 +176,53 @@ namespace cmp {
 	export function compareByUpdated(a: SearchIssuesAndPullRequestsResponseItemsItem, b: SearchIssuesAndPullRequestsResponseItemsItem): number {
 		return Date.parse(a.updated_at) - Date.parse(b.updated_at);
 	}
+}
+
+export function getHtmlStub(): string {
+	return `
+<style>
+	.title {
+		font-size: 1em;
+	}
+	.label {
+		font-size: .8em;
+		margin: 0 .2em;
+		padding: .1em;
+	}
+	.status {
+		font-size: .8em;
+		opacity: 60%;
+		padding-top: .5em;
+	}
+	.assignee {
+		flex: shrink;
+	}
+	.user img {
+		padding: 0.1em;
+	}
+</style>`;
+}
+
+export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsItem): string {
+
+	function getContrastColor(color: string): string {
+		// Color algorithm from https://stackoverflow.com/questions/1855884/determine-font-color-based-on-background-color
+		const r = Number.parseInt(color.substr(0, 2), 16);
+		const g = Number.parseInt(color.substr(2, 2), 16);
+		const b = Number.parseInt(color.substr(4, 2), 16);
+		return ((0.299 * r + 0.587 * g + 0.114 * b) / 255) > 0.5 ? 'black' : 'white';
+	}
+
+	return `
+<div style="display: flex; padding: .5em 1em;">
+	<div style="flex: auto;">
+	<a href="${item.html_url}" class="title">${item.title}</a>
+	${item.labels.map(label => `<span class="label" style="background-color: #${label.color};"><a style="color: ${getContrastColor(label.color)};">${label.name}</a></span>`).join('')}
+	<div class="status"><span>#${item.number} opened ${new Date(item.created_at).toLocaleDateString()} by ${item.user.login}</span></div>
+	</div>
+	<div class="user">${!item.assignees ? '' : item.assignees.map(user => `<a href="${user.html_url}"><img src="${user.avatar_url}" width="20" height="20" alt="@${user.login}"></a>`).join('')}</div>
+</div>
+`;
 }
 
 //#region COPY of type definitions that are well hidden inside @octokit/types
