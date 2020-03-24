@@ -58,7 +58,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			//?
 			raw = [{ kind: vscode.CellKind.Code, language: 'github-issues', value: '', outputs: [] }];
 		}
-		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, cell.outputs ?? [], { editable: true }));
+		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, cell.outputs ?? [], { editable: true, runnable: true }));
 	}
 
 	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined): Promise<void> {
