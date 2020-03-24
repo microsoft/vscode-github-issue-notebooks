@@ -186,8 +186,11 @@ export function getHtmlStub(): string {
 	}
 	.label {
 		font-size: .8em;
-		margin: 0 .2em;
-		padding: .1em;
+		margin: 0 2px;
+		padding: 2px
+	}
+	.label a {
+		padding: 2px;
 	}
 	.status {
 		font-size: .8em;
