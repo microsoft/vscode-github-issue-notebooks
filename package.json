@@ -83,16 +83,16 @@
 				{
 					"command": "github-issues.unlockDocument",
 					"when": "notebookEditorFocused && !notebookEditable",
-					"group": "inline@1"
+					"group": "navigation@1"
 				},
 				{
 					"command": "github-issues.lockDocument",
 					"when": "notebookEditorFocused && notebookEditable",
-					"group": "inline@2"
+					"group": "navigation@2"
 				},
 				{
 					"command": "github-issues.clearAllCellsOutput",
-					"group": "inline@3",
+					"group": "navigation@3",
 					"when": "notebookEditorFocused"
 				}
 			],

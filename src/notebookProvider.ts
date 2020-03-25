@@ -56,7 +56,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			raw = <RawNotebookCell[]>JSON.parse(contents);
 		} catch {
 			//?
-			raw = [{ kind: vscode.CellKind.Code, language: 'github-issues', value: '', outputs: [] }];
+			raw = [];
 		}
 		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, cell.outputs ?? [], { editable: true, runnable: true }));
 	}
