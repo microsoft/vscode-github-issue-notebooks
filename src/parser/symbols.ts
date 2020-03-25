@@ -120,6 +120,10 @@ class QualifiedValueInfo {
 		return new QualifiedValueInfo(type, undefined, undefined);
 	}
 
+	static username() {
+		return new QualifiedValueInfo(ValueType.Literal, [new Set(['@me'])], ValuePlaceholderType.Username);
+	}
+
 	constructor(
 		readonly type: ValueType,
 		readonly enumValues: readonly Set<string>[] | undefined,
@@ -146,18 +150,18 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['in', QualifiedValueInfo.enum(new Set(['title', 'body', 'comments']))],
 	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname)],
 	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository)],
-	['user', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['user', QualifiedValueInfo.username()],
 	['state', QualifiedValueInfo.enum(new Set(['open', 'closed']))],
-	['assignee', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
-	['author', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
-	['mentions', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['assignee', QualifiedValueInfo.username()],
+	['author', QualifiedValueInfo.username()],
+	['mentions', QualifiedValueInfo.username()],
 	['team', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	['stars', QualifiedValueInfo.simple(ValueType.Number)],
 	['topics', QualifiedValueInfo.simple(ValueType.Number)],
 	['pushed', QualifiedValueInfo.simple(ValueType.Date)],
 	['size', QualifiedValueInfo.simple(ValueType.Number)],
-	['commenter', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
-	['involves', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['commenter', QualifiedValueInfo.username()],
+	['involves', QualifiedValueInfo.username()],
 	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label)],
 	['linked', QualifiedValueInfo.enum(new Set(['pr', 'issue']))],
 	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone)],
@@ -175,9 +179,9 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
 	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
 	['draft', QualifiedValueInfo.enum(new Set(['true', 'false']))],
-	['review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['review-requested', QualifiedValueInfo.username()],
 	['review', QualifiedValueInfo.enum(new Set(['none', 'required', 'approved']))],
-	['reviewed-by', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['reviewed-by', QualifiedValueInfo.username()],
 	['team-review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	['merged', QualifiedValueInfo.simple(ValueType.Date)],
 ]);

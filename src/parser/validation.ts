@@ -137,7 +137,7 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 		return;
 	}
 
-	if (info.enumValues) {
+	if (info.enumValues && info.placeholderType === undefined) {
 		let set = value && info.enumValues.find(set => set.has(value!) ? set : undefined);
 		if (!set) {
 			// value not known
