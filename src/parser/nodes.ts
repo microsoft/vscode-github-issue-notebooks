@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { TokenType, Token } from "./scanner";
-import { ValueType } from "./symbols";
+import { ValueType, SymbolTable } from "./symbols";
 
 export const enum NodeType {
 	Any = 'Any',
@@ -56,20 +56,20 @@ export interface DateNode extends BaseNode {
 export interface CompareNode extends BaseNode {
 	_type: NodeType.Compare;
 	cmp: string;
-	value: DateNode | NumberNode | MissingNode;
+	value: DateNode | NumberNode | VariableNameNode | MissingNode;
 }
 
 export interface RangeNode extends BaseNode {
 	_type: NodeType.Range,
-	open: NumberNode | DateNode | undefined;
-	close: NumberNode | DateNode | MissingNode | undefined;
+	open: NumberNode | DateNode | VariableNameNode | undefined;
+	close: NumberNode | DateNode | VariableNameNode | MissingNode | undefined;
 }
 
 export interface QualifiedValueNode extends BaseNode {
 	_type: NodeType.QualifiedValue;
 	not: boolean;
 	qualifier: LiteralNode;
-	value: SimpleNode;
+	value: CompareNode | RangeNode | DateNode | NumberNode | VariableNameNode | LiteralNode | AnyNode | MissingNode;
 }
 
 export interface VariableNameNode extends BaseNode {
@@ -91,7 +91,7 @@ export interface SortByNode extends BaseNode {
 
 export interface QueryNode extends BaseNode {
 	_type: NodeType.Query;
-	nodes: SimpleNode[];
+	nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[];
 	sortby?: SortByNode;
 }
 
@@ -104,6 +104,8 @@ export interface OrExpressionNode extends BaseNode {
 
 export interface QueryDocumentNode extends BaseNode {
 	_type: NodeType.QueryDocument;
+	text: string;
+	id: string;
 	nodes: (QueryNode | OrExpressionNode | VariableDefinitionNode)[];
 }
 
@@ -199,27 +201,9 @@ export namespace Utils {
 		return node.start <= offset && offset <= node.end;
 	}
 
-	function _flatten<T>(...args: (T | T[])[]): T[] {
-		let result: T[] = [];
-		for (let arg of args) {
-			if (!arg) {
-				continue;
-			}
-			if (Array.isArray(arg)) {
-				result = result.concat(arg);
-			} else {
-				result.push(arg);
-			}
-		}
-		return result;
-	}
+	export function print(node: Node, text: string, variableValue: (name: string) => string | undefined): string {
 
-	export function print(node: QueryDocumentNode | OrExpressionNode, ctx: { text: string, variableValues: Map<string, { value: string; type: ValueType; }>; }): string[];
-	export function print(node: Node, ctx: { text: string, variableValues: Map<string, { value: string; type: ValueType; }>; }): string;
-	export function print(node: Node, ctx: { text: string, variableValues: Map<string, { value: string; type: ValueType; }>; }): string | string[] {
-		const { text, variableValues } = ctx;
-
-		function _print(node: Node): string | string[] {
+		function _print(node: Node): string {
 
 			switch (node._type) {
 				case NodeType.Missing:
@@ -231,7 +215,7 @@ export namespace Utils {
 
 				case NodeType.VariableName:
 					// look up variable (must be defined first)
-					return variableValues.get(node.value)?.value ?? `${node.value}`;
+					return variableValue(node.value) ?? `${node.value}`;
 				case NodeType.Any:
 				case NodeType.Literal:
 				case NodeType.Date:
@@ -260,14 +244,38 @@ export namespace Utils {
 						lastEnd = child.end;
 					}
 					return result;
-				case NodeType.OrExpression:
-					// each OR-part becomes a separate query
-					return _flatten(_print(node.left), _print(node.right));
-				case NodeType.QueryDocument:
-					return _flatten(...node.nodes.map(_print));
+				default:
+					return node._type;
+				// case NodeType.OrExpression:
+				// 	// each OR-part becomes a separate query
+				// 	return _flatten(_print(node.left), _print(node.right));
+				// case NodeType.QueryDocument:
+				// 	return _flatten(...node.nodes.map(_print));
 			}
 		}
 
 		return _print(node);
+	}
+
+	export function getTypeOfNode(node: Node, symbols: SymbolTable): ValueType | undefined {
+		switch (node._type) {
+			case NodeType.VariableName:
+				return symbols.getFirst(node.value)?.type;
+			case NodeType.Date:
+				return ValueType.Date;
+			case NodeType.Number:
+				return ValueType.Number;
+			case NodeType.Literal:
+				return ValueType.Literal;
+			case NodeType.Compare:
+				return getTypeOfNode(node.value, symbols);
+			case NodeType.Range:
+				if (node.open) {
+					return getTypeOfNode(node.open, symbols);
+				} else if (node.close) {
+					return getTypeOfNode(node.close, symbols);
+				}
+		}
+		return undefined;
 	}
 }

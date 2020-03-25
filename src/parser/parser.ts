@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryNode, Node, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SortByNode, SimpleNode } from "./nodes";
+import { QueryNode, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SortByNode, SimpleNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
 export class Parser {
@@ -27,7 +27,7 @@ export class Parser {
 		this._token = this._scanner.next();
 	}
 
-	parse(value: string): QueryDocumentNode {
+	parse(value: string, id: string = Date.now().toString()): QueryDocumentNode {
 		const nodes: (VariableDefinitionNode | OrExpressionNode | QueryNode)[] = [];
 		this._scanner.reset(value);
 		this._token = this._scanner.next();
@@ -45,7 +45,9 @@ export class Parser {
 			_type: NodeType.QueryDocument,
 			start: 0,
 			end: value.length,
-			nodes
+			nodes,
+			text: value,
+			id
 		};
 	}
 
@@ -54,7 +56,7 @@ export class Parser {
 	private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
 
 		const start = this._token.start;
-		const nodes: SimpleNode[] = [];
+		const nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[] = [];
 		let sortby: SortByNode | undefined;
 		while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
@@ -119,6 +121,7 @@ export class Parser {
 			// parse the query AS-IS
 			const node = this._parseQualifiedValue()
 				?? this._parseNumber()
+				?? this._parseDate()
 				?? this._parseVariableName()
 				?? this._parseLiteral()
 				?? this._parseAny(this._token.type);
@@ -222,20 +225,23 @@ export class Parser {
 		}
 		const value = this._parseDate()
 			?? this._parseNumber()
+			?? this._parseVariableName()
 			?? this._createMissing('expected date or number');
 		return {
 			_type: NodeType.Compare,
 			start: cmp.start,
 			end: value.end,
 			cmp: this._scanner.value(cmp),
-			value: value
+			value
 		};
 	}
 
 	private _parseRange(): RangeNode | undefined {
 		// value..value
 		const anchor = this._token;
-		const open = this._parseDate() ?? this._parseNumber();
+		const open = this._parseDate()
+			?? this._parseNumber()
+			?? this._parseVariableName();
 		if (!open) {
 			return;
 		}
@@ -243,7 +249,11 @@ export class Parser {
 			this._reset(anchor);
 			return;
 		}
-		const close = this._parseDate() ?? this._parseNumber() ?? this._createMissing('expected number or date');
+		const close = this._parseDate()
+			?? this._parseNumber()
+			?? this._parseVariableName()
+			?? this._createMissing('expected number or date');
+
 		return {
 			_type: NodeType.Range,
 			start: open.start,
@@ -259,7 +269,10 @@ export class Parser {
 		if (!tk) {
 			return;
 		}
-		const close = this._parseDate() ?? this._parseNumber() ?? this._createMissing('expected number or date');
+		const close = this._parseDate()
+			?? this._parseNumber()
+			?? this._parseVariableName()
+			?? this._createMissing('expected number or date');
 		return {
 			_type: NodeType.Range,
 			start: tk.start,

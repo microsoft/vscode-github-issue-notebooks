@@ -72,7 +72,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		// update all symbols defined in the cell so that
 		// more recent values win
 		const query = project.getOrCreate(doc);
-		project.symbols.update(query, doc.uri);
+		project.symbols.update(query);
 
 		try {
 

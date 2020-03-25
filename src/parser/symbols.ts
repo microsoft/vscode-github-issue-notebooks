@@ -4,12 +4,96 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { QueryDocumentNode, Node, Utils, NodeType, VariableDefinitionNode } from "./nodes";
-import { Uri } from "vscode";
 
 export enum ValueType {
-	Query = 'query',
 	Number = 'number',
 	Date = 'date',
+	Literal = 'literal'
+}
+
+export interface SymbolInfo {
+	root: QueryDocumentNode;
+	name: string;
+	def: VariableDefinitionNode;
+	timestamp: number;
+	type: ValueType | undefined;
+	value: string;
+}
+
+export class SymbolTable {
+
+	private readonly _data = new Map<string, SymbolInfo[]>();
+
+	update(query: QueryDocumentNode) {
+
+		// remove old
+		this._data.delete(query.id);
+
+		const getType = (def: VariableDefinitionNode) => {
+			if (def.value._type !== NodeType.Query) {
+				return;
+			}
+			if (def.value.nodes.length !== 1) {
+				return;
+			}
+			return Utils.getTypeOfNode(def.value.nodes[0], this);
+		};
+
+		// add new - all defined variables
+		for (let node of query.nodes) {
+			if (node._type === NodeType.VariableDefinition) {
+				let array = this._data.get(query.id);
+				if (!array) {
+					array = [];
+					this._data.set(query.id, array);
+				}
+				array.push({
+					root: query,
+					timestamp: Date.now(),
+					name: node.name.value,
+					def: node,
+					type: getType(node),
+					value: Utils.print(node.value, query.text, name => this.getFirst(name)?.value)
+				});
+			}
+		}
+	}
+
+	getFirst(name: string): SymbolInfo | undefined {
+		let candidate: SymbolInfo | undefined;
+		for (let bucket of this._data.values()) {
+			for (let info of bucket) {
+				if (info.name === name) {
+					if (!candidate || candidate.timestamp < info.timestamp) {
+						candidate = info;
+					}
+				}
+			}
+		}
+		return candidate;
+	}
+
+	*getAll(name: string): Iterable<SymbolInfo> {
+		for (let bucket of this._data.values()) {
+			for (let info of bucket) {
+				if (info.name === name) {
+					yield info;
+				}
+			}
+		}
+	}
+
+	*all(): Iterable<SymbolInfo> {
+		for (let bucket of this._data.values()) {
+			for (let info of bucket) {
+				yield info;
+			}
+		}
+	}
+}
+
+
+export const enum ValuePlaceholderType {
 	BaseBranch = 'baseBranch',
 	HeadBranch = 'headBranch',
 	Label = 'label',
@@ -22,52 +106,29 @@ export enum ValueType {
 	Username = 'username',
 }
 
-export type Value = ValueType | Set<string>[];
+class QualifiedValueInfo {
 
-const qualifiers = new Map<string, Value>([
-	['type', [new Set(['pr', 'issue'])]],
-	['updated', ValueType.Date],
-	['in', [new Set(['title', 'body', 'comments'])]],
-	['org', ValueType.Orgname],
-	['repo', ValueType.Repository],
-	['user', ValueType.Username],
-	['state', [new Set(['open', 'closed'])]],
-	['assignee', ValueType.Username],
-	['author', ValueType.Username],
-	['mentions', ValueType.Username],
-	['team', ValueType.Teamname],
-	['stars', ValueType.Number],
-	['topics', ValueType.Number],
-	['pushed', ValueType.Date],
-	['size', ValueType.Number],
-	['commenter', ValueType.Username],
-	['involves', ValueType.Username],
-	['label', ValueType.Label],
-	['linked', [new Set(['pr', 'issue'])]],
-	['milestone', ValueType.Milestone],
-	['project', ValueType.ProjectBoard],
-	['language', ValueType.Language],
-	['comments', ValueType.Number],
-	['interactions', ValueType.Number],
-	['reactions', ValueType.Number],
-	['created', ValueType.Date],
-	['closed', ValueType.Date],
-	['archived', [new Set(['true', 'false'])]],
-	['is', [new Set(['locked', 'unlocked']), new Set(['merged', 'unmerged']), new Set(['public', 'private']), new Set(['open', 'closed']), new Set(['pr', 'issue'])]],
-	['no', [new Set(['label', 'milestone', 'assignee', 'project'])]],
-	['status', [new Set(['pending', 'success', 'failure'])]],
-	['base', ValueType.BaseBranch],
-	['head', ValueType.HeadBranch],
-	['draft', [new Set(['true', 'false'])]],
-	['review-requested', ValueType.Username],
-	['review', [new Set(['none', 'required', 'approved'])]],
-	['reviewed-by', ValueType.Username],
-	['team-review-requested', ValueType.Teamname],
-	['merged', ValueType.Date],
-]);
+	static enum(...sets: Set<string>[]) {
+		return new QualifiedValueInfo(ValueType.Literal, sets, undefined);
+	}
 
+	static placeholder(placeholder: ValuePlaceholderType) {
+		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder);
+	}
 
-export const requiresPrType = new Set<string>([
+	static simple(type: ValueType) {
+		return new QualifiedValueInfo(type, undefined, undefined);
+	}
+
+	constructor(
+		readonly type: ValueType,
+		readonly enumValues: readonly Set<string>[] | undefined,
+		readonly placeholderType: ValuePlaceholderType | undefined
+	) { }
+}
+
+//
+export const QueryNodeImpliesPullRequestSchema = new Set<string>([
 	'status',
 	'base',
 	'head',
@@ -79,141 +140,49 @@ export const requiresPrType = new Set<string>([
 	'merged',
 ]);
 
+export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
+	['type', QualifiedValueInfo.enum(new Set(['pr', 'issue']))],
+	['updated', QualifiedValueInfo.simple(ValueType.Date)],
+	['in', QualifiedValueInfo.enum(new Set(['title', 'body', 'comments']))],
+	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname)],
+	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository)],
+	['user', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['state', QualifiedValueInfo.enum(new Set(['open', 'closed']))],
+	['assignee', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['author', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['mentions', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['team', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
+	['stars', QualifiedValueInfo.simple(ValueType.Number)],
+	['topics', QualifiedValueInfo.simple(ValueType.Number)],
+	['pushed', QualifiedValueInfo.simple(ValueType.Date)],
+	['size', QualifiedValueInfo.simple(ValueType.Number)],
+	['commenter', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['involves', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label)],
+	['linked', QualifiedValueInfo.enum(new Set(['pr', 'issue']))],
+	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone)],
+	['project', QualifiedValueInfo.placeholder(ValuePlaceholderType.ProjectBoard)],
+	['language', QualifiedValueInfo.placeholder(ValuePlaceholderType.Language)],
+	['comments', QualifiedValueInfo.simple(ValueType.Number)],
+	['interactions', QualifiedValueInfo.simple(ValueType.Number)],
+	['reactions', QualifiedValueInfo.simple(ValueType.Number)],
+	['created', QualifiedValueInfo.simple(ValueType.Date)],
+	['closed', QualifiedValueInfo.simple(ValueType.Date)],
+	['archived', QualifiedValueInfo.enum(new Set(['true', 'false']))],
+	['is', QualifiedValueInfo.enum(new Set(['locked', 'unlocked']), new Set(['merged', 'unmerged']), new Set(['public', 'private']), new Set(['open', 'closed']), new Set(['pr', 'issue']))],
+	['no', QualifiedValueInfo.enum(new Set(['label', 'milestone', 'assignee', 'project']))],
+	['status', QualifiedValueInfo.enum(new Set(['pending', 'success', 'failure']))],
+	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
+	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
+	['draft', QualifiedValueInfo.enum(new Set(['true', 'false']))],
+	['review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['review', QualifiedValueInfo.enum(new Set(['none', 'required', 'approved']))],
+	['reviewed-by', QualifiedValueInfo.placeholder(ValuePlaceholderType.Username)],
+	['team-review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
+	['merged', QualifiedValueInfo.simple(ValueType.Date)],
+]);
 
-export const sortValues = new Set<string>([
+export const SortByNodeSchema = new Set<string>([
 	'comments', 'reactions', 'reactions-+1', 'reactions--1', 'reactions-smile',
 	'reactions-thinking_face', 'reactions-heart', 'reactions-tada', 'created', 'updated'
 ]);
-
-export const enum SymbolKind {
-	User, Static
-}
-
-export interface UserSymbol {
-	kind: SymbolKind.User;
-	name: string;
-	uri: Uri;
-	def: VariableDefinitionNode;
-	timestamp: number;
-	type: ValueType;
-}
-
-export interface StaticSymbol {
-	kind: SymbolKind.Static;
-	name: string;
-	value: Value;
-}
-
-export type SymbolInfo = UserSymbol | StaticSymbol;
-
-export class SymbolTable {
-
-	private readonly _data = new Set<SymbolInfo>();
-
-	constructor() {
-		// given variables
-		for (let [key, value] of qualifiers) {
-			this._data.add({
-				kind: SymbolKind.Static,
-				name: key,
-				value
-			});
-		}
-	}
-
-	update(query: QueryDocumentNode, uri: Uri) {
-
-		// remove old
-		for (let value of this._data) {
-			if (value.kind === SymbolKind.User && value.uri.toString() === uri.toString()) {
-				this._data.delete(value);
-			}
-		}
-
-		const getType = (def: VariableDefinitionNode): ValueType => {
-			if (def.value._type !== NodeType.Query) {
-				return ValueType.Query;
-			}
-			if (def.value.nodes.length !== 1) {
-				return ValueType.Query;
-			}
-			const [node] = def.value.nodes;
-			switch (node._type) {
-				case NodeType.Compare:
-					// foo:>number/data
-					if (node.value._type === NodeType.Date) {
-						return ValueType.Date;
-					} else if (node.value._type === NodeType.Number) {
-						return ValueType.Number;
-					} else {
-						return ValueType.Query;
-					}
-				case NodeType.Range:
-					// foo:date/number..date/number
-					if (node.open?._type === NodeType.Date || node.close?._type === NodeType.Date) {
-						return ValueType.Date;
-					} else if (node.open?._type === NodeType.Number || node.close?._type === NodeType.Number) {
-						return ValueType.Number;
-					} else {
-						return ValueType.Query;
-					}
-				case NodeType.Date:
-					return ValueType.Date;
-				case NodeType.Number:
-					return ValueType.Number;
-				case NodeType.VariableName:
-					return this._findUserSymbol(node.value)?.type ?? ValueType.Query;
-			}
-
-			return ValueType.Query;
-		};
-
-		// add new - all defined variables
-		Utils.walk(query, node => {
-			if (node._type === NodeType.VariableDefinition) {
-				this._data.add({
-					timestamp: Date.now(),
-					kind: SymbolKind.User,
-					name: node.name.value,
-					def: node,
-					uri,
-					type: getType(node)
-				});
-			}
-		});
-	}
-
-	private _findUserSymbol(name: string): UserSymbol | undefined {
-		let candidates: UserSymbol[] = [];
-		for (let info of this._data) {
-			if (info.name === name && info.kind === SymbolKind.User) {
-				candidates.push(info);
-			}
-		}
-		return candidates.sort(SymbolTable.compareByTimestamp)[0];
-	}
-
-	getFirst(name: string): SymbolInfo | undefined {
-		for (let info of this._data) {
-			if (info.name === name) {
-				return info;
-			}
-		}
-	}
-
-	* getAll(name: string): Iterable<SymbolInfo> {
-		for (let info of this._data) {
-			if (info.name === name) {
-				yield info;
-			}
-		}
-	}
-
-	all(): Iterable<SymbolInfo> {
-		return this._data;
-	}
-
-	static compareByTimestamp(a: UserSymbol, b: UserSymbol): number {
-		return a.timestamp - b.timestamp;
-	}
-}

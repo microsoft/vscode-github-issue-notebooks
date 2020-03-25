@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SymbolTable, SymbolKind, UserSymbol, ValueType } from './parser/symbols';
+import { SymbolTable, ValueType } from './parser/symbols';
 import { QueryDocumentNode, Node, Utils, NodeType } from './parser/nodes';
 import { Parser } from './parser/parser';
 import { TokenType } from './parser/scanner';
@@ -22,12 +22,12 @@ export class Project {
 		if (!value || value.versionParsed !== doc.version) {
 			const text = doc.getText();
 			value = {
-				node: this._parser.parse(text),
+				node: this._parser.parse(text, doc.uri.toString()),
 				versionParsed: doc.version,
 				doc
 			};
 			this._cached.set(doc.uri.toString(), value);
-			this.symbols.update(value.node, value.doc.uri);
+			this.symbols.update(value.node);
 			Utils.walk(value.node, node => this._nodeToUri.set(node, doc.uri));
 		}
 		return value.node;
@@ -69,22 +69,21 @@ export class Project {
 	queryData(doc: vscode.TextDocument) {
 		const entry = this._lookUp(undefined, doc.uri);
 
-		const variableValues = this.bindVariableValues();
-		const ctx = { text: entry.doc.getText(), variableValues };
+		const variableAccess = (name: string) => this.symbols.getFirst(name)?.value;
 
 		function fillInQueryData(node: Node) {
 			switch (node._type) {
 				case NodeType.Query:
 					result.push({
-						q: Utils.print(node, ctx),
-						sort: node.sortby && Utils.print(node.sortby, ctx),
+						q: Utils.print(node, entry.node.text, variableAccess),
+						sort: node.sortby && Utils.print(node.sortby, entry.node.text, variableAccess),
 						order: node.sortby && node.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
 					});
 					break;
 				case NodeType.OrExpression:
 					result.push({
-						q: Utils.print(node.left, ctx),
-						sort: node.left.sortby && Utils.print(node.left.sortby, ctx),
+						q: Utils.print(node.left, entry.node.text, variableAccess),
+						sort: node.left.sortby && Utils.print(node.left.sortby, entry.node.text, variableAccess),
 						order: node.left.sortby && node.left.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
 					});
 					// recurse
@@ -94,26 +93,6 @@ export class Project {
 
 		const result: { q: string; sort?: string; order?: 'asc' | 'desc'; }[] = [];
 		entry.node.nodes.forEach(fillInQueryData);
-		return result;
-	}
-
-	bindVariableValues() {
-		// all user defined
-		const symbols: UserSymbol[] = [];
-		for (let symbol of this.symbols.all()) {
-			if (symbol.kind === SymbolKind.User) {
-				symbols.push(symbol);
-			}
-		}
-		// sort by recency
-		symbols.sort(SymbolTable.compareByTimestamp);
-		// print symbol from definition
-		const result = new Map<string, { value: string; type: ValueType; }>();
-		for (let symbol of symbols) {
-			const entry = this._cached.get(symbol.uri.toString())!;
-			const value = Utils.print(symbol.def.value, { text: entry.doc.getText(), variableValues: result });
-			result.set(symbol.name, { value, type: symbol.type });
-		}
 		return result;
 	}
 }

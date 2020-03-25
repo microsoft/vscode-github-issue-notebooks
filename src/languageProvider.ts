@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { Node, NodeType, Utils } from './parser/nodes';
 import { validateQueryDocument } from './parser/validation';
-import { SymbolKind, sortValues } from './parser/symbols';
+import { SortByNodeSchema, QualifiedValueNodeSchema } from './parser/symbols';
 import { ProjectContainer } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
 
@@ -48,8 +48,8 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			const node = Utils.nodeAt(query, offset);
 
 			if (node?._type === NodeType.VariableName) {
-				const info = project.bindVariableValues().get(node.value);
-				return new vscode.Hover(`\`${String(info?.value)}\` (${info?.type})`, project.rangeOf(node));
+				const info = project.symbols.getFirst(node.value);
+				return new vscode.Hover(`\`${info?.value}\`${info?.type ? ` (${info.type})` : ''}`, project.rangeOf(node));
 			}
 
 			return undefined;
@@ -92,18 +92,31 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 
 			if (parent?._type === NodeType.SortBy) {
 				// complete the sortby statement
-				return [...sortValues].map(value => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
+				return [...SortByNodeSchema].map(value => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
 			}
 
 			if (node?._type === NodeType.Query || node._type === NodeType.Literal) {
-				// globals
-				const result = [...project.symbols.all()].map(symbol => new vscode.CompletionItem(
-					symbol.name,
-					symbol.kind === SymbolKind.Static ? vscode.CompletionItemKind.Enum : vscode.CompletionItemKind.Variable)
-				);
+				const result: vscode.CompletionItem[] = [];
 
+				// names of qualified value node
+				for (let [key] of QualifiedValueNodeSchema) {
+					result.push({
+						label: key,
+						kind: vscode.CompletionItemKind.Enum
+					});
+				}
+
+				// all variables
+				for (let symbol of project.symbols.all()) {
+					result.push({
+						label: symbol.name,
+						detail: symbol.type,
+						kind: vscode.CompletionItemKind.Value,
+					});
+				}
+
+				// sort by for query
 				if (node._type !== NodeType.Query || !node.sortby) {
-					// sort by
 					result.push({
 						label: 'sort asc by',
 						kind: vscode.CompletionItemKind.Keyword,
@@ -124,10 +137,9 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
 				// complete a qualified expression
 				const result: vscode.CompletionItem[] = [];
-				const symbol = project.symbols.getFirst(parent.qualifier.value);
-				if (symbol?.kind === SymbolKind.Static && Array.isArray(symbol.value)) {
-
-					for (let set of symbol.value) {
+				const info = QualifiedValueNodeSchema.get(parent.qualifier.value);
+				if (info && Array.isArray(info.enumValues)) {
+					for (let set of info.enumValues) {
 						for (let value of set) {
 							result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
 						}
@@ -150,9 +162,8 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			}
 			const result: vscode.Location[] = [];
 			for (const symbol of project.symbols.getAll(node.value)) {
-				if (symbol.kind === SymbolKind.User) {
-					result.push(new vscode.Location(symbol.uri, project.rangeOf(symbol.def, symbol.uri)));
-				}
+				const uri = vscode.Uri.parse(symbol.root.id);
+				result.push(new vscode.Location(uri, project.rangeOf(symbol.def, uri)));
 			}
 			return result;
 		}

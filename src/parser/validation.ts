@@ -3,140 +3,161 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils } from "./nodes";
-import { ValueType, SymbolTable, SymbolKind, StaticSymbol, sortValues } from "./symbols";
+import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils, QualifiedValueNode, RangeNode } from "./nodes";
+import { ValueType, SymbolTable, SortByNodeSchema, QualifiedValueNodeSchema } from "./symbols";
 import { TokenType } from "./scanner";
 
+export const enum Code {
+	NodeMissing = 'NodeMissing',
+	OrNotAllowed = 'OrNotAllowed',
+	VariableDefinedRecursive = 'VariableDefinedRecursive',
+	VariableUnknown = 'VariableUnknown',
+	ValueConflict = 'ValueConflict',
+	ValueUnknown = 'ValueUnknown',
+	QualifierUnknown = 'QualifierUnknown',
+	RangeMixesTypes = 'RangeMixesTypes',
+}
+
 export class ValidationError {
-	constructor(readonly node: Node, readonly message: string, readonly conflictNode?: Node) { }
+	constructor(readonly node: Node, readonly code: Code, readonly message: string, readonly conflictNode?: Node) { }
 }
 
 export function validateQueryDocument(doc: QueryDocumentNode, symbols: SymbolTable): Iterable<ValidationError> {
 	const result: ValidationError[] = [];
 	Utils.walk(doc, node => {
 		switch (node._type) {
-			case NodeType.Query:
-				validateQuery(node, result, symbols);
-				break;
 			case NodeType.VariableDefinition:
-				validateVariableDefinition(node, result);
+				_validateVariableDefinition(node, result);
+				break;
+			case NodeType.Query:
+				_validateQuery(node, result, symbols);
 				break;
 		}
 	});
 	return result;
 }
 
-function validateQuery(query: QueryNode, bucket: ValidationError[], symbols: SymbolTable): void {
+function _validateVariableDefinition(defNode: VariableDefinitionNode, bucket: ValidationError[]) {
 
-	let mutual = new Map<string, Node>();
+	if (defNode.value._type === NodeType.Missing) {
+		bucket.push(new ValidationError(defNode, Code.NodeMissing, defNode.value.message));
+		return;
+	}
 
-	Utils.walk(query, node => {
-
-		// unknown qualifier
-		// unknown qualifier-value
-		// qualifier with mutual exclusive values, e.g is:pr is:issue
-		if (node._type === NodeType.QualifiedValue) {
-
-			// check name
-			const info = symbols.getFirst(node.qualifier.value);
-			if (!info || info.kind !== SymbolKind.Static) {
-				bucket.push(new ValidationError(node.qualifier, `Unknown qualifier: '${node.qualifier.value}'`));
-				return;
-			}
-
-			if (Array.isArray(info.value)) {
-				const value = node.value._type === NodeType.Literal ? node.value.value : '';
-				if (mutual.has(value)) {
-					bucket.push(new ValidationError(node, `Conflicts with mutual exclusive expression`, mutual.get(value)));
-					return;
-				}
-
-				let found = false;
-				for (let set of info.value) {
-					if (set.has(value)) {
-						found = true;
-						for (let candidate of set) {
-							if (candidate !== value) {
-								mutual.set(candidate, node);
-							}
-						}
-					}
-					if (found) {
-						break;
-					}
-				}
-				if (!found) {
-					bucket.push(new ValidationError(node.value, `Unknown value, must be one of: ${info.value.map(set => [...set].join(', ')).join(', ')}`));
-					return;
-				}
-			} else if (node.value._type === NodeType.VariableName) {
-				// check value
-				// trust all variables...
-				const symbol = symbols.getFirst(node.value.value);
-				if (symbol?.kind !== SymbolKind.User || symbol.type !== info.value) {
-					bucket.push(new ValidationError(node.value, `Invalid value, expected ${info.value}`));
-				}
-			} else if (info.value === ValueType.Date && !isNumberOrDateLike(node.value, NodeType.Date)) {
-				bucket.push(new ValidationError(node.value, `Invalid value, expected date`));
-			} else if (info.value === ValueType.Number && !isNumberOrDateLike(node.value, NodeType.Number)) {
-				bucket.push(new ValidationError(node.value, `Invalid value, expected number`));
-			}
-			// range from..to => from < to
-		}
-
-		if (node._type === NodeType.VariableName) {
-			const info = symbols.getFirst(node.value);
-			if (!info || info.kind !== SymbolKind.User) {
-				bucket.push(new ValidationError(node, `Unknown variable`));
-				return;
-			}
-		}
-
-		// unbalanced range
-		if (node._type === NodeType.Range) {
-			if (node.open && node.close && node.open._type !== node.close._type) {
-				bucket.push(new ValidationError(node, `Range must start and end with equals types`));
-				return;
-			}
-		}
-
-		// sortby types
-		if (node._type === NodeType.SortBy) {
-			if (node.criteria._type === NodeType.Literal && !sortValues.has(node.criteria.value)) {
-				bucket.push(new ValidationError(node.criteria, `Unknown value, must be one of: ${[...sortValues].join(', ')}`));
-			}
-		}
-
-		// missing nodes
-		if (node._type === NodeType.Missing) {
-			bucket.push(new ValidationError(node, node.message));
-			return;
-		}
-		// todo@jrieken undefined variables
-	});
-}
-
-function validateVariableDefinition(defNode: VariableDefinitionNode, bucket: ValidationError[]) {
 	// var-decl: no OR-statement 
 	Utils.walk(defNode.value, node => {
 		if (node._type === NodeType.Any && node.tokenType === TokenType.OR) {
-			bucket.push(new ValidationError(node, `OR is not supported when defining a variable`));
+			bucket.push(new ValidationError(node, Code.OrNotAllowed, `OR is not supported when defining a variable`));
 		}
 		if (node._type === NodeType.VariableName && node.value === defNode.name.value) {
-			bucket.push(new ValidationError(node, `Cannot reference a variable from its definition`));
+			bucket.push(new ValidationError(node, Code.VariableDefinedRecursive, `Cannot reference a variable from its definition`));
 		}
 	});
 }
 
-function isNumberOrDateLike(node: Node, what: NodeType.Number | NodeType.Date): boolean {
-	if (node._type === what) {
-		return true;
+function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: SymbolTable): void {
+
+	const mutual = new Map<Set<string>, Node>();
+
+	// validate children
+	for (let node of query.nodes) {
+
+		if (node._type === NodeType.QualifiedValue) {
+			_validateQualifiedValue(node, bucket, symbols, mutual);
+
+		} else if (node._type === NodeType.VariableName) {
+			// variable-name => must exist
+			const info = symbols.getFirst(node.value);
+			if (!info) {
+				bucket.push(new ValidationError(node, Code.VariableUnknown, `Unknown variable`));
+			}
+		}
 	}
-	if (node._type === NodeType.Compare && node.value._type === what) {
-		return true;
+
+	// sortby
+	if (query.sortby) {
+		if (query.sortby.criteria._type === NodeType.Literal && !SortByNodeSchema.has(query.sortby.criteria.value)) {
+			bucket.push(new ValidationError(query.sortby.criteria, Code.ValueUnknown, `Unknown value, must be one of: ${[...SortByNodeSchema].join(', ')}`));
+		}
 	}
-	if (node._type === NodeType.Range && (node.open?._type === what || node.close?._type === what)) {
-		return true;
+}
+
+function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationError[], symbols: SymbolTable, mutualSets: Map<Set<string>, Node>): void {
+
+	// check name first
+	const info = QualifiedValueNodeSchema.get(node.qualifier.value);
+	if (!info) {
+		bucket.push(new ValidationError(node.qualifier, Code.QualifierUnknown, `Unknown qualifier: '${node.qualifier.value}'`));
+		return;
 	}
-	return false;
+
+	if (node.value._type === NodeType.Range) {
+		_validateRange(node.value, bucket, symbols);
+	}
+
+	// check value
+	// get the 'actual' value
+	let valueNode = node.value;
+	if (valueNode._type === NodeType.Compare) {
+		valueNode = valueNode.value;
+	} else if (valueNode._type === NodeType.Range) {
+		valueNode = valueNode.open || valueNode.close || valueNode;
+	}
+
+	// missing => done
+	if (valueNode._type === NodeType.Missing) {
+		bucket.push(new ValidationError(valueNode, Code.NodeMissing, valueNode.message));
+		return;
+	}
+
+	// variable => get type/value
+	let valueType: ValueType | undefined;
+	let value: string | undefined;
+	if (valueNode._type === NodeType.VariableName) {
+		// variable value type
+		const symbol = symbols.getFirst(valueNode.value);
+		valueType = symbol?.type;
+		value = symbol?.value;
+	} else if (valueNode._type === NodeType.Date) {
+		// literal
+		valueType = ValueType.Date;
+		value = valueNode.value;
+	} else if (valueNode._type === NodeType.Number) {
+		// literal
+		valueType = ValueType.Number;
+		value = String(valueNode.value);
+	} else if (valueNode._type === NodeType.Literal) {
+		// literal
+		value = valueNode.value;
+		valueType = ValueType.Literal;
+	}
+
+	if (info.type !== valueType) {
+		bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected type '${info.type}'`));
+		return;
+	}
+
+	if (info.enumValues) {
+		let set = value && info.enumValues.find(set => set.has(value!) ? set : undefined);
+		if (!set) {
+			// value not known
+			bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set].join(', ')).join(', ')}`));
+		} else if (mutualSets.has(set)) {
+			// other value from set in use
+			bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, mutualSets.get(set)));
+		} else {
+			mutualSets.set(set, node);
+		}
+	}
+}
+
+function _validateRange(node: RangeNode, bucket: ValidationError[], symbol: SymbolTable) {
+	// ensure both ends are of equal types
+	if (node.open && node.close) {
+		const typeOpen = Utils.getTypeOfNode(node.open, symbol);
+		const typeClose = Utils.getTypeOfNode(node.close, symbol);
+		if (typeOpen !== typeClose) {
+			bucket.push(new ValidationError(node, Code.RangeMixesTypes, `This range uses mixed values: ${typeOpen} and ${typeClose}`));
+		}
+	}
 }
