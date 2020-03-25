@@ -181,7 +181,15 @@ namespace cmp {
 export function getHtmlStub(): string {
 	return `
 <style>
+	.item-row {
+		display: flex; 
+		padding: .5em 1em;
+	}
+	.item-row:hover {
+		background-color: var(--vscode-list-hoverBackground);
+	}
 	.title {
+		color: var(--vscode-textLink-foreground);
 		font-size: 1em;
 	}
 	.label {
@@ -200,8 +208,12 @@ export function getHtmlStub(): string {
 	.assignee {
 		flex: shrink;
 	}
+	.user {
+		display: flex;
+	}
 	.user img {
 		padding: 0.1em;
+		min-width: 22px;
 	}
 	.item-state {
 		flex: shrink;
@@ -226,7 +238,7 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 	}
 
 	return `
-<div style="display: flex; padding: .5em 1em;">
+<div class="item-row">
 	<div class="item-state">${item.closed_at ? closed : open}</div>
 	<div style="flex: auto;">
 	<a href="${item.html_url}" class="title">${item.title}</a>
