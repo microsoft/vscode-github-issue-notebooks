@@ -99,28 +99,32 @@ export class Project {
 
 
 export interface ProjectAssociation {
-	has(uri: vscode.Uri): boolean;
+	(uri: vscode.Uri): boolean;
 }
 
 export class ProjectContainer {
 
 	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
 
-	register(uri: vscode.Uri, association: ProjectAssociation, project: Project) {
+	register(uri: vscode.Uri, project: Project, association: ProjectAssociation) {
 		this._associations.set(uri.toString(), [association, project]);
 	}
 
 	lookupProject(uri: vscode.Uri): Project {
 		for (let [association, value] of this._associations.values()) {
-			if (association.has(uri)) {
+			if (association(uri)) {
 				return value;
 			}
 		}
 		console.log('returning AD-HOC project for ' + uri.toString());
 		const project = new Project();
-		const association = { has: (candidate: vscode.Uri) => candidate.toString() === uri.toString() };
-		this._associations.set(uri.toString(), [association, project]);
+		this.register(uri, project, candidate => candidate.toString() === uri.toString());
 		return project;
 	}
 
+	*all(): Iterable<Project> {
+		for (let [, value] of this._associations) {
+			yield value[1];
+		}
+	}
 }

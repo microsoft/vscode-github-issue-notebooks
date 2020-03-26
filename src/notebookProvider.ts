@@ -41,12 +41,6 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
 
-		// todo@API unregister?
-		this.container.register(
-			editor.document.uri,
-			{ has: (uri) => editor.document.cells.find(cell => cell.uri.toString() === uri.toString()) !== undefined },
-			new Project()
-		);
 
 		editor.document.languages = ['github-issues'];
 
@@ -59,6 +53,30 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			raw = [];
 		}
 		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, cell.outputs ?? [], { editable: true, runnable: true }));
+
+		// (1) register a new project for this notebook
+		// (2) eager fetch and analysis of all cells
+		// todo@API unregister
+		// todo@API add new cells
+		const project = new Project();
+		this.container.register(
+			editor.document.uri,
+			project,
+			uri => editor.document.cells.some(cell => cell.uri.toString() === uri.toString()),
+		);
+		setTimeout(async () => {
+			try {
+				for (let cell of editor.document.cells) {
+					if (cell.cellKind === vscode.CellKind.Code) {
+						const doc = await vscode.workspace.openTextDocument(cell.uri);
+						project.getOrCreate(doc);
+					}
+				}
+			} catch (err) {
+				console.error('FAILED to eagerly feed notebook cell document into project');
+				console.error(err);
+			}
+		}, 0);
 	}
 
 	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined): Promise<void> {

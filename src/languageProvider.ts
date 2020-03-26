@@ -296,10 +296,8 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	const diagCollection = vscode.languages.createDiagnosticCollection();
 	async function validateAll() {
 		// add all
-		vscode.workspace.textDocuments.forEach(doc => {
-			if (vscode.languages.match(selector, doc)) {
-				const project = container.lookupProject(doc.uri);
-				const node = project.getOrCreate(doc);
+		for (let project of container.all()) {
+			for (let { node, doc } of project.all()) {
 				const newDiagnostics: vscode.Diagnostic[] = [];
 				for (let error of validateQueryDocument(node, project.symbols)) {
 					const diag = new vscode.Diagnostic(project.rangeOf(error.node), error.message);
@@ -313,16 +311,22 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 				}
 				diagCollection.set(doc.uri, newDiagnostics);
 			}
-		});
+		}
 	}
 	let handle: NodeJS.Timeout;
 	function validateAllSoon() {
 		clearTimeout(handle);
-		handle = setTimeout(() => validateAll(), 200);
+		handle = setTimeout(() => validateAll(), 500);
 	}
 	validateAllSoon();
-	dispoables.push(vscode.workspace.onDidOpenTextDocument(() => validateAllSoon()));
 	dispoables.push(vscode.workspace.onDidChangeTextDocument(() => validateAllSoon()));
+	dispoables.push(vscode.workspace.onDidOpenTextDocument(doc => {
+		if (vscode.languages.match(selector, doc)) {
+			// add new document to project, then validate
+			container.lookupProject(doc.uri).getOrCreate(doc);
+			validateAllSoon();
+		}
+	}));
 	// dispoables.push(vscode.workspace.onDidCloseTextDocument(doc => {
 	// 	diagnostcis.set(doc.uri, undefined);
 	// }));
