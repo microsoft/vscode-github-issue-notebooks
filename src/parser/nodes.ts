@@ -171,14 +171,10 @@ export namespace Utils {
 						stack.unshift(node.sortby);
 						stack.unshift(node);
 					}
-					for (let child of node.nodes.reverse()) {
-						stack.unshift(child);
-						stack.unshift(node);
-					}
-					break;
+				// !!!fall through!!!
 				case NodeType.QueryDocument:
-					for (let child of node.nodes.reverse()) {
-						stack.unshift(child);
+					for (let i = node.nodes.length - 1; i >= 0; i--) {
+						stack.unshift(node.nodes[i]);
 						stack.unshift(node);
 					}
 					break;

@@ -95,6 +95,20 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 				return [...SortByNodeSchema].map(value => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
 			}
 
+			if (parent?._type === NodeType.QualifiedValue && node === parent.value) {
+				// RHS of a qualified value => complete value set
+				const result: vscode.CompletionItem[] = [];
+				const info = QualifiedValueNodeSchema.get(parent.qualifier.value);
+				if (info && Array.isArray(info.enumValues)) {
+					for (let set of info.enumValues) {
+						for (let value of set) {
+							result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
+						}
+					}
+				}
+				return result;
+			}
+
 			if (node?._type === NodeType.Query || node._type === NodeType.Literal) {
 				const result: vscode.CompletionItem[] = [];
 
@@ -134,19 +148,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 				return result;
 			}
 
-			if (node?._type === NodeType.Missing && parent?._type === NodeType.QualifiedValue) {
-				// complete a qualified expression
-				const result: vscode.CompletionItem[] = [];
-				const info = QualifiedValueNodeSchema.get(parent.qualifier.value);
-				if (info && Array.isArray(info.enumValues)) {
-					for (let set of info.enumValues) {
-						for (let value of set) {
-							result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
-						}
-					}
-				}
-				return result;
-			}
+
 		}
 	}, ':', '$'));
 
