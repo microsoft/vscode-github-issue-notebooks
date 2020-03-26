@@ -11,7 +11,7 @@ import { registerCommands } from './commands';
 
 export function activate(context: vscode.ExtensionContext) {
 	const projectContainer = new ProjectContainer();
-	context.subscriptions.push(vscode.window.registerNotebookProvider('github-issues', new IssuesNotebookProvider(projectContainer)));
+	context.subscriptions.push(vscode.notebook.registerNotebookProvider('github-issues', new IssuesNotebookProvider(projectContainer)));
 	context.subscriptions.push(registerLanguageProvider(projectContainer));
 	registerCommands(context);
 }

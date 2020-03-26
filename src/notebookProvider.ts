@@ -52,7 +52,18 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			//?
 			raw = [];
 		}
-		editor.document.cells = raw.map(cell => editor.createCell(cell.value, cell.language, cell.kind, cell.outputs ?? [], { editable: true, runnable: true }));
+		await editor.edit(editBuilder => {
+			for (let i = 0; i < raw.length; i++) {
+				editBuilder.insert(
+					0,
+					raw[i].value,
+					raw[i].language,
+					raw[i].kind,
+					raw[i].outputs ?? [],
+					{ editable: true, runnable: true }
+				);
+			}
+		});
 
 		// (1) register a new project for this notebook
 		// (2) eager fetch and analysis of all cells
@@ -163,7 +174,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
-				value: cell.getContent(),
+				value: cell.source,
 				outputs: cell.outputs
 			});
 		}

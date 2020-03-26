@@ -8,8 +8,8 @@ import * as vscode from 'vscode';
 export function registerCommands(context: vscode.ExtensionContext) {
 	// commands
 	context.subscriptions.push(vscode.commands.registerCommand('github-issues.clearAllCellsOutput', () => {
-		if (vscode.window.activeNotebookDocument) {
-			vscode.window.activeNotebookDocument.cells.forEach(cell => cell.outputs = []);
+		if (vscode.notebook.activeNotebookDocument) {
+			vscode.notebook.activeNotebookDocument.cells.forEach(cell => cell.outputs = []);
 		}
 	}));
 
@@ -26,14 +26,14 @@ export function registerCommands(context: vscode.ExtensionContext) {
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('github-issues.unlockDocument', () => {
-		if (vscode.window.activeNotebookDocument) {
-			vscode.window.activeNotebookDocument.metadata = { editable: true, cellEditable: true, cellRunnable: true };
+		if (vscode.notebook.activeNotebookDocument) {
+			vscode.notebook.activeNotebookDocument.metadata = { editable: true, cellEditable: true, cellRunnable: true };
 		}
 	}));
 
 	context.subscriptions.push(vscode.commands.registerCommand('github-issues.lockDocument', () => {
-		if (vscode.window.activeNotebookDocument) {
-			vscode.window.activeNotebookDocument.metadata = { editable: false, cellEditable: false, cellRunnable: true };
+		if (vscode.notebook.activeNotebookDocument) {
+			vscode.notebook.activeNotebookDocument.metadata = { editable: false, cellEditable: false, cellRunnable: true };
 		}
 	}));
 }

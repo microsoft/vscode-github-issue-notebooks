@@ -22,7 +22,7 @@ declare module 'vscode' {
 		id: string;
 		getAccessToken(): Thenable<string>;
 		accountName: string;
-		scopes: string[]
+		scopes: string[];
 	}
 
 	/**
@@ -60,6 +60,11 @@ declare module 'vscode' {
 		readonly changed: string[];
 	}
 
+	/**
+	 * **WARNING** When writing an AuthenticationProvider, `id` should be treated as part of your extension's
+	 * API, changing it is a breaking change for all extensions relying on the provider. The id is
+	 * treated case-sensitively.
+	 */
 	export interface AuthenticationProvider {
 		/**
 		 * Used as an identifier for extensions trying to work with a particular
@@ -119,7 +124,7 @@ declare module 'vscode' {
 		* within a session has changed for a provider. Fires with the ids of the providers
 		* that have had session data change.
 		*/
-		export const onDidChangeSessions: Event<{ [providerId: string]: AuthenticationSessionsChangeEvent }>;
+		export const onDidChangeSessions: Event<{ [providerId: string]: AuthenticationSessionsChangeEvent; }>;
 	}
 
 	//#endregion
@@ -138,20 +143,20 @@ declare module 'vscode' {
 	}
 
 	export interface ResolvedOptions {
-		extensionHostEnv?: { [key: string]: string | null };
+		extensionHostEnv?: { [key: string]: string | null; };
 	}
 
 	export interface TunnelOptions {
-		remoteAddress: { port: number, host: string };
+		remoteAddress: { port: number, host: string; };
 		// The desired local port. If this port can't be used, then another will be chosen.
 		localAddressPort?: number;
 		label?: string;
 	}
 
 	export interface TunnelDescription {
-		remoteAddress: { port: number, host: string };
+		remoteAddress: { port: number, host: string; };
 		//The complete local address(ex. localhost:1234)
-		localAddress: { port: number, host: string } | string;
+		localAddress: { port: number, host: string; } | string;
 	}
 
 	export interface Tunnel extends TunnelDescription {
@@ -478,7 +483,7 @@ declare module 'vscode' {
 	//#region read/write in chunks: https://github.com/microsoft/vscode/issues/84515
 
 	export interface FileSystemProvider {
-		open?(resource: Uri, options: { create: boolean }): number | Thenable<number>;
+		open?(resource: Uri, options: { create: boolean; }): number | Thenable<number>;
 		close?(fd: number): void | Thenable<void>;
 		read?(fd: number, pos: number, data: Uint8Array, offset: number, length: number): number | Thenable<number>;
 		write?(fd: number, pos: number, data: Uint8Array, offset: number, length: number): number | Thenable<number>;
@@ -1660,7 +1665,7 @@ declare module 'vscode' {
 		 *   }
 		 * }
 		 */
-		data: { [key: string]: any };
+		data: { [key: string]: any; };
 	}
 
 	export type CellOutput = CellStreamOutput | CellErrorOutput | CellDisplayOutput;
@@ -1676,16 +1681,20 @@ declare module 'vscode' {
 		 * This metadata is ignored for markdown cell.
 		 */
 		runnable?: boolean;
+
+		/**
+		 * Execution order information of the cell
+		 */
+		executionOrder?: number;
 	}
 
 	export interface NotebookCell {
 		readonly uri: Uri;
-		handle: number;
+		readonly cellKind: CellKind;
+		readonly source: string;
 		language: string;
-		cellKind: CellKind;
 		outputs: CellOutput[];
-		getContent(): string;
-		metadata?: NotebookCellMetadata;
+		metadata: NotebookCellMetadata;
 	}
 
 	export interface NotebookDocumentMetadata {
@@ -1706,16 +1715,22 @@ declare module 'vscode' {
 		 * Default to true.
 		 */
 		cellRunnable: boolean;
+
 	}
 
 	export interface NotebookDocument {
 		readonly uri: Uri;
 		readonly fileName: string;
 		readonly isDirty: boolean;
+		readonly cells: NotebookCell[];
 		languages: string[];
-		cells: NotebookCell[];
 		displayOrder?: GlobPattern[];
 		metadata?: NotebookDocumentMetadata;
+	}
+
+	export interface NotebookEditorCellEdit {
+		insert(index: number, content: string, language: string, type: CellKind, outputs: CellOutput[], metadata: NotebookCellMetadata | undefined): void;
+		delete(index: number): void;
 	}
 
 	export interface NotebookEditor {
@@ -1734,10 +1749,7 @@ declare module 'vscode' {
 		 */
 		postMessage(message: any): Thenable<boolean>;
 
-		/**
-		 * Create a notebook cell. The cell is not inserted into current document when created. Extensions should insert the cell into the document by [TextDocument.cells](#TextDocument.cells)
-		 */
-		createCell(content: string, language: string, type: CellKind, outputs: CellOutput[], metadata: NotebookCellMetadata | undefined): NotebookCell;
+		edit(callback: (editBuilder: NotebookEditorCellEdit) => void): Thenable<boolean>;
 	}
 
 	export interface NotebookProvider {
@@ -1757,11 +1769,24 @@ declare module 'vscode' {
 		 * @returns HTML fragment. We can probably return `CellOutput` instead of string ?
 		 *
 		 */
-		render(document: NotebookDocument, cell: NotebookCell, output: CellOutput, mimeType: string): string;
+		render(document: NotebookDocument, output: CellOutput, mimeType: string): string;
 		preloads?: Uri[];
 	}
 
-	namespace window {
+	export interface NotebookDocumentChangeEvent {
+
+		/**
+		 * The affected document.
+		 */
+		readonly document: NotebookDocument;
+
+		/**
+		 * An array of content changes.
+		 */
+		// readonly contentChanges: ReadonlyArray<TextDocumentContentChangeEvent>;
+	}
+
+	export namespace notebook {
 		export function registerNotebookProvider(
 			notebookType: string,
 			provider: NotebookProvider
@@ -1770,6 +1795,8 @@ declare module 'vscode' {
 		export function registerNotebookOutputRenderer(type: string, outputSelector: NotebookOutputSelector, renderer: NotebookOutputRenderer): Disposable;
 
 		export let activeNotebookDocument: NotebookDocument | undefined;
+
+		// export const onDidChangeNotebookDocument: Event<NotebookDocumentChangeEvent>;
 	}
 
 	//#endregion
@@ -1828,9 +1855,9 @@ declare module 'vscode' {
 		name: string;
 
 		/**
-		 * The signature without the return type. Render after `name`.
+		 * The parameters without the return type. Render after `name`.
 		 */
-		signature?: string;
+		parameters?: string;
 
 		/**
 		 * The fully qualified name, like package name or file path. Rendered after `signature`.
@@ -1869,7 +1896,7 @@ declare module 'vscode' {
 		/**
 		 * The icon path or [ThemeIcon](#ThemeIcon) for the timeline item.
 		 */
-		iconPath?: Uri | { light: Uri; dark: Uri } | ThemeIcon;
+		iconPath?: Uri | { light: Uri; dark: Uri; } | ThemeIcon;
 
 		/**
 		 * A human readable string describing less prominent details of the timeline item.
@@ -1933,7 +1960,7 @@ declare module 'vscode' {
 			 * Use `undefined` to signal that there are no more items to be returned.
 			 */
 			readonly cursor: string | undefined;
-		}
+		};
 
 		/**
 		 * An array of [timeline items](#TimelineItem).
@@ -1951,7 +1978,7 @@ declare module 'vscode' {
 		 * An optional maximum number timeline items or the all timeline items newer (inclusive) than the timestamp or id that should be returned.
 		 * If `undefined` all timeline items should be returned.
 		 */
-		limit?: number | { timestamp: number; id?: string };
+		limit?: number | { timestamp: number; id?: string; };
 	}
 
 	export interface TimelineProvider {
@@ -2050,7 +2077,7 @@ declare module 'vscode' {
 		 *
 		 * - Any code actions of `kind` are returned by the provider.
 		 */
-		readonly documentation?: ReadonlyArray<{ readonly kind: CodeActionKind, readonly command: Command }>;
+		readonly documentation?: ReadonlyArray<{ readonly kind: CodeActionKind, readonly command: Command; }>;
 	}
 
 	//#endregion
@@ -2100,7 +2127,7 @@ declare module 'vscode' {
 		 * @param pathFragments
 		 * @returns A new uri
 		 */
-		export function joinPaths(base: Uri, ...pathFragments: string[]): Uri;
+		export function joinPath(base: Uri, ...pathFragments: string[]): Uri;
 	}
 
 	//#endregion
