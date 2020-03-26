@@ -183,7 +183,8 @@ export function getHtmlStub(): string {
 <style>
 	.item-row {
 		display: flex; 
-		padding: .5em 1em;
+		padding: .5em 0;
+		width: calc(100% - 16px);
 	}
 	.item-row:hover {
 		background-color: var(--vscode-list-hoverBackground);
