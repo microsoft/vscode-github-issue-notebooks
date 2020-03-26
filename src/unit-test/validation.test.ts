@@ -66,5 +66,6 @@ suite('Validation', function () {
 		assertValidateErrors('$var=', Code.NodeMissing);
 		assertValidateErrors('$var=foo $var', Code.VariableDefinedRecursive);
 		assertValidateErrors('$var=$foo', Code.VariableUnknown);
+		assertValidateErrors('$var=foo sort desc by comments', Code.SortByNotAllowed);
 	});
 });
