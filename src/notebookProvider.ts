@@ -77,6 +77,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		try {
 
 			// fetch
+			let now = Date.now();
 			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 			for (let queryData of allQueryData) {
 				const octokit = await this._withOctokit();
@@ -89,6 +90,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
 				allItems = allItems.concat(items);
 			}
+			let duration = Date.now() - now;
 
 			// sort
 			const [first] = allQueryData;
@@ -117,6 +119,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				// html
 				html += renderItemAsHtml(item);
 			}
+			html += `<div class="stats">${allItems.length} results, queried ${new Date().toLocaleDateString()}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
 
 			cell.outputs = [{
 				outputKind: vscode.CellOutputKind.Rich,
@@ -219,6 +222,12 @@ export function getHtmlStub(): string {
 		flex: shrink;
 		padding: 0 .3em;
 		opacity: 60%;
+	}
+	.stats {
+		text-align: center;
+		font-size: .7em;
+		opacity: 60%;
+		padding: .2em;
 	}
 </style>`;
 }
