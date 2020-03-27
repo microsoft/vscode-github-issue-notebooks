@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { Project, ProjectContainer } from './project';
-import { Octokit } from '@octokit/rest';
+import { OctokitProvider } from "./octokitProvider";
 
 interface RawNotebookCell {
 	language: string;
@@ -16,28 +16,10 @@ interface RawNotebookCell {
 
 export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
-	private _octokit = new Octokit();
-
 	constructor(
 		readonly container: ProjectContainer,
+		readonly octokit: OctokitProvider
 	) { }
-
-	private async _withOctokit() {
-		try {
-			let [first] = await vscode.authentication.getSessions('github', []);
-			if (!first) {
-				first = await vscode.authentication.login('github', []);
-			}
-			const token = await first.getAccessToken();
-			this._octokit = new Octokit({ auth: token });
-
-		} catch (err) {
-			// no token
-			console.warn('FAILED TO AUTHENTICATE');
-			console.warn(err);
-		}
-		return this._octokit;
-	}
 
 	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
 
@@ -109,7 +91,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			let now = Date.now();
 			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 			for (let queryData of allQueryData) {
-				const octokit = await this._withOctokit();
+				const octokit = await this.octokit.lib();
 				const options = octokit.search.issuesAndPullRequests.endpoint.merge({
 					q: queryData.q,
 					sort: queryData.sort,
