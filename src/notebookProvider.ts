@@ -198,13 +198,18 @@ export function getHtmlStub(): string {
 	.item-row {
 		display: flex; 
 		padding: .5em 0;
+		color: var(--vscode-foreground);
 	}
 	.item-row:hover {
 		background-color: var(--vscode-list-hoverBackground);
 	}
 	.title {
-		color: var(--vscode-textLink-foreground);
+		color: var(--vscode-foreground) !important;
 		font-size: 1em;
+		text-decoration: none;
+	}
+	.title:hover {
+		text-decoration: underline;
 	}
 	.label {
 		font-size: .8em;
