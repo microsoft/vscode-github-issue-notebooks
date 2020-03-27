@@ -4,18 +4,19 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Node, NodeType, Utils } from './parser/nodes';
+import { Node, NodeType, Utils, QualifiedValueNode, QueryNode } from './parser/nodes';
 import { validateQueryDocument } from './parser/validation';
-import { SortByNodeSchema, QualifiedValueNodeSchema } from './parser/symbols';
+import { SortByNodeSchema, QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
 import { ProjectContainer } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
+import { OctokitProvider } from './octokitProvider';
+import { Parser } from './parser/parser';
 
+const selector = { language: 'github-issues' };
 
 export function registerLanguageProvider(container: ProjectContainer): vscode.Disposable {
 
-	const dispoables: vscode.Disposable[] = [];
-
-	const selector = { language: 'github-issues' };
+	const disposables: vscode.Disposable[] = [];
 
 	vscode.languages.setLanguageConfiguration(selector.language, {
 		wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
@@ -40,7 +41,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	// }));
 
 	// Hover
-	dispoables.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
+	disposables.push(vscode.languages.registerHoverProvider(selector, new class implements vscode.HoverProvider {
 		async provideHover(document: vscode.TextDocument, position: vscode.Position) {
 			const offset = document.offsetAt(position);
 			const project = container.lookupProject(document.uri);
@@ -57,7 +58,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	}));
 
 	// Smart Select
-	dispoables.push(vscode.languages.registerSelectionRangeProvider(selector, new class implements vscode.SelectionRangeProvider {
+	disposables.push(vscode.languages.registerSelectionRangeProvider(selector, new class implements vscode.SelectionRangeProvider {
 		async provideSelectionRanges(document: vscode.TextDocument, positions: vscode.Position[]) {
 			const result: vscode.SelectionRange[] = [];
 			const project = container.lookupProject(document.uri);
@@ -81,7 +82,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	}));
 
 	// Completions
-	dispoables.push(vscode.languages.registerCompletionItemProvider(selector, new class implements vscode.CompletionItemProvider {
+	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new class implements vscode.CompletionItemProvider {
 		provideCompletionItems(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.CompletionItem[]> {
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
@@ -147,13 +148,11 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 
 				return result;
 			}
-
-
 		}
 	}, ':', '$'));
 
 	// Definition
-	dispoables.push(vscode.languages.registerDefinitionProvider(selector, new class implements vscode.DefinitionProvider {
+	disposables.push(vscode.languages.registerDefinitionProvider(selector, new class implements vscode.DefinitionProvider {
 		async provideDefinition(document: vscode.TextDocument, position: vscode.Position) {
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
@@ -172,7 +171,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	}));
 
 	// References
-	dispoables.push(vscode.languages.registerReferenceProvider(selector, new class implements vscode.ReferenceProvider {
+	disposables.push(vscode.languages.registerReferenceProvider(selector, new class implements vscode.ReferenceProvider {
 		provideReferences(document: vscode.TextDocument, position: vscode.Position, context: vscode.ReferenceContext): vscode.ProviderResult<vscode.Location[]> {
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
@@ -199,7 +198,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 
 	// Rename
 	// todo@jrieken consolidate with find references?
-	dispoables.push(vscode.languages.registerRenameProvider(selector, new class implements vscode.RenameProvider {
+	disposables.push(vscode.languages.registerRenameProvider(selector, new class implements vscode.RenameProvider {
 		prepareRename(document: vscode.TextDocument, position: vscode.Position) {
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
@@ -240,7 +239,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	}));
 
 	// Document Highlights
-	dispoables.push(vscode.languages.registerDocumentHighlightProvider(selector, new class implements vscode.DocumentHighlightProvider {
+	disposables.push(vscode.languages.registerDocumentHighlightProvider(selector, new class implements vscode.DocumentHighlightProvider {
 		provideDocumentHighlights(document: vscode.TextDocument, position: vscode.Position): vscode.ProviderResult<vscode.DocumentHighlight[]> {
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
@@ -264,7 +263,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 
 	// Semantic Tokens
 	const legend = new vscode.SemanticTokensLegend(['keyword'], ['']);
-	dispoables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new class implements vscode.DocumentSemanticTokensProvider {
+	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new class implements vscode.DocumentSemanticTokensProvider {
 
 		provideDocumentSemanticTokens(document: vscode.TextDocument) {
 			const builder = new vscode.SemanticTokensBuilder();
@@ -319,8 +318,8 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 		handle = setTimeout(() => validateAll(), 500);
 	}
 	validateAllSoon();
-	dispoables.push(vscode.workspace.onDidChangeTextDocument(() => validateAllSoon()));
-	dispoables.push(vscode.workspace.onDidOpenTextDocument(doc => {
+	disposables.push(vscode.workspace.onDidChangeTextDocument(() => validateAllSoon()));
+	disposables.push(vscode.workspace.onDidOpenTextDocument(doc => {
 		if (vscode.languages.match(selector, doc)) {
 			// add new document to project, then validate
 			container.lookupProject(doc.uri).getOrCreate(doc);
@@ -331,5 +330,198 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 	// 	diagnostcis.set(doc.uri, undefined);
 	// }));
 
-	return vscode.Disposable.from(...dispoables);
+	return vscode.Disposable.from(...disposables);
+}
+
+
+export function registerGHBasedLanguageProvider(container: ProjectContainer, octokitProvider: OctokitProvider): vscode.Disposable {
+
+	const disposables: vscode.Disposable[] = [];
+
+	const ghCompletions = new class {
+
+		private _cache = new Map<string, Promise<vscode.CompletionItem[]>>();
+
+		async getOrFetch(owner: string, repo: string, type: ValuePlaceholderType, replaceRange: vscode.Range) {
+			const key = `${type}:${owner}/${repo}`;
+			if (!this._cache.has(key)) {
+				if (type === ValuePlaceholderType.Label) {
+					this._cache.set(key, this._labels(owner, repo));
+				} else if (type === ValuePlaceholderType.Milestone) {
+					this._cache.set(key, this._milestones(owner, repo));
+				} else if (type === ValuePlaceholderType.Username) {
+					this._cache.set(key, this._collaborators(owner, repo));
+				}
+			}
+			if (this._cache.has(key)) {
+				return (await this._cache.get(key)!).map(item => {
+					item.range = !replaceRange.isEmpty ? replaceRange : undefined;
+					if (item.label.match(/\s/)) {
+						item.insertText = `"${item.label}"`;
+						item.filterText = `"${item.label}"`;
+					}
+					return item;
+				});
+			}
+		}
+
+		private async _labels(owner: string, repo: string): Promise<vscode.CompletionItem[]> {
+			type LabelInfo = {
+				color: string;
+				name: string;
+				description: string;
+			};
+			const octokit = await octokitProvider.lib();
+			const options = octokit.issues.listLabelsForRepo.endpoint.merge({ owner, repo });
+			return octokit.paginate<LabelInfo>((<any>options)).then(labels => {
+				return labels.map(label => {
+					const item = new vscode.CompletionItem(label.name);
+					item.detail = label.description;
+					item.kind = vscode.CompletionItemKind.EnumMember;
+					item.kind = vscode.CompletionItemKind.Color;
+					item.documentation = '#' + label.color;
+					return item;
+				});
+			});
+		}
+
+		private async _milestones(owner: string, repo: string): Promise<vscode.CompletionItem[]> {
+			type MilestoneInfo = {
+				title: string;
+				state: string;
+				description: string;
+				open_issues: number;
+				closed_issues: number;
+			};
+			const octokit = await octokitProvider.lib();
+			const options = octokit.issues.listMilestonesForRepo.endpoint.merge({ owner, repo });
+			return octokit.paginate<MilestoneInfo>((<any>options)).then(milestones => {
+				return milestones.map(milestone => {
+					const item = new vscode.CompletionItem(milestone.title);
+					item.documentation = new vscode.MarkdownString(milestone.description);
+					item.kind = vscode.CompletionItemKind.Event;
+					item.insertText = milestone.title.match(/\s/) ? `"${milestone.title}"` : milestone.title;
+					return item;
+				});
+			});
+		}
+
+		private async _collaborators(owner: string, repo: string): Promise<vscode.CompletionItem[]> {
+			type Info = {
+				login: string;
+			};
+			const octokit = await octokitProvider.lib();
+			const options = octokit.repos.listContributors.endpoint.merge({ owner, repo });
+			return octokit.paginate<Info>((<any>options)).then(labels => {
+				return labels.map(user => {
+					const item = new vscode.CompletionItem(user.login);
+					item.kind = vscode.CompletionItemKind.User;
+					return item;
+				});
+			});
+		}
+	};
+
+	// Completions - GH based
+	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new class implements vscode.CompletionItemProvider {
+
+		async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
+
+			const project = container.lookupProject(document.uri);
+			const doc = project.getOrCreate(document);
+			const offset = document.offsetAt(position);
+			const parents: Node[] = [];
+			const node = Utils.nodeAt(doc, offset, parents) ?? doc;
+			const qualified = parents[parents.length - 2];
+			const query = parents[parents.length - 3];
+
+			if (query?._type !== NodeType.Query || qualified?._type !== NodeType.QualifiedValue || node !== qualified.value) {
+				return;
+			}
+
+			const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
+			if (!info || info.placeholderType === undefined) {
+				return;
+			}
+
+			if (info.placeholderType === ValuePlaceholderType.Orgname) {
+				return this._orgCompletions();
+			}
+
+			if (info.placeholderType === ValuePlaceholderType.Repository) {
+				return this._repoCompletions();
+			}
+
+			const value = Utils.print(query, doc.text, name => project.symbols.getFirst(name)?.value);
+			const resolvedQuery = <QueryNode>new Parser().parse(value).nodes[0];
+			const repoNode = <QualifiedValueNode>resolvedQuery.nodes.find(child => child._type === NodeType.QualifiedValue && child.qualifier.value === 'repo');
+			const repoValue = repoNode && value.substring(repoNode.value.start, repoNode.value.end);
+			const idx = repoValue?.indexOf('/') ?? -1;
+			if (!repoValue || idx < 0) {
+				return;
+			}
+			return ghCompletions.getOrFetch(
+				repoValue.substring(0, idx),
+				repoValue.substring(idx + 1),
+				info.placeholderType,
+				new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end))
+			);
+		}
+
+		async _orgCompletions(): Promise<vscode.CompletionItem[]> {
+			type OrgInfo = {
+				login: string;
+			};
+			const octokit = await octokitProvider.lib();
+			const user = await octokit.users.getAuthenticated();
+			const options = octokit.orgs.listForUser.endpoint.merge({ username: user.data.login, });
+			const values = await octokit.paginate<OrgInfo>(<any>options);
+			return values.map(value => new vscode.CompletionItem(value.login));
+		}
+
+		async _repoCompletions(): Promise<vscode.CompletionItem[]> {
+			const octokit = await octokitProvider.lib();
+			const result: vscode.CompletionItem[] = [];
+			type RepoInfo = {
+				name: string;
+				full_name: string;
+				html_url: string;
+			};
+			// USER repos
+			{
+				const options = octokit.repos.listForAuthenticatedUser.endpoint.merge();
+				const values = await octokit.paginate<RepoInfo>(<any>options);
+				for (let value of values) {
+					let item = new vscode.CompletionItem(value.full_name, vscode.CompletionItemKind.Folder);
+					item.documentation = new vscode.MarkdownString(value.html_url);
+					result.push(item);
+				}
+			}
+			// ORG repos
+			{
+				type OrgInfo = {
+					login: string;
+				};
+				const user = await octokit.users.getAuthenticated();
+				const options = octokit.orgs.listForUser.endpoint.merge({ username: user.data.login, });
+				const values = await octokit.paginate<OrgInfo>(<any>options);
+
+				for (let org of values) {
+					const resp = await octokit.repos.listForOrg({
+						org: org.login,
+						sort: 'pushed'
+					});
+					for (let value of resp.data) {
+						let item = new vscode.CompletionItem(value.full_name, vscode.CompletionItemKind.Folder);
+						item.documentation = new vscode.MarkdownString(value.html_url);
+						result.push(item);
+					}
+				}
+			}
+			return result;
+		}
+
+	}, ':'));
+
+	return vscode.Disposable.from(...disposables);
 }
