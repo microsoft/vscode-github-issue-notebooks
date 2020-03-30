@@ -6,6 +6,7 @@
 import * as vscode from 'vscode';
 import { Project, ProjectContainer } from './project';
 import { OctokitProvider } from "./octokitProvider";
+import AbortController from "abort-controller";
 
 interface RawNotebookCell {
 	language: string;
@@ -72,10 +73,18 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		}, 0);
 	}
 
-	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined): Promise<void> {
+	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
+
 		if (!cell) {
+			// run them all
+			for (let cell of document.cells) {
+				if (cell.cellKind === vscode.CellKind.Code) {
+					await this.executeCell(document, cell, token);
+				}
+			}
 			return;
 		}
+
 		const doc = await vscode.workspace.openTextDocument(cell.uri);
 		const project = this.container.lookupProject(doc.uri);
 		const allQueryData = project.queryData(doc);
@@ -85,79 +94,97 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const query = project.getOrCreate(doc);
 		project.symbols.update(query);
 
-		try {
+		const now = Date.now();
+		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 
-			// fetch
-			let now = Date.now();
-			let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
+		// fetch
+		try {
+			const abortCtl = new AbortController();
+			token.onCancellationRequested(_ => abortCtl.abort());
+
 			for (let queryData of allQueryData) {
 				const octokit = await this.octokit.lib();
-				const options = octokit.search.issuesAndPullRequests.endpoint.merge({
-					q: queryData.q,
-					sort: queryData.sort,
-					order: queryData.order,
-					per_page: 100,
-				});
-				const items = await octokit.paginate<SearchIssuesAndPullRequestsResponseItemsItem>(<any>options);
-				allItems = allItems.concat(items);
-			}
-			let duration = Date.now() - now;
 
-			// sort
-			const [first] = allQueryData;
-			const comparator = allQueryData.length >= 2 && allQueryData.every(item => item.sort === first.sort) && cmp.byName.get(first.sort!);
-			if (comparator) {
-				allItems.sort(first.sort === 'asc' ? cmp.invert(comparator) : comparator);
-			}
+				let page = 0;
+				let count = 0;
+				while (!token.isCancellationRequested) {
 
-			// "render"
-			const seen = new Set<number>();
-			let html = getHtmlStub();
-			let md = '';
-			let count = 0;
-			for (let item of allItems) {
-				if (seen.has(item.id)) {
-					continue;
+					const respone = await octokit.search.issuesAndPullRequests({
+						q: queryData.q,
+						sort: (<any>queryData.sort),
+						order: queryData.order,
+						per_page: 100,
+						page,
+						request: { signal: abortCtl.signal }
+					});
+					count += respone.data.items.length;
+					allItems = allItems.concat(<any>respone.data.items);
+					if (count >= respone.data.total_count) {
+						break;
+					}
+					page += 1;
 				}
-				seen.add(item.id);
-
-				// markdown
-				md += `- [#${item.number}](${item.html_url}) ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
-				if (item.assignee) {
-					md += `- [@${item.assignee.login}](${item.assignee.html_url})\n`;
-				}
-				md += '\n';
-
-				// html
-				html += renderItemAsHtml(item, count++ > 12);
 			}
+		} catch (err) {
+			if (!token.isCancellationRequested) {
+				cell.outputs = [{
+					outputKind: vscode.CellOutputKind.Text,
+					text: JSON.stringify(err)
+				}];
+			}
+			return;
+		}
 
-			//collapse/expand btns
-			html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
+		// sort
+		const [first] = allQueryData;
+		const comparator = allQueryData.length >= 2 && allQueryData.every(item => item.sort === first.sort) && cmp.byName.get(first.sort!);
+		if (comparator) {
+			allItems.sort(first.sort === 'asc' ? cmp.invert(comparator) : comparator);
+		}
 
-			// status line
-			html += `<div class="stats" data-ts=${now}>${allItems.length} results, queried {{NOW}}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
-			html += `<script>
+		// "render"
+		const duration = Date.now() - now;
+		const seen = new Set<number>();
+		let html = getHtmlStub();
+		let md = '';
+		let count = 0;
+		for (let item of allItems) {
+			if (seen.has(item.id)) {
+				continue;
+			}
+			seen.add(item.id);
+
+			// markdown
+			md += `- [#${item.number}](${item.html_url}) ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
+			if (item.assignee) {
+				md += `- [@${item.assignee.login}](${item.assignee.html_url})\n`;
+			}
+			md += '\n';
+
+			// html
+			html += renderItemAsHtml(item, count++ > 12);
+		}
+
+		//collapse/expand btns
+		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
+
+		// status line
+		html += `<div class="stats" data-ts=${now}>${allItems.length} results, queried {{NOW}}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
+		html += `<script>
 			var node = document.currentScript.parentElement.querySelector(".stats");
 			node.innerText = node.innerText.replace("{{NOW}}", new Date(Number(node.dataset['ts'])).toLocaleString());
 			</script>`;
 
-			cell.outputs = [{
-				outputKind: vscode.CellOutputKind.Rich,
-				data: {
-					['text/html']: `<div class="${count > 12 ? 'large collapsed' : ''}">${html}</div>`,
-					['text/markdown']: md,
-					['text/plain']: allQueryData.map(d => `${d.q}, ${d.sort || 'default'} sort`).join('\n\n')
-				}
-			}];
+		cell.outputs = [{
+			outputKind: vscode.CellOutputKind.Rich,
+			data: {
+				['text/html']: `<div class="${count > 12 ? 'large collapsed' : ''}">${html}</div>`,
+				['text/markdown']: md,
+				['text/plain']: allQueryData.map(d => `${d.q}, ${d.sort || 'default'} sort`).join('\n\n')
+			}
+		}];
 
-		} catch (err) {
-			console.error(err);
-			cell.outputs = [{
-				outputKind: vscode.CellOutputKind.Text,
-				text: JSON.stringify(err)
-			}];
-		}
+
 	}
 
 	async save(document: vscode.NotebookDocument): Promise<boolean> {
