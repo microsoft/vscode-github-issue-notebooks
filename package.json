@@ -4,6 +4,9 @@
 	"description": "GitHub Issue Notebooks for VS Code",
 	"publisher": "vscode",
 	"version": "0.0.1",
+	"repository": {
+		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
+	},
 	"enableProposedApi": true,
 	"engines": {
 		"vscode": "^1.43.0"
