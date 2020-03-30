@@ -27,7 +27,12 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 		editor.document.languages = ['github-issues'];
 
-		const contents = Buffer.from(await vscode.workspace.fs.readFile(editor.document.uri)).toString('utf8');
+		let contents = '';
+		try {
+			contents = Buffer.from(await vscode.workspace.fs.readFile(editor.document.uri)).toString('utf8');
+		} catch {
+		}
+
 		let raw: RawNotebookCell[];
 		try {
 			raw = <RawNotebookCell[]>JSON.parse(contents);

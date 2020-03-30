@@ -102,17 +102,17 @@
 			"notebook/cell/title": [
 				{
 					"command": "github-issues.lockCell",
-					"when": "notebookCellType == code && notebookCellEditable",
+					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellEditable",
 					"group": "inline@1"
 				},
 				{
 					"command": "github-issues.unlockCell",
-					"when": "notebookCellType == code && !notebookCellEditable",
+					"when": "notebookViewType == github-issues && notebookCellType == code && !notebookCellEditable",
 					"group": "inline@2"
 				},
 				{
 					"command": "github-issues.clearCellOutput",
-					"when": "notebookCellType == code",
+					"when": "notebookViewType == github-issues && notebookCellType == code",
 					"group": "inline@3"
 				}
 			]
