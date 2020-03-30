@@ -445,11 +445,11 @@ export function registerGHBasedLanguageProvider(container: ProjectContainer, oct
 			}
 
 			if (info.placeholderType === ValuePlaceholderType.Orgname) {
-				return this._orgCompletions();
+				return this._getOrFetchOrgCompletions();
 			}
 
 			if (info.placeholderType === ValuePlaceholderType.Repository) {
-				return this._repoCompletions();
+				return this._getOrFetchRepoCompletions();
 			}
 
 			const value = Utils.print(query, doc.text, name => project.symbols.getFirst(name)?.value);
@@ -468,57 +468,66 @@ export function registerGHBasedLanguageProvider(container: ProjectContainer, oct
 			);
 		}
 
-		async _orgCompletions(): Promise<vscode.CompletionItem[]> {
-			type OrgInfo = {
-				login: string;
-			};
-			const octokit = await octokitProvider.lib();
-			const user = await octokit.users.getAuthenticated();
-			const options = octokit.orgs.listForUser.endpoint.merge({ username: user.data.login, });
-			const values = await octokit.paginate<OrgInfo>(<any>options);
-			return values.map(value => new vscode.CompletionItem(value.login));
-		}
 
-		async _repoCompletions(): Promise<vscode.CompletionItem[]> {
-			const octokit = await octokitProvider.lib();
-			const result: vscode.CompletionItem[] = [];
-			type RepoInfo = {
-				name: string;
-				full_name: string;
-				html_url: string;
-			};
-			// USER repos
-			{
-				const options = octokit.repos.listForAuthenticatedUser.endpoint.merge();
-				const values = await octokit.paginate<RepoInfo>(<any>options);
-				for (let value of values) {
-					let item = new vscode.CompletionItem(value.full_name, vscode.CompletionItemKind.Folder);
-					item.documentation = new vscode.MarkdownString(value.html_url);
-					result.push(item);
-				}
-			}
-			// ORG repos
-			{
-				type OrgInfo = {
-					login: string;
-				};
+		private _orgCompletions?: Promise<vscode.CompletionItem[]>;
+		private _repoCompletions?: Promise<vscode.CompletionItem[]>;
+
+		async _getOrFetchOrgCompletions(): Promise<vscode.CompletionItem[]> {
+			if (!this._orgCompletions) {
+				type OrgInfo = { login: string; };
+				const octokit = await octokitProvider.lib();
 				const user = await octokit.users.getAuthenticated();
 				const options = octokit.orgs.listForUser.endpoint.merge({ username: user.data.login, });
-				const values = await octokit.paginate<OrgInfo>(<any>options);
-
-				for (let org of values) {
-					const resp = await octokit.repos.listForOrg({
-						org: org.login,
-						sort: 'pushed'
-					});
-					for (let value of resp.data) {
-						let item = new vscode.CompletionItem(value.full_name, vscode.CompletionItemKind.Folder);
-						item.documentation = new vscode.MarkdownString(value.html_url);
-						result.push(item);
-					}
-				}
+				this._orgCompletions = octokit.paginate<OrgInfo>(<any>options).then(values => values.map(value => new vscode.CompletionItem(value.login)));
 			}
-			return result;
+			return this._orgCompletions;
+		}
+
+		async _getOrFetchRepoCompletions(): Promise<vscode.CompletionItem[]> {
+			if (!this._repoCompletions) {
+
+				this._repoCompletions = (async () => {
+
+					const result: vscode.CompletionItem[] = [];
+					const octokit = await octokitProvider.lib();
+
+					// USER repos
+					type RepoInfo = {
+						name: string;
+						full_name: string;
+						html_url: string;
+					};
+					let p1 = octokit.paginate<RepoInfo>(<any>octokit.repos.listForAuthenticatedUser.endpoint.merge()).then(values => {
+						for (let value of values) {
+							let item = new vscode.CompletionItem(value.full_name, vscode.CompletionItemKind.Folder);
+							item.documentation = new vscode.MarkdownString(value.html_url);
+							result.push(item);
+						}
+					});
+
+					// ORG repos
+					type OrgInfo = {
+						login: string;
+					};
+					let p2 = octokit.paginate<OrgInfo>(<any>octokit.orgs.listForUser.endpoint.merge({ username: (await octokit.users.getAuthenticated()).data.login, })).then(async values => {
+						for (let org of values) {
+							const resp = await octokit.repos.listForOrg({
+								org: org.login,
+								sort: 'pushed'
+							});
+							for (let value of resp.data) {
+								let item = new vscode.CompletionItem(value.full_name, vscode.CompletionItemKind.Folder);
+								item.documentation = new vscode.MarkdownString(value.html_url);
+								result.push(item);
+							}
+						}
+					});
+
+					await Promise.all([p1, p2]);
+					return result;
+				})();
+			}
+			return this._repoCompletions;
 		}
 
 	}, ':'));
