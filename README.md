@@ -2,7 +2,7 @@
 
 The VS Code GitHub Issue notebook extension enables you to run issue queries from within VS Code so that queries and results are displayed interleaved - just like in other notebook applications. The query syntax supports variables and OR-quries.
 
-![Sample](https://github.com/microsoft/vscode-github-issue-notebooks/blob/master/sample.gif)
+![Sample](https://github.com/microsoft/vscode-github-issue-notebooks/blob/master/sample.png)
 
 ### Features
 
@@ -22,11 +22,12 @@ This extension supports to search for issues and pull requests using GitHub sear
 
 ```
 doc ::= query | or | def
-query ::= <GH_ISSUE_PR_QUERY> ('sort asc by' | 'sort desc by' <GH_SORT_VALUE>)?
+query ::= <GH_QUERY> ('sort asc by' | 'sort desc by' <GH_SORT>)?
 or ::= query "OR" query | or
 def ::= var "=" query
 var ::= "$" [_a-zA-Z] [_a-zA-Z0-9]*
 ```
 
-Noe that, new line characters always terminate an expression
+Note that new line characters always terminate an expression.
+
 
