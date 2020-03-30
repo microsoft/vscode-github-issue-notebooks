@@ -130,7 +130,11 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				// html
 				html += renderItemAsHtml(item);
 			}
-			html += `<div class="stats">${allItems.length} results, queried ${new Date().toLocaleDateString()}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
+			html += `<div class="stats" data-ts=${now}>${allItems.length} results, queried {{NOW}}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
+			html += `<script>
+			var node = document.currentScript.parentElement.querySelector(".stats");
+			node.innerText = node.innerText.replace("{{NOW}}", new Date(Number(node.dataset['ts'])).toLocaleString());
+			</script>`;
 
 			cell.outputs = [{
 				outputKind: vscode.CellOutputKind.Rich,
@@ -243,7 +247,7 @@ export function getHtmlStub(): string {
 		text-align: center;
 		font-size: .7em;
 		opacity: 60%;
-		padding: .2em;
+		padding: .3em 0;
 	}
 </style>`;
 }
