@@ -1,3 +1,7 @@
+:point_right::point_right: This extension is still **under development**.
+
+:point_right::point_right: Latest **VS Code Insiders** is required and at times this extension might be broken.
+
 # GitHub Issue Notebooks
 
 The VS Code GitHub Issue notebook extension enables you to run issue queries from within VS Code so that queries and results are displayed interleaved - just like in other notebook applications. The query syntax supports variables and OR-quries.
