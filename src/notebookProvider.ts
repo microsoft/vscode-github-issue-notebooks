@@ -289,6 +289,21 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 	const open = `<svg class="octicon octicon-issue-opened open" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 011.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path></svg>`;
 
 
+	let entityMap: Record<string, string> = {
+		'&': '&amp;',
+		'<': '&lt;',
+		'>': '&gt;',
+		'"': '&quot;',
+		"'": '&#39;',
+		'/': '&#x2F;',
+		'`': '&#x60;',
+		'=': '&#x3D;'
+	};
+
+	function escapeHtml(string: string) {
+		return string.replace(/[&<>"'`=\/]/g, s => entityMap[s]);
+	}
+
 	function getContrastColor(color: string): string {
 		// Color algorithm from https://stackoverflow.com/questions/1855884/determine-font-color-based-on-background-color
 		const r = Number.parseInt(color.substr(0, 2), 16);
@@ -301,9 +316,9 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 <div class="item-row ${hide ? 'hide' : ''}">
 	<div class="item-state">${item.closed_at ? closed : open}</div>
 	<div style="flex: auto;">
-	<a href="${item.html_url}" class="title">${item.title}</a>
+	<a href="${item.html_url}" class="title">${escapeHtml(item.title)}</a>
 	${item.labels.map(label => `<span class="label" style="background-color: #${label.color};"><a style="color: ${getContrastColor(label.color)};">${label.name}</a></span>`).join('')}
-	<div class="status"><span>#${item.number} opened ${new Date(item.created_at).toLocaleDateString()} by ${item.user.login}</span></div>
+	<div class="status"><span>#${item.number} opened ${new Date(item.created_at).toLocaleDateString()} by ${escapeHtml(item.user.login)}</span></div>
 	</div>
 	<div class="user">${!item.assignees ? '' : item.assignees.map(user => `<a href="${user.html_url}"><img src="${user.avatar_url}" width="20" height="20" alt="@${user.login}"></a>`).join('')}</div>
 </div>
