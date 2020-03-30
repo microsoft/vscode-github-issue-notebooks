@@ -286,7 +286,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 				builder.push(line, character, token.end - token.start, 0, 0);
 			}
 
-			return new vscode.SemanticTokens(builder.build());
+			return builder.build();
 		}
 
 	}, legend));
