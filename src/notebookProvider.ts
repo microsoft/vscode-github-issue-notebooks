@@ -125,19 +125,24 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 					count += respone.data.items.length;
 					totalCount = respone.data.total_count;
 					allItems = allItems.concat(<any>respone.data.items);
-					if (count >= Math.min(1000, respone.data.total_count)) {
+					if (count >= Math.min(10000, respone.data.total_count)) {
 						break;
 					}
 					page += 1;
 				}
 			}
 		} catch (err) {
-			if (!token.isCancellationRequested) {
-				cell.outputs = [{
-					outputKind: vscode.CellOutputKind.Text,
-					text: JSON.stringify(err)
-				}];
+			// ignore cancellation
+			if (token.isCancellationRequested) {
+				return;
 			}
+			// print as error
+			cell.outputs = [{
+				outputKind: vscode.CellOutputKind.Error,
+				ename: err instanceof Error && err.name || 'error',
+				evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
+				traceback: []
+			}];
 			return;
 		}
 
