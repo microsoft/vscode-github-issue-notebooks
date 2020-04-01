@@ -82,6 +82,20 @@
 			}
 		],
 		"menus": {
+			"commandPalette": [
+				{
+					"command": "github-issues.lockCell",
+					"when": "false"
+				},
+				{
+					"command": "github-issues.unlockCell",
+					"when": "false"
+				},
+				{
+					"command": "github-issues.clearCellOutput",
+					"when": "false"
+				}
+			],
 			"editor/title": [
 				{
 					"command": "github-issues.unlockDocument",
