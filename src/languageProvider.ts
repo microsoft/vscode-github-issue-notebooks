@@ -260,36 +260,49 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 			return Promise.all(result);
 		}
 	}));
-
 	// Semantic Tokens
-	const legend = new vscode.SemanticTokensLegend(['keyword'], ['']);
-	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new class implements vscode.DocumentSemanticTokensProvider {
+
+
+	const semanticTokensProvider = new class implements vscode.DocumentSemanticTokensProvider, vscode.DocumentRangeSemanticTokensProvider {
 
 		provideDocumentSemanticTokens(document: vscode.TextDocument) {
+			return this._semanticTokens(document, new vscode.Range(new vscode.Position(0, 0), document.lineAt(document.lineCount - 1).rangeIncludingLineBreak.end));
+		}
+
+		provideDocumentRangeSemanticTokens(document: vscode.TextDocument, range: vscode.Range) {
+			return this._semanticTokens(document, range);
+		}
+
+		private _semanticTokens(document: vscode.TextDocument, range: vscode.Range) {
+
 			const builder = new vscode.SemanticTokensBuilder();
 			const project = container.lookupProject(document.uri);
 			const query = project.getOrCreate(document);
 
-			const tokens: Token[] = [];
+			const startOffset = document.offsetAt(range.start);
+			const endOffset = document.offsetAt(range.end);
 
 			Utils.walk(query, node => {
-				if (node._type === NodeType.OrExpression) {
-					tokens.push(node.or);
-				}
-				if (node._type === NodeType.SortBy) {
-					tokens.push(node.keyword);
+				if (startOffset <= node.start && node.end <= endOffset) {
+					let token: Token | undefined;
+					if (node._type === NodeType.OrExpression) {
+						token = node.or;
+					}
+					if (node._type === NodeType.SortBy) {
+						token = node.keyword;
+					}
+					if (token) {
+						const { line, character } = document.positionAt(token.start);
+						builder.push(line, character, token.end - token.start, 0, 0);
+					}
 				}
 			});
-
-			for (let token of tokens.sort((a, b) => a.start - b.start)) {
-				const { line, character } = document.positionAt(token.start);
-				builder.push(line, character, token.end - token.start, 0, 0);
-			}
-
 			return builder.build();
 		}
-
-	}, legend));
+	};
+	const semanticTokensLegend = new vscode.SemanticTokensLegend(['keyword'], []);
+	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, semanticTokensProvider, semanticTokensLegend));
+	disposables.push(vscode.languages.registerDocumentRangeSemanticTokensProvider(selector, semanticTokensProvider, semanticTokensLegend));
 
 	// Validation
 	const diagCollection = vscode.languages.createDiagnosticCollection();
