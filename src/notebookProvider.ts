@@ -101,7 +101,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 		const now = Date.now();
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
-
+		let totalCount: number = 0;
 		// fetch
 		try {
 			const abortCtl = new AbortController();
@@ -123,8 +123,9 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 						request: { signal: abortCtl.signal }
 					});
 					count += respone.data.items.length;
+					totalCount = respone.data.total_count;
 					allItems = allItems.concat(<any>respone.data.items);
-					if (count >= respone.data.total_count) {
+					if (count >= Math.min(1000, respone.data.total_count)) {
 						break;
 					}
 					page += 1;
@@ -174,7 +175,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
 
 		// status line
-		html += `<div class="stats" data-ts=${now}>${allItems.length} results, queried {{NOW}}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
+		html += `<div class="stats" data-ts=${now}>${totalCount} results${totalCount !== allItems.length ? ` (showing ${allItems.length})` : ''}, queried {{NOW}}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
 		html += `<script>
 			var node = document.currentScript.parentElement.querySelector(".stats");
 			node.innerText = node.innerText.replace("{{NOW}}", new Date(Number(node.dataset['ts'])).toLocaleString());
@@ -188,8 +189,6 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				['text/plain']: allQueryData.map(d => `${d.q}, ${d.sort || 'default'} sort`).join('\n\n')
 			}
 		}];
-
-
 	}
 
 	async save(document: vscode.NotebookDocument): Promise<boolean> {
