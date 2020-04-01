@@ -3,7 +3,7 @@
 	"displayName": "GitHub Issue Notebooks",
 	"description": "GitHub Issue Notebooks for VS Code",
 	"publisher": "ms-vscode",
-	"version": "0.0.3",
+	"version": "0.0.4",
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
