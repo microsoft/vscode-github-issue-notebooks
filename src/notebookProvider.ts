@@ -315,10 +315,25 @@ export function getHtmlStub(): string {
 	.large:not(.collapsed) > .collapse > .more {
 		display: none;
 	}
+	.item-row .start-working {
+		display:none;
+	}
+	.item-row .start-working a {
+		color: var(--vscode-foreground) !important;
+		font-size: 0.9em;
+		text-decoration: none;
+	}
+	.item-row .start-working a:hover {
+		text-decoration: underline;
+	}
+	.item-row:hover .start-working {
+		display:inline;
+	}
 </style>`;
 }
 
 export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsItem, hide: boolean): string {
+
 
 	const closed = `<svg class="octicon octicon-issue-closed closed" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M7 10h2v2H7v-2zm2-6H7v5h2V4zm1.5 1.5l-1 1L12 9l4-4.5-1-1L12 7l-1.5-1.5zM8 13.7A5.71 5.71 0 012.3 8c0-3.14 2.56-5.7 5.7-5.7 1.83 0 3.45.88 4.5 2.2l.92-.92A6.947 6.947 0 008 1C4.14 1 1 4.14 1 8s3.14 7 7 7 7-3.14 7-7l-1.52 1.52c-.66 2.41-2.86 4.19-5.48 4.19v-.01z"></path></svg>`;
 	const open = `<svg class="octicon octicon-issue-opened open" viewBox="0 0 14 16" version="1.1" width="14" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M7 2.3c3.14 0 5.7 2.56 5.7 5.7s-2.56 5.7-5.7 5.7A5.71 5.71 0 011.3 8c0-3.14 2.56-5.7 5.7-5.7zM7 1C3.14 1 0 4.14 0 8s3.14 7 7 7 7-3.14 7-7-3.14-7-7-7zm1 3H6v5h2V4zm0 6H6v2h2v-2z"></path></svg>`;
@@ -347,13 +362,38 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 		return ((0.299 * r + 0.587 * g + 0.114 * b) / 255) > 0.5 ? 'black' : 'white';
 	}
 
+	//#region GH PR Integration
+	//todo@jrieken - have API that allows the PR extension to contribute this
+	let startWorking: string = '';
+	if (!item.closed_at
+		&& vscode.extensions.getExtension('github.vscode-pull-request-github-insiders')
+	) {
+		let repoPos = item.repository_url.lastIndexOf('/');
+		let ownerPos = item.repository_url.lastIndexOf('/', repoPos - 1);
+		startWorking = `
+		<span class="start-working">
+		<span>&nbsp;\u2022&nbsp;</span>
+		<a href="${vscode.Uri.parse('command:issue.startWorking').with({
+			query: JSON.stringify([{
+				owner: item.repository_url.substring(repoPos, ownerPos),
+				repo: item.repository_url.substring(ownerPos),
+				number: item.number
+			}])
+		}).toString()}">Start Working...</a>
+		</span>`;
+	}
+	//#endregion
+
 	return `
 <div class="item-row ${hide ? 'hide' : ''}">
 	<div class="item-state">${item.closed_at ? closed : open}</div>
 	<div style="flex: auto;">
 	<a href="${item.html_url}" class="title">${escapeHtml(item.title)}</a>
 	${item.labels.map(label => `<span class="label" style="background-color: #${label.color};"><a style="color: ${getContrastColor(label.color)};">${label.name}</a></span>`).join('')}
-	<div class="status"><span>#${item.number} opened ${new Date(item.created_at).toLocaleDateString()} by ${escapeHtml(item.user.login)}</span></div>
+	${startWorking}
+	<div class="status">
+		<span>#${item.number} opened ${new Date(item.created_at).toLocaleDateString()} by ${escapeHtml(item.user.login)}</span>
+	</div>
 	</div>
 	<div class="user">${!item.assignees ? '' : item.assignees.map(user => `<a href="${user.html_url}"><img src="${user.avatar_url}" width="20" height="20" alt="@${user.login}"></a>`).join('')}</div>
 </div>
