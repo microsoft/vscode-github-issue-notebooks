@@ -10,7 +10,7 @@ The VS Code GitHub Issue notebook extension enables you to run issue queries fro
 
 1. use latest VS Code Insiders
 1. install the latest version of this extension (https://github.com/microsoft/vscode-github-issue-notebooks/releases)
-1. create a `foo.github-issue` file and you are all set
+1. create a `foo.github-issues` file and you are all set
 
 ![Sample](https://github.com/microsoft/vscode-github-issue-notebooks/blob/master/sample.png)
 
