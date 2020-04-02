@@ -190,8 +190,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
 				['text/html']: `<div class="${count > 12 ? 'large collapsed' : ''}">${html}</div>`,
-				['text/markdown']: md,
-				['text/plain']: allQueryData.map(d => `${d.q}, ${d.sort || 'default'} sort`).join('\n\n')
+				['text/markdown']: md
 			}
 		}];
 	}
