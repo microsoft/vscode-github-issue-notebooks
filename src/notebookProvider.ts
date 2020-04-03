@@ -123,7 +123,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 						request: { signal: abortCtl.signal }
 					});
 					count += respone.data.items.length;
-					totalCount = respone.data.total_count;
+					totalCount += respone.data.total_count;
 					allItems = allItems.concat(<any>respone.data.items);
 					if (count >= Math.min(1000, respone.data.total_count)) {
 						break;
