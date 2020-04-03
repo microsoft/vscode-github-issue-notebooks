@@ -18,7 +18,7 @@
 		"*",
 		"onLanguage:github-issues"
 	],
-	"main": "./out/extension.js",
+	"main": "./dist/extension.js",
 	"contributes": {
 		"languages": [
 			{
@@ -133,10 +133,10 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "tsc -p ./",
+		"vscode:prepublish": "webpack --mode production",
+		"compile": "webpack --mode none",
+		"watch": "webpack --mode none --watch --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
-		"watch": "tsc -watch -p ./",
 		"pretest": "npm run compile && npm run lint",
 		"test": "node ./out/test/runTest.js",
 		"unit-test": "npx mocha ./out/unit-test",
@@ -152,8 +152,11 @@
 		"glob": "^7.1.6",
 		"husky": "^4.2.3",
 		"mocha": "^7.0.1",
+		"ts-loader": "^6.2.2",
 		"typescript": "^3.8.3",
-		"vscode-test": "^1.3.0"
+		"vscode-test": "^1.3.0",
+		"webpack": "^4.42.1",
+		"webpack-cli": "^3.3.11"
 	},
 	"dependencies": {
 		"abort-controller": "^3.0.0",
