@@ -293,7 +293,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 					}
 					if (token) {
 						const { line, character } = document.positionAt(token.start);
-						builder.push(line, character, token.end - token.start, 0, 0);
+						builder.push(line, character, token.end - token.start, 0);
 					}
 				}
 			});
