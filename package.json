@@ -133,7 +133,7 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "webpack --mode production",
+		"vscode:prepublish": "webpack --mode none",
 		"compile": "webpack --mode none",
 		"watch": "webpack --mode none --watch --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
