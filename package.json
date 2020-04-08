@@ -16,7 +16,8 @@
 	],
 	"activationEvents": [
 		"onLanguage:github-issues",
-		"onNotebookEditor:github-issues"
+		"onNotebookEditor:github-issues",
+		"*"
 	],
 	"main": "./dist/extension.js",
 	"contributes": {
