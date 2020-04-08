@@ -6,8 +6,17 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
+import { registerLanguageProvider } from '../languageProvider';
+import { ProjectContainer } from '../project';
 
 suite('Completions', () => {
+
+	let disposable = new vscode.Disposable(() => { });
+
+	setup(function () {
+		disposable.dispose();
+		disposable = registerLanguageProvider(new ProjectContainer());
+	});
 
 	test('QualifiedValue', async function () {
 
