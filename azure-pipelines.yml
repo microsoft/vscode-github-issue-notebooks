@@ -28,7 +28,7 @@ steps:
 
 - bash: |
     echo ">>> Compile, unit-test, integration-test"
-    npm && npm run compile-lint-test
+    npm i && npm run compile-lint-test
   displayName: Compile, Lint, Test
   env:
     DISPLAY: ':99.0'
