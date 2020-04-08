@@ -97,7 +97,7 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 		return;
 	}
 
-	if (!info.repeatable) {
+	if (!info.repeatable && !node.not) {
 		if (mutualSets.has(node.qualifier.value)) {
 			bucket.push(new ValidationError(node.qualifier, Code.ValueConflict, 'This qualifier is already used', mutualSets.get(node.qualifier.value)));
 		} else {

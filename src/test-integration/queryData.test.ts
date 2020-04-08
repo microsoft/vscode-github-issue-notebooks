@@ -32,6 +32,8 @@ suite('Project', () => {
 		await assertQueryData('$bar=bazz', []);
 		await assertQueryData('foo OR bar', [{ q: 'foo' }, { q: 'bar' }]);
 		// await assertQueryData('$a=foo repo:bar sort asc by comments\n$a', [{ q: 'foo repo:bar', order: 'asc', sort: 'comments' }]);
+
+		await assertQueryData('repo:microsoft/vscode label:notebook is:open -milestone:"April 2020" -milestone:"Backlog"');
 	});
 
 });
