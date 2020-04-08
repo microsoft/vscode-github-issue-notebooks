@@ -6,7 +6,7 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { Project } from '../../project';
+import { Project } from '../project';
 
 suite('Project', () => {
 

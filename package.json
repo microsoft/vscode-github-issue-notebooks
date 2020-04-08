@@ -137,8 +137,8 @@
 		"compile": "webpack --mode none",
 		"watch": "webpack --mode none --watch --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
-		"integration-test": "npx tsc -p ./tsconfig.json && node ./out/test/runTest.js",
-		"unit-test": "npx tsc -p ./tsconfig.json && npx mocha ./out/unit-test",
+		"integration-test": "npx tsc -p ./tsconfig.json && node ./out/test-integration/runTest.js",
+		"unit-test": "npx tsc -p ./tsconfig.json && npx mocha ./out/test-unit",
 		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint"
 	},
