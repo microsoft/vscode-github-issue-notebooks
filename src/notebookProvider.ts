@@ -12,7 +12,6 @@ interface RawNotebookCell {
 	language: string;
 	value: string;
 	kind: vscode.CellKind;
-	outputs: vscode.CellOutput[];
 }
 
 export class IssuesNotebookProvider implements vscode.NotebookProvider {
@@ -41,13 +40,13 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			raw = [];
 		}
 		await editor.edit(editBuilder => {
-			for (let i = 0; i < raw.length; i++) {
+			for (let item of raw) {
 				editBuilder.insert(
 					0,
-					raw[i].value,
-					raw[i].language,
-					raw[i].kind,
-					raw[i].outputs ?? [],
+					item.value,
+					item.language,
+					item.kind,
+					[],
 					{ editable: true, runnable: true }
 				);
 			}
@@ -201,8 +200,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
-				value: cell.source,
-				outputs: cell.outputs
+				value: cell.source
 			});
 		}
 		await vscode.workspace.fs.writeFile(document.uri, Buffer.from(JSON.stringify(contents)));
