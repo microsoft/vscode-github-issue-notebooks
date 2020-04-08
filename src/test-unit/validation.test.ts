@@ -73,5 +73,6 @@ suite('Validation', function () {
 		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/4
 
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -milestone:"April 2020" -milestone:"Backlog"', Code.ValueConflict);
+		assertValidateErrors('repo:foo OR no:assignee no:label');
 	});
 });

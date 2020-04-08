@@ -152,11 +152,11 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 	}
 
 	if (info.enumValues && info.placeholderType === undefined) {
-		let set = value && info.enumValues.find(set => set.has(value!) ? set : undefined);
+		let set = value && info.enumValues.find(set => set.entries.has(value!) ? set : undefined);
 		if (!set) {
 			// value not known
-			bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set].join(', ')).join(', ')}`));
-		} else if (mutualSets.has(set)) {
+			bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set.entries].join(', ')).join(', ')}`));
+		} else if (mutualSets.has(set) && set.exclusive) {
 			// other value from set in use
 			bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, mutualSets.get(set)));
 		} else {

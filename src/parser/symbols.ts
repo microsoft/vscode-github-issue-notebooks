@@ -106,10 +106,22 @@ export const enum ValuePlaceholderType {
 	Username = 'username',
 }
 
+class ValueSet {
+
+	readonly entries: Set<string>;
+
+	constructor(
+		readonly exclusive: boolean,
+		...entries: string[]
+	) {
+		this.entries = new Set(entries);
+	}
+}
+
 class QualifiedValueInfo {
 
-	static enum(sets: Set<string>[], repeatable?: boolean) {
-		return new QualifiedValueInfo(ValueType.Literal, sets, undefined, repeatable);
+	static enum(sets: ValueSet | ValueSet[], repeatable?: boolean) {
+		return new QualifiedValueInfo(ValueType.Literal, Array.isArray(sets) ? sets : [sets], undefined, repeatable);
 	}
 
 	static placeholder(placeholder: ValuePlaceholderType, repeatable?: boolean) {
@@ -121,12 +133,12 @@ class QualifiedValueInfo {
 	}
 
 	static username(repeatable?: boolean) {
-		return new QualifiedValueInfo(ValueType.Literal, [new Set(['@me'])], ValuePlaceholderType.Username, repeatable);
+		return new QualifiedValueInfo(ValueType.Literal, [new ValueSet(true, '@me')], ValuePlaceholderType.Username, repeatable);
 	}
 
 	constructor(
 		readonly type: ValueType,
-		readonly enumValues: readonly Set<string>[] | undefined,
+		readonly enumValues: readonly ValueSet[] | undefined,
 		readonly placeholderType: ValuePlaceholderType | undefined,
 		readonly repeatable: boolean = false
 	) { }
@@ -146,13 +158,13 @@ export const QueryNodeImpliesPullRequestSchema = new Set<string>([
 ]);
 
 export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
-	['type', QualifiedValueInfo.enum([new Set(['pr', 'issue'])])],
+	['type', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
 	['updated', QualifiedValueInfo.simple(ValueType.Date)],
-	['in', QualifiedValueInfo.enum([new Set(['title', 'body', 'comments'])])],
+	['in', QualifiedValueInfo.enum(new ValueSet(true, 'title', 'body', 'comments'))],
 	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, true)],
 	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, true)],
 	['user', QualifiedValueInfo.username()],
-	['state', QualifiedValueInfo.enum([new Set(['open', 'closed'])])],
+	['state', QualifiedValueInfo.enum(new ValueSet(true, 'open', 'closed'))],
 	['assignee', QualifiedValueInfo.username()],
 	['author', QualifiedValueInfo.username()],
 	['mentions', QualifiedValueInfo.username()],
@@ -164,7 +176,7 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['commenter', QualifiedValueInfo.username(true)],
 	['involves', QualifiedValueInfo.username(true)],
 	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, true)],
-	['linked', QualifiedValueInfo.enum([new Set(['pr', 'issue'])])],
+	['linked', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
 	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone)],
 	['project', QualifiedValueInfo.placeholder(ValuePlaceholderType.ProjectBoard)],
 	['language', QualifiedValueInfo.placeholder(ValuePlaceholderType.Language)],
@@ -173,15 +185,15 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['reactions', QualifiedValueInfo.simple(ValueType.Number)],
 	['created', QualifiedValueInfo.simple(ValueType.Date)],
 	['closed', QualifiedValueInfo.simple(ValueType.Date)],
-	['archived', QualifiedValueInfo.enum([new Set(['true', 'false'])])],
-	['is', QualifiedValueInfo.enum([new Set(['locked', 'unlocked']), new Set(['merged', 'unmerged']), new Set(['public', 'private']), new Set(['open', 'closed']), new Set(['pr', 'issue'])])],
-	['no', QualifiedValueInfo.enum([new Set(['label', 'milestone', 'assignee', 'project'])], true)],
-	['status', QualifiedValueInfo.enum([new Set(['pending', 'success', 'failure'])])],
+	['archived', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'))],
+	['is', QualifiedValueInfo.enum([new ValueSet(true, 'locked', 'unlocked'), new ValueSet(true, 'merged', 'unmerged'), new ValueSet(true, 'public', 'private'), new ValueSet(true, 'open', 'closed'), new ValueSet(true, 'pr', 'issue')], true)],
+	['no', QualifiedValueInfo.enum(new ValueSet(false, 'label', 'milestone', 'assignee', 'project'), true)],
+	['status', QualifiedValueInfo.enum(new ValueSet(true, 'pending', 'success', 'failure'))],
 	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
 	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
-	['draft', QualifiedValueInfo.enum([new Set(['true', 'false'])])],
+	['draft', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'))],
 	['review-requested', QualifiedValueInfo.username()],
-	['review', QualifiedValueInfo.enum([new Set(['none', 'required', 'approved'])])],
+	['review', QualifiedValueInfo.enum(new ValueSet(true, 'none', 'required', 'approved'))],
 	['reviewed-by', QualifiedValueInfo.username()],
 	['team-review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	['merged', QualifiedValueInfo.simple(ValueType.Date)],
