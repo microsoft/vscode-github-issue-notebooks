@@ -16,7 +16,7 @@
 			"outFiles": [
 				"${workspaceFolder}/out/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "npm: watch"
 		},
 		{
 			"name": "Unit Tests",
@@ -44,7 +44,7 @@
 			"type": "pwa-node"
 		},
 		{
-			"name": "Extension Tests",
+			"name": "Integration Tests",
 			"type": "extensionHost",
 			"request": "launch",
 			"runtimeExecutable": "${execPath}",
@@ -55,7 +55,7 @@
 			"outFiles": [
 				"${workspaceFolder}/out/test/**/*.js"
 			],
-			"preLaunchTask": "${defaultBuildTask}"
+			"preLaunchTask": "npm: watch"
 		}
 	]
 }
