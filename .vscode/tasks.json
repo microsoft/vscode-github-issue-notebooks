@@ -17,6 +17,9 @@
 			"problemMatcher": [
 				"$ts-webpack-watch"
 			],
+			"runOptions": {
+				"runOn": "folderOpen"
+			},
 			"isBackground": true
 		}
 	]
