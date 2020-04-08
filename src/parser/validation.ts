@@ -63,7 +63,7 @@ function _validateVariableDefinition(defNode: VariableDefinitionNode, bucket: Va
 
 function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: SymbolTable): void {
 
-	const mutual = new Map<Set<string>, Node>();
+	const mutual = new Map<any, Node>();
 
 	// validate children
 	for (let node of query.nodes) {
@@ -88,13 +88,21 @@ function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sy
 	}
 }
 
-function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationError[], symbols: SymbolTable, mutualSets: Map<Set<string>, Node>): void {
+function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationError[], symbols: SymbolTable, mutualSets: Map<any, Node>): void {
 
 	// check name first
 	const info = QualifiedValueNodeSchema.get(node.qualifier.value);
 	if (!info) {
 		bucket.push(new ValidationError(node.qualifier, Code.QualifierUnknown, `Unknown qualifier: '${node.qualifier.value}'`));
 		return;
+	}
+
+	if (!info.repeatable) {
+		if (mutualSets.has(node.qualifier.value)) {
+			bucket.push(new ValidationError(node.qualifier, Code.ValueConflict, 'This qualifier is already used', mutualSets.get(node.qualifier.value)));
+		} else {
+			mutualSets.set(node.qualifier.value, node);
+		}
 	}
 
 	if (node.value._type === NodeType.Range) {

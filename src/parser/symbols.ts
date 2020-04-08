@@ -109,25 +109,26 @@ export const enum ValuePlaceholderType {
 class QualifiedValueInfo {
 
 	static enum(...sets: Set<string>[]) {
-		return new QualifiedValueInfo(ValueType.Literal, sets, undefined);
+		return new QualifiedValueInfo(ValueType.Literal, sets, undefined, sets.length > 1);
 	}
 
-	static placeholder(placeholder: ValuePlaceholderType) {
-		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder);
+	static placeholder(placeholder: ValuePlaceholderType, repeatable?: boolean) {
+		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder, repeatable);
 	}
 
 	static simple(type: ValueType) {
 		return new QualifiedValueInfo(type, undefined, undefined);
 	}
 
-	static username() {
-		return new QualifiedValueInfo(ValueType.Literal, [new Set(['@me'])], ValuePlaceholderType.Username);
+	static username(repeatable?: boolean) {
+		return new QualifiedValueInfo(ValueType.Literal, [new Set(['@me'])], ValuePlaceholderType.Username, repeatable);
 	}
 
 	constructor(
 		readonly type: ValueType,
 		readonly enumValues: readonly Set<string>[] | undefined,
-		readonly placeholderType: ValuePlaceholderType | undefined
+		readonly placeholderType: ValuePlaceholderType | undefined,
+		readonly repeatable: boolean = false
 	) { }
 }
 
@@ -148,8 +149,8 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['type', QualifiedValueInfo.enum(new Set(['pr', 'issue']))],
 	['updated', QualifiedValueInfo.simple(ValueType.Date)],
 	['in', QualifiedValueInfo.enum(new Set(['title', 'body', 'comments']))],
-	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname)],
-	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository)],
+	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, true)],
+	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, true)],
 	['user', QualifiedValueInfo.username()],
 	['state', QualifiedValueInfo.enum(new Set(['open', 'closed']))],
 	['assignee', QualifiedValueInfo.username()],
@@ -160,9 +161,9 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['topics', QualifiedValueInfo.simple(ValueType.Number)],
 	['pushed', QualifiedValueInfo.simple(ValueType.Date)],
 	['size', QualifiedValueInfo.simple(ValueType.Number)],
-	['commenter', QualifiedValueInfo.username()],
-	['involves', QualifiedValueInfo.username()],
-	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label)],
+	['commenter', QualifiedValueInfo.username(true)],
+	['involves', QualifiedValueInfo.username(true)],
+	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, true)],
 	['linked', QualifiedValueInfo.enum(new Set(['pr', 'issue']))],
 	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone)],
 	['project', QualifiedValueInfo.placeholder(ValuePlaceholderType.ProjectBoard)],
