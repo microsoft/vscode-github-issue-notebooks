@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryDocumentNode, Utils, NodeType } from "./parser/nodes";
+import { QueryDocumentNode, Utils, NodeType, Node } from "./parser/nodes";
 import { Project } from "./project";
 
 export interface RepoInfo {
@@ -11,13 +11,13 @@ export interface RepoInfo {
 	repo: string;
 }
 
-export function* getRepoInfos(doc: QueryDocumentNode, project: Project): Generator<RepoInfo> {
+export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: Node = doc): Generator<RepoInfo> {
 
 	Utils.print(doc, doc.text, name => project.symbols.getFirst(name)?.value);
 
 	const repoStrings: string[] = [];
 
-	Utils.walk(doc, node => {
+	Utils.walk(node, node => {
 		if (node._type !== NodeType.QualifiedValue) {
 			return;
 		}

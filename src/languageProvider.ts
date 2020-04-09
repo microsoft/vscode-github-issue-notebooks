@@ -392,7 +392,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 			return;
 		}
 
-		const repos = getRepoInfos(doc, project);
+		const repos = getRepoInfos(doc, project, query);
 		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
 
 		const inserting = new vscode.Range(document.positionAt(qualified.value.start), position);
@@ -409,68 +409,59 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 	}
 
 	private async _completeLabels(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
-		const results: Map<string, vscode.CompletionItem>[] = [];
+		const result = new Map<string, vscode.CompletionItem>();
+
 		for (let info of repos) {
-			const map = new Map<string, vscode.CompletionItem>();
-			results.push(map);
 
 			const labels = await this._githubData.getOrFetchLabels(info);
 			for (const label of labels) {
-				map.set(label.name, {
-					label: label.name,
-					range,
-					detail: label.description,
-					kind: vscode.CompletionItemKind.Color,
-					documentation: `#${label.color}`,
-					insertText: label.name.match(/\s/) ? `"${label.name}"` : undefined,
-					filterText: label.name.match(/\s/) ? `"${label.name}"` : undefined
-				});
-			}
-		}
 
-		if (results.length === 0) {
-			// nothing
-			return [];
-		} else if (results.length === 1) {
-			// labels from repo
-			return [...results[0].values()];
-		} else {
-			// intersection of all labels
-			let result: vscode.CompletionItem[] = [];
-			let [first, ...rest] = results;
-			for (let [key, value] of first) {
-				if (rest.every(map => map.has(key))) {
-					result.push({
-						label: value.label,
-						kind: vscode.CompletionItemKind.Constant,
-						insertText: value.insertText,
-						filterText: value.filterText
+				let existing = result.get(label.name);
+				if (existing) {
+					existing.detail = undefined;
+					existing.kind = vscode.CompletionItemKind.Constant;
+					existing.documentation = undefined;
+
+				} else {
+					result.set(label.name, {
+						label: label.name,
+						range,
+						detail: label.description,
+						kind: vscode.CompletionItemKind.Color,
+						documentation: `#${label.color}`,
+						insertText: label.name.match(/\s/) ? `"${label.name}"` : undefined,
+						filterText: label.name.match(/\s/) ? `"${label.name}"` : undefined
 					});
 				}
 			}
-			return result;
 		}
+		return [...result.values()];
 	}
 
 	private async _completeMilestones(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
-		const results: vscode.CompletionItem[][] = [];
+		const result = new Map<string, vscode.CompletionItem>();
+
 		for (let info of repos) {
 
 			const milestones = await this._githubData.getOrFetchMilestones(info);
+			for (let milestone of milestones) {
+				let existing = result.get(milestone.title);
+				if (existing) {
+					existing.documentation = undefined;
 
-			results.push(milestones.map(milestone => {
-				return {
-					label: milestone.title,
-					range,
-					documentation: milestone.description,
-					kind: vscode.CompletionItemKind.Event,
-					insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
-					filterText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined
-				};
-			}));
+				} else {
+					result.set(milestone.title, {
+						label: milestone.title,
+						range,
+						documentation: milestone.description,
+						kind: vscode.CompletionItemKind.Event,
+						insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
+						filterText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined
+					});
+				}
+			}
 		}
-		// todo@jrieken how to merge milestones? by label? by dates? never?
-		return results.length === 1 ? results[0] : undefined;
+		return [...result.values()];
 	}
 
 	private async _completeUsernames(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
