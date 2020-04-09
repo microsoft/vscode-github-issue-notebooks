@@ -421,7 +421,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 					existing.detail = undefined;
 					existing.kind = vscode.CompletionItemKind.Constant;
 					existing.documentation = undefined;
-
+					existing.sortText = String.fromCharCode(0) + existing.label;
 				} else {
 					result.set(label.name, {
 						label: label.name,
@@ -448,7 +448,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 				let existing = result.get(milestone.title);
 				if (existing) {
 					existing.documentation = undefined;
-
+					existing.sortText = String.fromCharCode(0) + existing.label;
 				} else {
 					result.set(milestone.title, {
 						label: milestone.title,

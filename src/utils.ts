@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryDocumentNode, Utils, NodeType, Node } from "./parser/nodes";
+import { QueryDocumentNode, Utils, NodeType, Node, QueryNode } from "./parser/nodes";
 import { Project } from "./project";
 
 export interface RepoInfo {
@@ -11,31 +11,39 @@ export interface RepoInfo {
 	repo: string;
 }
 
-export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: Node = doc): Generator<RepoInfo> {
-
-	Utils.print(doc, doc.text, name => project.symbols.getFirst(name)?.value);
+export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: QueryNode): Generator<RepoInfo> {
 
 	const repoStrings: string[] = [];
 
-	Utils.walk(node, node => {
-		if (node._type !== NodeType.QualifiedValue) {
-			return;
-		}
-		if (node.qualifier.value !== 'repo') {
-			return;
-		}
+	let stack: Node[] = [node];
 
-		let value: string | undefined;
-		if (node.value._type === NodeType.VariableName) {
-			value = project.symbols.getFirst(node.value.value)?.value;
-		} else {
-			value = Utils.print(node.value, doc.text, () => undefined);
-		}
+	while (stack.length) {
 
-		if (value) {
-			repoStrings.push(value);
-		}
-	});
+		Utils.walk(stack.shift()!, (node, parent) => {
+
+			if (node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition) {
+				// check variables
+				let symbol = project.symbols.getFirst(node.value);
+				if (symbol) {
+					stack.push(symbol.def);
+				}
+
+			} else if (node._type === NodeType.QualifiedValue && node.qualifier.value === 'repo') {
+				// check repo-statement
+
+				let value: string | undefined;
+				if (node.value._type === NodeType.VariableName) {
+					value = project.symbols.getFirst(node.value.value)?.value;
+				} else {
+					value = Utils.print(node.value, doc.text, () => undefined);
+				}
+
+				if (value) {
+					repoStrings.push(value);
+				}
+			}
+		});
+	}
 
 	for (let string of repoStrings) {
 		let idx = string.indexOf('/');
