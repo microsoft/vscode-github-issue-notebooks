@@ -6,8 +6,12 @@
 import { QueryDocumentNode, Utils, NodeType } from "./parser/nodes";
 import { Project } from "./project";
 
+export interface RepoInfo {
+	owner: string;
+	repo: string;
+}
 
-export function* getRepoInfos(doc: QueryDocumentNode, project: Project) {
+export function* getRepoInfos(doc: QueryDocumentNode, project: Project): Generator<RepoInfo> {
 
 	Utils.print(doc, doc.text, name => project.symbols.getFirst(name)?.value);
 
@@ -36,9 +40,9 @@ export function* getRepoInfos(doc: QueryDocumentNode, project: Project) {
 	for (let string of repoStrings) {
 		let idx = string.indexOf('/');
 		if (idx > 0) {
-			let org = string.substring(0, idx);
-			let repo = string.substring(idx + 1);
-			yield { org, repo };
+			const owner = string.substring(0, idx);
+			const repo = string.substring(idx + 1);
+			yield { owner, repo };
 		}
 	}
 }
