@@ -93,6 +93,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		const project = this.container.lookupProject(doc.uri);
 		const allQueryData = project.queryData(doc);
 
+
 		// update all symbols defined in the cell so that
 		// more recent values win
 		const query = project.getOrCreate(doc);
@@ -113,7 +114,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				let count = 0;
 				while (!token.isCancellationRequested) {
 
-					const respone = await octokit.search.issuesAndPullRequests({
+					const response = await octokit.search.issuesAndPullRequests({
 						q: queryData.q,
 						sort: (<any>queryData.sort),
 						order: queryData.order,
@@ -121,10 +122,10 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 						page,
 						request: { signal: abortCtl.signal }
 					});
-					count += respone.data.items.length;
-					totalCount += respone.data.total_count;
-					allItems = allItems.concat(<any>respone.data.items);
-					if (count >= Math.min(1000, respone.data.total_count)) {
+					count += response.data.items.length;
+					totalCount += response.data.total_count;
+					allItems = allItems.concat(<any>response.data.items);
+					if (count >= Math.min(1000, response.data.total_count)) {
 						break;
 					}
 					page += 1;
@@ -152,6 +153,17 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			allItems.sort(first.sort === 'asc' ? cmp.invert(comparator) : comparator);
 		}
 
+		let hasManyRepos = false;
+		let lastRepo: string | undefined;
+		for (let item of allItems) {
+			if (!lastRepo) {
+				lastRepo = item.repository_url;
+			} else if (lastRepo !== item.repository_url) {
+				hasManyRepos = true;
+				break;
+			}
+		}
+
 		// "render"
 		const duration = Date.now() - now;
 		const seen = new Set<number>();
@@ -172,7 +184,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			md += '\n';
 
 			// html
-			html += renderItemAsHtml(item, count++ > 12);
+			html += renderItemAsHtml(item, hasManyRepos, count++ > 12);
 		}
 
 		//collapse/expand btns
@@ -257,6 +269,10 @@ export function getHtmlStub(): string {
 	.title:hover {
 		text-decoration: underline;
 	}
+	.title.repo {
+		opacity: 70%;
+		padding-right: 8px;
+	}
 	.label {
 		font-size: .8em;
 		margin: 0 2px;
@@ -330,7 +346,7 @@ export function getHtmlStub(): string {
 </style>`;
 }
 
-export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsItem, hide: boolean): string {
+export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsItem, showRepo: boolean, hide: boolean): string {
 
 
 	const closed = `<svg class="octicon octicon-issue-closed closed" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true"><path fill-rule="evenodd" d="M7 10h2v2H7v-2zm2-6H7v5h2V4zm1.5 1.5l-1 1L12 9l4-4.5-1-1L12 7l-1.5-1.5zM8 13.7A5.71 5.71 0 012.3 8c0-3.14 2.56-5.7 5.7-5.7 1.83 0 3.45.88 4.5 2.2l.92-.92A6.947 6.947 0 008 1C4.14 1 1 4.14 1 8s3.14 7 7 7 7-3.14 7-7l-1.52 1.52c-.66 2.41-2.86 4.19-5.48 4.19v-.01z"></path></svg>`;
@@ -382,11 +398,22 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 	}
 	//#endregion
 
+	function getRepoLabel(): string {
+		if (!showRepo) {
+			return '';
+		}
+		let match = /.+\/(.+\/.+)$/.exec(item.repository_url);
+		if (!match) {
+			return '';
+		}
+		return `<a href="https://github.com/${match[1]}" class="repo title">${match[1]}</a>`;
+	}
+
 	return `
 <div class="item-row ${hide ? 'hide' : ''}">
 	<div class="item-state">${item.closed_at ? closed : open}</div>
 	<div style="flex: auto;">
-	<a href="${item.html_url}" class="title">${escapeHtml(item.title)}</a>
+	${getRepoLabel()}<a href="${item.html_url}" class="title">${escapeHtml(item.title)}</a>
 	${item.labels.map(label => `<span class="label" style="background-color: #${label.color};"><a style="color: ${getContrastColor(label.color)};">${label.name}</a></span>`).join('')}
 	${startWorking}
 	<div class="status">
