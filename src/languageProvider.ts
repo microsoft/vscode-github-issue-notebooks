@@ -11,6 +11,7 @@ import { ProjectContainer } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
 import { OctokitProvider } from './octokitProvider';
 import { getRepoInfos, RepoInfo } from './utils';
+import { GithubData } from './githubDataProvider';
 
 const selector = { language: 'github-issues' };
 
@@ -371,9 +372,11 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 
 	static readonly triggerCharacters = [':'];
 
-	private _cache = new Map<string, Promise<vscode.CompletionItem[]>>();
+	private readonly _githubData: GithubData;
 
-	constructor(readonly container: ProjectContainer, readonly octokitProvider: OctokitProvider) { }
+	constructor(readonly container: ProjectContainer, readonly octokitProvider: OctokitProvider) {
+		this._githubData = new GithubData(octokitProvider);
+	}
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
 
@@ -389,107 +392,96 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 			return;
 		}
 
+		const repos = getRepoInfos(doc, project);
 		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
-		if (!info || info.placeholderType === undefined) {
-			return;
+
+		const inserting = new vscode.Range(document.positionAt(qualified.value.start), position);
+		const replacing = new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end));
+		const range = inserting.isEmpty || replacing ? undefined : { inserting, replacing };
+
+		if (info?.placeholderType === ValuePlaceholderType.Label) {
+			return this._completeLabels(repos, range);
+		} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
+			return this._completeMilestones(repos, range);
+		} else if (info?.placeholderType === ValuePlaceholderType.Username) {
+			return this._completeUsernames(repos, range);
+		}
+	}
+
+	private async _completeLabels(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
+		const results: Map<string, vscode.CompletionItem>[] = [];
+		for (let info of repos) {
+			const map = new Map<string, vscode.CompletionItem>();
+			results.push(map);
+
+			const labels = await this._githubData.getOrFetchLabels(info);
+			for (const label of labels) {
+				map.set(label.name, {
+					label: label.name,
+					range,
+					detail: label.description,
+					kind: vscode.CompletionItemKind.Color,
+					documentation: `#${label.color}`
+				});
+			}
 		}
 
-		const results = new Map<string, vscode.CompletionItem>();
-
-		const insertRange = new vscode.Range(document.positionAt(qualified.value.start), position);
-		const replaceRange = new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end));
-		const range = insertRange.isEmpty || replaceRange ? undefined : { inserting: insertRange, replacing: replaceRange };
-
-		for (const repo of getRepoInfos(doc, project)) {
-
-			const items = await this._getOrFetch(repo, info.placeholderType);
-			if (!items) {
-				continue;
-			}
-			for (let item of items) {
-				item.range = range;
-				if (item.label.match(/\s/)) {
-					item.insertText = `"${item.label}"`;
-					item.filterText = `"${item.label}"`;
+		if (results.length === 0) {
+			// nothing
+			return [];
+		} else if (results.length === 1) {
+			// labels from repo
+			return [...results[0].values()];
+		} else {
+			// intersection of all labels
+			let result: vscode.CompletionItem[] = [];
+			let [first, ...rest] = results;
+			for (let [key, value] of first) {
+				if (rest.every(map => map.has(key))) {
+					result.push({
+						label: value.label,
+						kind: vscode.CompletionItemKind.Constant
+					});
 				}
-				let existing = results.get(item.label);
-				if (!existing) {
-					results.set(item.label, item);
+			}
+			return result;
+		}
+	}
+
+	private async _completeMilestones(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
+		const results: vscode.CompletionItem[][] = [];
+		for (let info of repos) {
+
+			const milestones = await this._githubData.getOrFetchMilestones(info);
+
+			results.push(milestones.map(milestone => {
+				return {
+					label: milestone.title,
+					range,
+					documentation: milestone.description,
+					kind: vscode.CompletionItemKind.Event,
+					insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined
+				};
+			}));
+		}
+		// todo@jrieken how to merge milestones? by label? by dates? never?
+		return results.length === 1 ? results[0] : undefined;
+	}
+
+	private async _completeUsernames(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
+		const result = new Map<string, vscode.CompletionItem>();
+		for (let info of repos) {
+			for (let user of await this._githubData.getOrFetchUsers(info)) {
+				if (!result.has(user.login)) {
+					result.set(user.login, {
+						label: user.login,
+						kind: vscode.CompletionItemKind.User,
+						range
+					});
 				}
 			}
 		}
-
-		return [...results.values()];
-	}
-
-	private async _getOrFetch(info: RepoInfo, type: ValuePlaceholderType) {
-		const key = `${type}:${info.owner}/${info.repo}`;
-		if (!this._cache.has(key)) {
-			if (type === ValuePlaceholderType.Label) {
-				this._cache.set(key, this._labels(info));
-			} else if (type === ValuePlaceholderType.Milestone) {
-				this._cache.set(key, this._milestones(info));
-			} else if (type === ValuePlaceholderType.Username) {
-				this._cache.set(key, this._collaborators(info));
-			}
-		}
-		if (this._cache.has(key)) {
-			return await this._cache.get(key);
-		}
-	}
-
-	private async _labels(info: RepoInfo): Promise<vscode.CompletionItem[]> {
-		type LabelInfo = {
-			color: string;
-			name: string;
-			description: string;
-		};
-		const octokit = await this.octokitProvider.lib();
-		const options = octokit.issues.listLabelsForRepo.endpoint.merge(info);
-		return octokit.paginate<LabelInfo>((<any>options)).then(labels => {
-			return labels.map(label => {
-				const item = new vscode.CompletionItem(label.name);
-				item.detail = label.description;
-				item.kind = vscode.CompletionItemKind.EnumMember;
-				item.kind = vscode.CompletionItemKind.Color;
-				item.documentation = '#' + label.color;
-				return item;
-			});
-		});
-	}
-
-	private async _milestones(info: RepoInfo): Promise<vscode.CompletionItem[]> {
-		type MilestoneInfo = {
-			title: string;
-			state: string;
-			description: string;
-			open_issues: number;
-			closed_issues: number;
-		};
-		const octokit = await this.octokitProvider.lib();
-		const options = octokit.issues.listMilestonesForRepo.endpoint.merge(info);
-		return octokit.paginate<MilestoneInfo>((<any>options)).then(milestones => {
-			return milestones.map(milestone => {
-				const item = new vscode.CompletionItem(milestone.title);
-				item.documentation = new vscode.MarkdownString(milestone.description);
-				item.kind = vscode.CompletionItemKind.Event;
-				item.insertText = milestone.title.match(/\s/) ? `"${milestone.title}"` : milestone.title;
-				return item;
-			});
-		});
-	}
-
-	private async _collaborators(info: RepoInfo): Promise<vscode.CompletionItem[]> {
-		type Info = { login: string; };
-		const octokit = await this.octokitProvider.lib();
-		const options = octokit.repos.listContributors.endpoint.merge(info);
-		return octokit.paginate<Info>((<any>options)).then(labels => {
-			return labels.map(user => {
-				const item = new vscode.CompletionItem(user.login);
-				item.kind = vscode.CompletionItemKind.User;
-				return item;
-			});
-		});
+		return [...result.values()];
 	}
 }
 
