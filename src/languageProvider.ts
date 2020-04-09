@@ -11,6 +11,7 @@ import { ProjectContainer } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
 import { OctokitProvider } from './octokitProvider';
 import { Parser } from './parser/parser';
+import { getRepoInfos } from './utils';
 
 const selector = { language: 'github-issues' };
 
@@ -466,20 +467,19 @@ export function registerGHBasedLanguageProvider(container: ProjectContainer, oct
 				return this._getOrFetchRepoCompletions();
 			}
 
-			const value = Utils.print(query, doc.text, name => project.symbols.getFirst(name)?.value);
-			const resolvedQuery = <QueryNode>new Parser().parse(value).nodes[0];
-			const repoNode = <QualifiedValueNode>resolvedQuery.nodes.find(child => child._type === NodeType.QualifiedValue && child.qualifier.value === 'repo');
-			const repoValue = repoNode && value.substring(repoNode.value.start, repoNode.value.end);
-			const idx = repoValue?.indexOf('/') ?? -1;
-			if (!repoValue || idx < 0) {
-				return;
+			let result: vscode.CompletionItem[] = [];
+			for (let repo of getRepoInfos(doc, project)) {
+				const items = await ghCompletions.getOrFetch(
+					repo.org,
+					repo.repo,
+					info.placeholderType,
+					new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end))
+				);
+				if (items) {
+					result = result.concat(items);
+				}
 			}
-			return ghCompletions.getOrFetch(
-				repoValue.substring(0, idx),
-				repoValue.substring(idx + 1),
-				info.placeholderType,
-				new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end))
-			);
+			return result;
 		}
 
 
