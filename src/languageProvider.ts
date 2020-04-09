@@ -100,9 +100,9 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 				// RHS of a qualified value => complete value set
 				const result: vscode.CompletionItem[] = [];
 				const info = QualifiedValueNodeSchema.get(parent.qualifier.value);
-				if (info && Array.isArray(info.enumValues)) {
+				if (info?.enumValues) {
 					for (let set of info.enumValues) {
-						for (let value of set) {
+						for (let value of set.entries) {
 							result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
 						}
 					}

@@ -21,6 +21,19 @@
 				"runOn": "folderOpen"
 			},
 			"isBackground": true,
+		},
+		{
+			"type": "npm",
+			"script": "ts-compile",
+			"problemMatcher": "$tsc",
+			"presentation": {
+				"echo": true,
+				"reveal": "never",
+				"focus": false,
+				"panel": "shared",
+				"showReuseMessage": true,
+				"clear": false
+			},
 		}
 	]
 }

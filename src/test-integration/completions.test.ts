@@ -11,11 +11,8 @@ import { ProjectContainer } from '../project';
 
 suite('Completions', () => {
 
-	let disposable = new vscode.Disposable(() => { });
-
-	setup(function () {
-		disposable.dispose();
-		disposable = registerLanguageProvider(new ProjectContainer());
+	suiteSetup(async function () {
+		await vscode.extensions.getExtension('ms-vscode.vscode-github-issue-notebooks')?.activate();
 	});
 
 	test('QualifiedValue', async function () {
