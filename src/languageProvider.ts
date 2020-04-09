@@ -318,6 +318,7 @@ export function registerLanguageProvider(container: ProjectContainer): vscode.Di
 							new vscode.Location(doc.uri, project.rangeOf(error.conflictNode)),
 							project.textOf(error.conflictNode)
 						)];
+						diag.tags = [vscode.DiagnosticTag.Unnecessary];
 					}
 					newDiagnostics.push(diag);
 				}

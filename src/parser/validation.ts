@@ -88,7 +88,7 @@ function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sy
 	}
 }
 
-function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationError[], symbols: SymbolTable, mutualSets: Map<any, Node>): void {
+function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationError[], symbols: SymbolTable, conflicts: Map<any, Node>): void {
 
 	// check name first
 	const info = QualifiedValueNodeSchema.get(node.qualifier.value);
@@ -98,10 +98,10 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 	}
 
 	if (!info.repeatable) {
-		if (mutualSets.has(node.qualifier.value)) {
-			bucket.push(new ValidationError(node.qualifier, Code.ValueConflict, 'This qualifier is already used', mutualSets.get(node.qualifier.value)));
+		if (conflicts.has(node.qualifier.value)) {
+			bucket.push(new ValidationError(node, Code.ValueConflict, 'This qualifier is already used', conflicts.get(node.qualifier.value)));
 		} else {
-			mutualSets.set(node.qualifier.value, node);
+			conflicts.set(node.qualifier.value, node);
 		}
 	}
 
@@ -156,11 +156,11 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 		if (!set) {
 			// value not known
 			bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set.entries].join(', ')).join(', ')}`));
-		} else if (mutualSets.has(set) && set.exclusive) {
+		} else if (conflicts.has(set) && set.exclusive) {
 			// other value from set in use
-			bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, mutualSets.get(set)));
+			bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, conflicts.get(set)));
 		} else {
-			mutualSets.set(set, node);
+			conflicts.set(set, node);
 		}
 	}
 }
