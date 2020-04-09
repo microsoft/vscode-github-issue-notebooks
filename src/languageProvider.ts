@@ -397,7 +397,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 
 		const inserting = new vscode.Range(document.positionAt(qualified.value.start), position);
 		const replacing = new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end));
-		const range = inserting.isEmpty || replacing ? undefined : { inserting, replacing };
+		const range = { inserting, replacing };
 
 		if (info?.placeholderType === ValuePlaceholderType.Label) {
 			return this._completeLabels(repos, range);
@@ -421,7 +421,9 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 					range,
 					detail: label.description,
 					kind: vscode.CompletionItemKind.Color,
-					documentation: `#${label.color}`
+					documentation: `#${label.color}`,
+					insertText: label.name.match(/\s/) ? `"${label.name}"` : undefined,
+					filterText: label.name.match(/\s/) ? `"${label.name}"` : undefined
 				});
 			}
 		}
@@ -440,7 +442,9 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 				if (rest.every(map => map.has(key))) {
 					result.push({
 						label: value.label,
-						kind: vscode.CompletionItemKind.Constant
+						kind: vscode.CompletionItemKind.Constant,
+						insertText: value.insertText,
+						filterText: value.filterText
 					});
 				}
 			}
@@ -460,7 +464,8 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 					range,
 					documentation: milestone.description,
 					kind: vscode.CompletionItemKind.Event,
-					insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined
+					insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
+					filterText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined
 				};
 			}));
 		}
