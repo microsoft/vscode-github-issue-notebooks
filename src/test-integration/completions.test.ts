@@ -6,8 +6,6 @@
 
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { registerLanguageProvider } from '../languageProvider';
-import { ProjectContainer } from '../project';
 
 suite('Completions', () => {
 
