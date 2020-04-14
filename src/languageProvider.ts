@@ -372,10 +372,11 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 
 	static readonly triggerCharacters = [':'];
 
-	private readonly _githubData: GithubData;
+	constructor(
+		readonly container: ProjectContainer,
+		private readonly _githubData: GithubData
+	) {
 
-	constructor(readonly container: ProjectContainer, readonly octokitProvider: OctokitProvider) {
-		this._githubData = new GithubData(octokitProvider);
 	}
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
@@ -484,6 +485,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 export function registerLanguageProvider(container: ProjectContainer, octokit: OctokitProvider): vscode.Disposable {
 
 	const disposables: vscode.Disposable[] = [];
+	const githubData = new GithubData(octokit);
 
 	vscode.languages.setLanguageConfiguration(selector.language, {
 		wordPattern: /(-?\d*\.\d\w*)|([^\`\~\!\@\#\%\^\&\*\(\)\-\=\+\[\{\]\}\\\|\;\:\'\"\,\.\<\>\/\?\s]+)/g,
@@ -499,7 +501,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new CompletionItemProvider(container), ...CompletionItemProvider.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubOrgCompletions(container, octokit), ...CompletionItemProvider.triggerCharacters));
-	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubPlaceholderCompletions(container, octokit), ...CompletionItemProvider.triggerCharacters));
+	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubPlaceholderCompletions(container, githubData), ...CompletionItemProvider.triggerCharacters));
 
 	disposables.push(new Validation(container));
 
