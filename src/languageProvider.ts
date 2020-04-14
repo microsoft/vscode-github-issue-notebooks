@@ -12,6 +12,7 @@ import { Scanner, TokenType, Token } from './parser/scanner';
 import { OctokitProvider } from './octokitProvider';
 import { getRepoInfos, RepoInfo } from './utils';
 import { GithubData } from './githubDataProvider';
+import { resolvePtr } from 'dns';
 
 const selector = { language: 'github-issues' };
 
@@ -335,9 +336,6 @@ export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 	constructor(readonly container: ProjectContainer, readonly octokitProvider: OctokitProvider) { }
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
-		if (!this.octokitProvider.isAuthenticated) {
-			return;
-		}
 
 		const project = this.container.lookupProject(document.uri);
 		const doc = project.getOrCreate(document);
@@ -351,20 +349,86 @@ export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 			return;
 		}
 
-		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
-		if (!info || info.placeholderType === undefined) {
-			return;
-		}
+		const inserting = new vscode.Range(document.positionAt(qualified.value.start), position);
+		const replacing = new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end));
+		const range = { inserting, replacing };
 
-		if (info.placeholderType !== ValuePlaceholderType.Orgname) {
-			return;
-		}
-
-		type OrgInfo = { login: string; };
 		const octokit = await this.octokitProvider.lib();
-		const user = await octokit.users.getAuthenticated();
-		const options = octokit.orgs.listForUser.endpoint.merge({ username: user.data.login, });
-		return octokit.paginate<OrgInfo>(<any>options).then(values => values.map(value => new vscode.CompletionItem(value.login)));
+		if (!this.octokitProvider.isAuthenticated) {
+			return;
+		}
+
+		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
+
+		if (info?.placeholderType === ValuePlaceholderType.Orgname) {
+			type OrgInfo = { login: string; };
+			const user = await octokit.users.getAuthenticated();
+			const options = octokit.orgs.listForUser.endpoint.merge({ username: user.data.login, });
+			return octokit.paginate<OrgInfo>(<any>options).then(values => values.map(value => new vscode.CompletionItem(value.login)));
+		}
+
+		if (info?.placeholderType === ValuePlaceholderType.Repository) {
+			type RepoInfo = { full_name: string; };
+			const options = octokit.repos.listForAuthenticatedUser.endpoint.merge();
+			return octokit.paginate<RepoInfo>(<any>options).then(values => values.map(value => ({ label: value.full_name, range })));
+		}
+	}
+}
+
+export class GithubRepoSearchCompletions implements vscode.CompletionItemProvider {
+
+	static readonly triggerCharacters = [':'];
+
+	constructor(readonly container: ProjectContainer, readonly octokitProvider: OctokitProvider) { }
+
+	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
+		const project = this.container.lookupProject(document.uri);
+		const doc = project.getOrCreate(document);
+		const offset = document.offsetAt(position);
+		const parents: Node[] = [];
+		const node = Utils.nodeAt(doc, offset, parents) ?? doc;
+		const qualified = parents[parents.length - 2];
+		const query = parents[parents.length - 3];
+
+		if (query?._type !== NodeType.Query || qualified?._type !== NodeType.QualifiedValue || node !== qualified.value) {
+			return;
+		}
+
+		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
+		if (info?.placeholderType !== ValuePlaceholderType.Repository) {
+			return;
+		}
+
+		const inserting = new vscode.Range(document.positionAt(qualified.value.start), position);
+		const replacing = new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end));
+		const range = { inserting, replacing };
+
+		// craft repo-query
+		const len = document.offsetAt(position) - qualified.value.start;
+		let q = Utils.print(qualified.value, doc.text, name => project.symbols.getFirst(name)?.value).substr(0, len);
+		if (!q) {
+			return;
+		}
+		const idx = q.indexOf('/');
+		if (idx > 0) {
+			q = `org:${q.substr(0, idx)} ${q.substr(idx + 1)}`;
+		}
+
+		const octokit = await this.octokitProvider.lib();
+		const repos = await octokit.search.repos({ q, per_page: 30 });
+
+		// create completion items
+		const items = repos.data.items.map(item => {
+			return <vscode.CompletionItem>{
+				label: item.full_name,
+				description: item.description,
+				range,
+			};
+		});
+
+		const incomplete = repos.data.total_count > repos.data.items.length;
+		const result = new vscode.CompletionList(items, incomplete);
+		return result;
 	}
 }
 
@@ -375,9 +439,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 	constructor(
 		readonly container: ProjectContainer,
 		private readonly _githubData: GithubData
-	) {
-
-	}
+	) { }
 
 	async provideCompletionItems(document: vscode.TextDocument, position: vscode.Position) {
 
@@ -500,8 +562,9 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new CompletionItemProvider(container), ...CompletionItemProvider.triggerCharacters));
-	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubOrgCompletions(container, octokit), ...CompletionItemProvider.triggerCharacters));
-	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubPlaceholderCompletions(container, githubData), ...CompletionItemProvider.triggerCharacters));
+	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubOrgCompletions(container, octokit), ...GithubOrgCompletions.triggerCharacters));
+	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubRepoSearchCompletions(container, octokit), ...GithubRepoSearchCompletions.triggerCharacters));
+	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubPlaceholderCompletions(container, githubData), ...GithubPlaceholderCompletions.triggerCharacters));
 
 	disposables.push(new Validation(container));
 
