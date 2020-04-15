@@ -118,13 +118,19 @@ class ValueSet {
 	}
 }
 
+export const enum RepeatInfo {
+	No,
+	Repeat,
+	RepeatNegated
+}
+
 class QualifiedValueInfo {
 
-	static enum(sets: ValueSet | ValueSet[], repeatable?: boolean) {
+	static enum(sets: ValueSet | ValueSet[], repeatable?: RepeatInfo) {
 		return new QualifiedValueInfo(ValueType.Literal, Array.isArray(sets) ? sets : [sets], undefined, repeatable);
 	}
 
-	static placeholder(placeholder: ValuePlaceholderType, repeatable?: boolean) {
+	static placeholder(placeholder: ValuePlaceholderType, repeatable?: RepeatInfo) {
 		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder, repeatable);
 	}
 
@@ -132,7 +138,7 @@ class QualifiedValueInfo {
 		return new QualifiedValueInfo(type, undefined, undefined);
 	}
 
-	static username(repeatable?: boolean) {
+	static username(repeatable?: RepeatInfo) {
 		return new QualifiedValueInfo(ValueType.Literal, [new ValueSet(true, '@me')], ValuePlaceholderType.Username, repeatable);
 	}
 
@@ -140,7 +146,7 @@ class QualifiedValueInfo {
 		readonly type: ValueType,
 		readonly enumValues: readonly ValueSet[] | undefined,
 		readonly placeholderType: ValuePlaceholderType | undefined,
-		readonly repeatable: boolean = false
+		readonly repeatable: RepeatInfo = RepeatInfo.No
 	) { }
 }
 
@@ -162,9 +168,9 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['archived', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'))],
 	['draft', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'))],
 	['in', QualifiedValueInfo.enum(new ValueSet(true, 'title', 'body', 'comments'))],
-	['is', QualifiedValueInfo.enum([new ValueSet(true, 'locked', 'unlocked'), new ValueSet(true, 'merged', 'unmerged'), new ValueSet(true, 'public', 'private'), new ValueSet(true, 'open', 'closed'), new ValueSet(true, 'pr', 'issue')], true)],
+	['is', QualifiedValueInfo.enum([new ValueSet(true, 'locked', 'unlocked'), new ValueSet(true, 'merged', 'unmerged'), new ValueSet(true, 'public', 'private'), new ValueSet(true, 'open', 'closed'), new ValueSet(true, 'pr', 'issue')], RepeatInfo.Repeat)],
 	['linked', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
-	['no', QualifiedValueInfo.enum(new ValueSet(false, 'label', 'milestone', 'assignee', 'project'), true)],
+	['no', QualifiedValueInfo.enum(new ValueSet(false, 'label', 'milestone', 'assignee', 'project'), RepeatInfo.Repeat)],
 	['review', QualifiedValueInfo.enum(new ValueSet(true, 'none', 'required', 'approved'))],
 	['state', QualifiedValueInfo.enum(new ValueSet(true, 'open', 'closed'))],
 	['status', QualifiedValueInfo.enum(new ValueSet(true, 'pending', 'success', 'failure'))],
@@ -172,23 +178,23 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	// placeholder 
 	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
 	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
-	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, true)],
+	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, RepeatInfo.Repeat)],
 	['language', QualifiedValueInfo.placeholder(ValuePlaceholderType.Language)],
 	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone)],
-	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, true)],
+	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, RepeatInfo.Repeat)],
 	['project', QualifiedValueInfo.placeholder(ValuePlaceholderType.ProjectBoard)],
-	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, true)],
+	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, RepeatInfo.Repeat)],
 	['team-review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	['team', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	// placeholder (username)
-	['assignee', QualifiedValueInfo.username()],
+	['assignee', QualifiedValueInfo.username(RepeatInfo.RepeatNegated)],
 	['author', QualifiedValueInfo.username()],
-	['commenter', QualifiedValueInfo.username(true)],
-	['involves', QualifiedValueInfo.username(true)],
-	['mentions', QualifiedValueInfo.username()],
+	['commenter', QualifiedValueInfo.username(RepeatInfo.Repeat)],
+	['involves', QualifiedValueInfo.username(RepeatInfo.Repeat)],
+	['mentions', QualifiedValueInfo.username(RepeatInfo.Repeat)],
 	['review-requested', QualifiedValueInfo.username()],
 	['reviewed-by', QualifiedValueInfo.username()],
-	['user', QualifiedValueInfo.username()],
+	['user', QualifiedValueInfo.username(RepeatInfo.Repeat)],
 	// simple value
 	['closed', QualifiedValueInfo.simple(ValueType.Date)],
 	['comments', QualifiedValueInfo.simple(ValueType.Number)],

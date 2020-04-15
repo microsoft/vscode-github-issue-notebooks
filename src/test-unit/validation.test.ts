@@ -71,9 +71,20 @@ suite('Validation', function () {
 
 	test('repeated milestone etc', function () {
 		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/4
+		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/16
 
+		// assignee: repeat_negated
+		assertValidateErrors('repo:microsoft/vscode label:notebook is:open assignee:jrieken assignee:octref', Code.ValueConflict);
+		assertValidateErrors('repo:microsoft/vscode label:notebook is:open assignee:jrieken assignee:fff -assignee:octref', Code.ValueConflict);
+		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -assignee:jrieken -assignee:octref');
+		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -assignee:jrieken -assignee:octref assignee:bar');
+
+		// repeat: repeat_no
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open milestone:"April 2020" milestone:"Backlog"', Code.ValueConflict);
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -milestone:"April 2020" -milestone:"Backlog"', Code.ValueConflict);
+
+		// repeat
 		assertValidateErrors('repo:foo OR no:assignee no:label');
+		assertValidateErrors('repo:foo OR is:open is:issue');
 	});
 });

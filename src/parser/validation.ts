@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils, QualifiedValueNode, RangeNode } from "./nodes";
-import { ValueType, SymbolTable, SortByNodeSchema, QualifiedValueNodeSchema } from "./symbols";
+import { ValueType, SymbolTable, SortByNodeSchema, QualifiedValueNodeSchema, RepeatInfo } from "./symbols";
 import { TokenType } from "./scanner";
 
 export const enum Code {
@@ -97,11 +97,12 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 		return;
 	}
 
-	if (!info.repeatable) {
-		if (conflicts.has(node.qualifier.value)) {
-			bucket.push(new ValidationError(node, Code.ValueConflict, 'This qualifier is already used', conflicts.get(node.qualifier.value)));
+	if (info.repeatable === RepeatInfo.No || !node.not && info.repeatable === RepeatInfo.RepeatNegated) {
+		const key = `${node.not ? '-' : ''}${node.qualifier.value}`;
+		if (conflicts.has(key)) {
+			bucket.push(new ValidationError(node, Code.ValueConflict, 'This qualifier is already used', conflicts.get(key)));
 		} else {
-			conflicts.set(node.qualifier.value, node);
+			conflicts.set(key, node);
 		}
 	}
 
