@@ -5,7 +5,7 @@
 
 import * as vscode from 'vscode';
 import { Node, NodeType, Utils } from './parser/nodes';
-import { validateQueryDocument } from './parser/validation';
+import { validateQueryDocument, ValidationError, Code } from './parser/validation';
 import { SortByNodeSchema, QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
 import { ProjectContainer, Project } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
@@ -280,6 +280,24 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 	}
 }
 
+export class QuickFixProvider implements vscode.CodeActionProvider {
+
+	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext) {
+		const result: vscode.CodeAction[] = [];
+		for (let diag of context.diagnostics) {
+			if (diag instanceof LanguageValidationDiagnostic && document.version === diag.docVersion && diag.code === Code.ValueConflict) {
+				const action = new vscode.CodeAction('Remove This', vscode.CodeActionKind.QuickFix);
+				action.diagnostics = [diag];
+				action.edit = new vscode.WorkspaceEdit();
+				action.edit.delete(document.uri, diag.range);
+				result.push(action);
+			}
+		}
+		return result;
+	}
+
+}
+
 export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 
 	static readonly triggerCharacters = [':'];
@@ -499,6 +517,26 @@ export interface IProjectValidation {
 	validateProject(projects: Iterable<Project>, token: vscode.CancellationToken): void;
 }
 
+class LanguageValidationDiagnostic extends vscode.Diagnostic {
+
+	readonly docVersion: number;
+
+	constructor(readonly error: ValidationError, project: Project, doc: vscode.TextDocument) {
+		super(project.rangeOf(error.node), error.message);
+
+		this.code = error.code;
+		this.docVersion = doc.version;
+
+		if (error.conflictNode) {
+			this.relatedInformation = [new vscode.DiagnosticRelatedInformation(
+				new vscode.Location(doc.uri, project.rangeOf(error.conflictNode)),
+				project.textOf(error.conflictNode)
+			)];
+			this.tags = [vscode.DiagnosticTag.Unnecessary];
+		}
+	}
+}
+
 export class LanguageValidation implements IProjectValidation {
 
 	private _collection = vscode.languages.createDiagnosticCollection();
@@ -509,15 +547,7 @@ export class LanguageValidation implements IProjectValidation {
 			for (let { node, doc } of project.all()) {
 				const newDiagnostics: vscode.Diagnostic[] = [];
 				for (let error of validateQueryDocument(node, project.symbols)) {
-					const diag = new vscode.Diagnostic(project.rangeOf(error.node), error.message);
-					if (error.conflictNode) {
-						diag.relatedInformation = [new vscode.DiagnosticRelatedInformation(
-							new vscode.Location(doc.uri, project.rangeOf(error.conflictNode)),
-							project.textOf(error.conflictNode)
-						)];
-						diag.tags = [vscode.DiagnosticTag.Unnecessary];
-					}
-					newDiagnostics.push(diag);
+					newDiagnostics.push(new LanguageValidationDiagnostic(error, project, doc));
 				}
 				this._collection.set(doc.uri, newDiagnostics);
 			}
@@ -649,6 +679,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerDefinitionProvider(selector, new DefinitionProvider(container)));
 	disposables.push(vscode.languages.registerReferenceProvider(selector, new ReferenceProvider(container)));
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
+	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new CompletionItemProvider(container), ...CompletionItemProvider.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubOrgCompletions(container, octokit), ...GithubOrgCompletions.triggerCharacters));
