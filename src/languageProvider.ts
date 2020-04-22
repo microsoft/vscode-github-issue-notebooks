@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Node, NodeType, Utils } from './parser/nodes';
+import { Node, NodeType, Utils, QueryDocumentNode } from './parser/nodes';
 import { validateQueryDocument, ValidationError, Code } from './parser/validation';
 import { SortByNodeSchema, QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
 import { ProjectContainer, Project } from './project';
@@ -12,7 +12,6 @@ import { Scanner, TokenType, Token } from './parser/scanner';
 import { OctokitProvider } from './octokitProvider';
 import { getRepoInfos, RepoInfo } from './utils';
 import { GithubData } from './githubDataProvider';
-import { resolvePtr } from 'dns';
 
 const selector = { language: 'github-issues' };
 
@@ -174,6 +173,57 @@ export class RenameProvider implements vscode.RenameProvider {
 			}
 			return edit;
 		}
+	}
+}
+
+export class FormattingProvider implements vscode.DocumentRangeFormattingEditProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+	provideDocumentRangeFormattingEdits(document: vscode.TextDocument, range: vscode.Range) {
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		// find node starting and ending in range
+		let formatNode: Node = query;
+		const nodesStart: Node[] = [];
+		const nodesEnd: Node[] = [];
+		Utils.nodeAt(query, document.offsetAt(range.start), nodesStart);
+		Utils.nodeAt(query, document.offsetAt(range.end), nodesEnd);
+		for (let node of nodesStart) {
+			if (nodesEnd.includes(node)) {
+				formatNode = node;
+				break;
+			}
+		}
+
+		// formatting is just like printing without resolving variables
+		function printForFormat(node: Exclude<Node, QueryDocumentNode>): string {
+			if (node._type === NodeType.OrExpression) {
+				// special...
+				return `${printForFormat(node.left)} OR ${printForFormat(node.right)}`;
+			} else {
+				return Utils.print(node, query.text, () => undefined);
+			}
+		}
+
+		// format a single node
+		if (formatNode._type !== NodeType.QueryDocument) {
+			return [vscode.TextEdit.replace(
+				project.rangeOf(formatNode),
+				printForFormat(formatNode)
+			)];
+		}
+
+		// format whole document
+		let result: vscode.TextEdit[] = [];
+		for (let child of formatNode.nodes) {
+			const range = project.rangeOf(child, document.uri);
+			const newText = printForFormat(child);
+			result.push(vscode.TextEdit.replace(range, newText));
+		}
+		return result;
 	}
 }
 
@@ -681,6 +731,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
+	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new CompletionItemProvider(container), ...CompletionItemProvider.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubOrgCompletions(container, octokit), ...GithubOrgCompletions.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubRepoSearchCompletions(container, octokit), ...GithubRepoSearchCompletions.triggerCharacters));

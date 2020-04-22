@@ -197,9 +197,11 @@ export namespace Utils {
 		return node.start <= offset && offset <= node.end;
 	}
 
-	export function print(node: Node, text: string, variableValue: (name: string) => string | undefined): string {
+	export type PrintableNode = Exclude<Node, OrExpressionNode | QueryDocumentNode>;
 
-		function _print(node: Node): string {
+	export function print(node: PrintableNode, text: string, variableValue: (name: string) => string | undefined): string {
+
+		function _print(node: PrintableNode): string {
 
 			switch (node._type) {
 				case NodeType.Missing:
@@ -241,15 +243,9 @@ export namespace Utils {
 					}
 					return result;
 				default:
-					return node._type;
-				// case NodeType.OrExpression:
-				// 	// each OR-part becomes a separate query
-				// 	return _flatten(_print(node.left), _print(node.right));
-				// case NodeType.QueryDocument:
-				// 	return _flatten(...node.nodes.map(_print));
+					return '???';
 			}
 		}
-
 		return _print(node);
 	}
 
