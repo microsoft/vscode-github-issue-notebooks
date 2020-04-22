@@ -197,7 +197,7 @@ export namespace Utils {
 		return node.start <= offset && offset <= node.end;
 	}
 
-	export type PrintableNode = Exclude<Node, OrExpressionNode | QueryDocumentNode>;
+	export type PrintableNode = Exclude<Node, OrExpressionNode | QueryDocumentNode | VariableDefinitionNode>;
 
 	export function print(node: PrintableNode, text: string, variableValue: (name: string) => string | undefined): string {
 
@@ -205,7 +205,6 @@ export namespace Utils {
 
 			switch (node._type) {
 				case NodeType.Missing:
-				case NodeType.VariableDefinition:
 					// no value for those
 					return '';
 				case NodeType.SortBy:

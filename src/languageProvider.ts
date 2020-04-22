@@ -203,6 +203,9 @@ export class FormattingProvider implements vscode.DocumentRangeFormattingEditPro
 			if (node._type === NodeType.OrExpression) {
 				// special...
 				return `${printForFormat(node.left)} OR ${printForFormat(node.right)}`;
+			} else if (node._type === NodeType.VariableDefinition) {
+				// special...
+				return `${printForFormat(node.name)}=${printForFormat(node.value)}`;
 			} else {
 				return Utils.print(node, query.text, () => undefined);
 			}
