@@ -6,6 +6,10 @@
             "match": "\/\/[^\r\n]*"
         },
         {
+            "name": "punctuation.quoted",
+            "match": "\\\".*\\\""
+        },
+        {
             "name": "variable.other",
             "match": "\\$[_a-zA-Z][_a-zA-Z0-9]+"
         },
