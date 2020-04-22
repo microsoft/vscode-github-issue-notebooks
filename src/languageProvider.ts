@@ -239,7 +239,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			return result;
 		}
 
-		if (node?._type === NodeType.Query || node._type === NodeType.Literal) {
+		if (node?._type === NodeType.Query || node._type === NodeType.Literal || node._type === NodeType.VariableName) {
 			const result: vscode.CompletionItem[] = [];
 
 			// names of qualified value node
@@ -254,7 +254,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			for (let symbol of project.symbols.all()) {
 				result.push({
 					label: symbol.name,
-					detail: symbol.type,
+					detail: symbol.type ? `${symbol.value} (${symbol.type})` : symbol.value,
 					kind: vscode.CompletionItemKind.Value,
 				});
 			}
