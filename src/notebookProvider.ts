@@ -62,12 +62,11 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			project,
 			uri => editor.document.cells.some(cell => cell.uri.toString() === uri.toString()),
 		);
-		setTimeout(async () => {
+		setTimeout(() => {
 			try {
 				for (let cell of editor.document.cells) {
 					if (cell.cellKind === vscode.CellKind.Code) {
-						const doc = await vscode.workspace.openTextDocument(cell.uri);
-						project.getOrCreate(doc);
+						project.getOrCreate(cell.document);
 					}
 				}
 			} catch (err) {
@@ -212,7 +211,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
-				value: cell.source
+				value: cell.document.getText()
 			});
 		}
 		await vscode.workspace.fs.writeFile(document.uri, Buffer.from(JSON.stringify(contents)));
