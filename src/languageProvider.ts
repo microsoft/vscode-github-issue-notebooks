@@ -176,9 +176,23 @@ export class RenameProvider implements vscode.RenameProvider {
 	}
 }
 
-export class FormattingProvider implements vscode.DocumentRangeFormattingEditProvider {
+export class FormattingProvider implements vscode.DocumentRangeFormattingEditProvider, vscode.OnTypeFormattingEditProvider {
 
 	constructor(readonly container: ProjectContainer) { }
+
+	provideOnTypeFormattingEdits(document: vscode.TextDocument, position: vscode.Position, ch: string) {
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		const nodes: Node[] = [];
+		Utils.nodeAt(query, document.offsetAt(position) - ch.length, nodes);
+
+		const target = nodes.find(node => node._type === NodeType.Query || node._type === NodeType.VariableDefinition || node._type === NodeType.OrExpression);
+		if (target) {
+			return this._formatNode(project, query, target);
+		}
+	}
 
 	provideDocumentRangeFormattingEdits(document: vscode.TextDocument, range: vscode.Range) {
 
@@ -186,47 +200,48 @@ export class FormattingProvider implements vscode.DocumentRangeFormattingEditPro
 		const query = project.getOrCreate(document);
 
 		// find node starting and ending in range
-		let formatNode: Node = query;
+		let target: Node = query;
 		const nodesStart: Node[] = [];
 		const nodesEnd: Node[] = [];
 		Utils.nodeAt(query, document.offsetAt(range.start), nodesStart);
 		Utils.nodeAt(query, document.offsetAt(range.end), nodesEnd);
 		for (let node of nodesStart) {
 			if (nodesEnd.includes(node)) {
-				formatNode = node;
+				target = node;
 				break;
 			}
 		}
+		return this._formatNode(project, query, target);
+	}
 
-		// formatting is just like printing without resolving variables
-		function printForFormat(node: Exclude<Node, QueryDocumentNode>): string {
-			if (node._type === NodeType.OrExpression) {
-				// special...
-				return `${printForFormat(node.left)} OR ${printForFormat(node.right)}`;
-			} else if (node._type === NodeType.VariableDefinition) {
-				// special...
-				return `${printForFormat(node.name)}=${printForFormat(node.value)}`;
-			} else {
-				return Utils.print(node, query.text, () => undefined);
-			}
-		}
-
+	private _formatNode(project: Project, query: QueryDocumentNode, node: Node): vscode.TextEdit[] {
 		// format a single node
-		if (formatNode._type !== NodeType.QueryDocument) {
+		if (node._type !== NodeType.QueryDocument) {
 			return [vscode.TextEdit.replace(
-				project.rangeOf(formatNode),
-				printForFormat(formatNode)
+				project.rangeOf(node),
+				this._printForFormatting(query, node)
 			)];
 		}
-
 		// format whole document
 		let result: vscode.TextEdit[] = [];
-		for (let child of formatNode.nodes) {
-			const range = project.rangeOf(child, document.uri);
-			const newText = printForFormat(child);
+		for (let child of node.nodes) {
+			const range = project.rangeOf(child);
+			const newText = this._printForFormatting(query, child);
 			result.push(vscode.TextEdit.replace(range, newText));
 		}
 		return result;
+	}
+
+	private _printForFormatting(query: QueryDocumentNode, node: Exclude<Node, QueryDocumentNode>): string {
+		if (node._type === NodeType.OrExpression) {
+			// special...
+			return `${this._printForFormatting(query, node.left)} OR ${this._printForFormatting(query, node.right)}`;
+		} else if (node._type === NodeType.VariableDefinition) {
+			// special...
+			return `${this._printForFormatting(query, node.name)}=${this._printForFormatting(query, node.value)}`;
+		} else {
+			return Utils.print(node, query.text, () => undefined);
+		}
 	}
 }
 
@@ -735,6 +750,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
+	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new CompletionItemProvider(container), ...CompletionItemProvider.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubOrgCompletions(container, octokit), ...GithubOrgCompletions.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubRepoSearchCompletions(container, octokit), ...GithubRepoSearchCompletions.triggerCharacters));
