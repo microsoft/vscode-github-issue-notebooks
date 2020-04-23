@@ -76,7 +76,7 @@ export class Parser {
 					const left: QueryNode = {
 						_type: NodeType.Query,
 						start,
-						end: this._scanner.pos,
+						end: nodes[nodes.length - 1].end,
 						sortby,
 						nodes,
 					};
@@ -138,7 +138,7 @@ export class Parser {
 		return {
 			_type: NodeType.Query,
 			start,
-			end: this._scanner.pos,
+			end: nodes[nodes.length - 1].end,
 			sortby,
 			nodes,
 		};
