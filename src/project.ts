@@ -112,7 +112,7 @@ export class ProjectContainer {
 
 	lookupProject(uri: vscode.Uri): Project;
 	lookupProject(uri: vscode.Uri, fallback: false): Project | undefined;
-	lookupProject(uri: vscode.Uri, fallback?: false): Project | undefined {
+	lookupProject(uri: vscode.Uri, fallback: boolean = true): Project | undefined {
 		for (let [association, value] of this._associations.values()) {
 			if (association(uri)) {
 				return value;
