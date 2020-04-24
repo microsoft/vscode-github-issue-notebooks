@@ -54,3 +54,8 @@ export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: Qu
 		}
 	}
 }
+
+
+export function isRunnable(query: QueryDocumentNode): boolean {
+	return query.nodes.some(node => node._type === NodeType.Query || node._type === NodeType.OrExpression);
+}

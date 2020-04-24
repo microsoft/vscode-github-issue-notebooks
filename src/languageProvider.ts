@@ -10,7 +10,7 @@ import { SortByNodeSchema, QualifiedValueNodeSchema, ValuePlaceholderType } from
 import { ProjectContainer, Project } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
 import { OctokitProvider } from './octokitProvider';
-import { getRepoInfos, RepoInfo } from './utils';
+import { getRepoInfos, RepoInfo, isRunnable } from './utils';
 import { GithubData } from './githubDataProvider';
 
 const selector = { language: 'github-issues' };
@@ -731,6 +731,41 @@ export class Validation {
 	}
 }
 
+export class RunnableState {
+
+	private _disposables: vscode.Disposable[] = [];
+
+	constructor(readonly container: ProjectContainer) {
+		const update = (document: vscode.TextDocument) => {
+			if (vscode.languages.match(selector, document)) {
+				this._updateRunnableState(document);
+			}
+		};
+		vscode.workspace.textDocuments.forEach(update);
+		vscode.workspace.onDidChangeTextDocument(e => update(e.document), this, this._disposables);
+	}
+
+	dispose(): void {
+		this._disposables.forEach(d => d.dispose());
+	}
+
+	private _updateRunnableState(document: vscode.TextDocument) {
+		const project = this.container.lookupProject(document.uri, false);
+		if (!project) {
+			return;
+		}
+		const query = project.getOrCreate(document);
+		if (!vscode.notebook.activeNotebookEditor) {
+			return; // problem???
+		}
+		const cell = vscode.notebook.activeNotebookEditor.document.cells.find(cell => cell.uri.toString() === document.uri.toString());
+		if (!cell) {
+			return; // problem???
+		}
+		cell.metadata.runnable = isRunnable(query);
+	}
+}
+
 export function registerLanguageProvider(container: ProjectContainer, octokit: OctokitProvider): vscode.Disposable {
 
 	const disposables: vscode.Disposable[] = [];
@@ -760,6 +795,8 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 		new LanguageValidation(),
 		new GithubValidation(githubData)
 	]));
+
+	disposables.push(new RunnableState(container));
 
 	return vscode.Disposable.from(...disposables);
 }

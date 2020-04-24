@@ -110,11 +110,16 @@ export class ProjectContainer {
 		this._associations.set(uri.toString(), [association, project]);
 	}
 
-	lookupProject(uri: vscode.Uri): Project {
+	lookupProject(uri: vscode.Uri): Project;
+	lookupProject(uri: vscode.Uri, fallback: false): Project | undefined;
+	lookupProject(uri: vscode.Uri, fallback?: false): Project | undefined {
 		for (let [association, value] of this._associations.values()) {
 			if (association(uri)) {
 				return value;
 			}
+		}
+		if (!fallback) {
+			return undefined;
 		}
 		console.log('returning AD-HOC project for ' + uri.toString());
 		const project = new Project();

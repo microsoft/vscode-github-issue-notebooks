@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { Project, ProjectContainer } from './project';
 import { OctokitProvider } from "./octokitProvider";
 import AbortController from "abort-controller";
+import { isRunnable } from './utils';
 
 interface RawNotebookCell {
 	language: string;
@@ -22,7 +23,6 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 	) { }
 
 	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
-
 
 		editor.document.languages = ['github-issues'];
 
@@ -66,7 +66,8 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			try {
 				for (let cell of editor.document.cells) {
 					if (cell.cellKind === vscode.CellKind.Code) {
-						project.getOrCreate(cell.document);
+						const query = project.getOrCreate(cell.document);
+						cell.metadata.runnable = isRunnable(query);
 					}
 				}
 			} catch (err) {
