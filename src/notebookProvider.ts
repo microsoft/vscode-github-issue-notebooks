@@ -202,7 +202,8 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
 				['text/html']: `<div class="${count > 12 ? 'large collapsed' : ''}">${html}</div>`,
-				['text/markdown']: md
+				['text/markdown']: md,
+				['x-application/github-issues']: allItems
 			}
 		}];
 	}
