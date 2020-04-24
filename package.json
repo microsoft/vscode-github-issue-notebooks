@@ -52,16 +52,6 @@
 		],
 		"commands": [
 			{
-				"title": "Clear Notebook Cell Output",
-				"command": "github-issues.clearCellOutput",
-				"icon": "$(clear-all)"
-			},
-			{
-				"title": "Clear All Notebook Cells Output",
-				"command": "github-issues.clearAllCellsOutput",
-				"icon": "$(clear-all)"
-			},
-			{
 				"title": "Lock GitHub Query",
 				"command": "github-issues.lockCell",
 				"icon": "$(unlock)"
@@ -91,10 +81,6 @@
 				{
 					"command": "github-issues.unlockCell",
 					"when": "false"
-				},
-				{
-					"command": "github-issues.clearCellOutput",
-					"when": "false"
 				}
 			],
 			"editor/title": [
@@ -107,11 +93,6 @@
 					"command": "github-issues.lockDocument",
 					"when": "notebookEditorFocused && notebookEditable",
 					"group": "navigation@2"
-				},
-				{
-					"command": "github-issues.clearAllCellsOutput",
-					"group": "navigation@3",
-					"when": "notebookEditorFocused"
 				}
 			],
 			"notebook/cell/title": [
@@ -124,11 +105,6 @@
 					"command": "github-issues.unlockCell",
 					"when": "notebookViewType == github-issues && notebookCellType == code && !notebookCellEditable",
 					"group": "inline@2"
-				},
-				{
-					"command": "github-issues.clearCellOutput",
-					"when": "notebookViewType == github-issues && notebookCellType == code",
-					"group": "inline@3"
 				}
 			]
 		}

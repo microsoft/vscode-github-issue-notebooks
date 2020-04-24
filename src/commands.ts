@@ -7,16 +7,6 @@ import * as vscode from 'vscode';
 
 export function registerCommands(context: vscode.ExtensionContext) {
 	// commands
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.clearAllCellsOutput', () => {
-		if (vscode.notebook.activeNotebookDocument) {
-			vscode.notebook.activeNotebookDocument.cells.forEach(cell => cell.outputs = []);
-		}
-	}));
-
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.clearCellOutput', (cell: vscode.NotebookCell) => {
-		cell.outputs = [];
-	}));
-
 	context.subscriptions.push(vscode.commands.registerCommand('github-issues.lockCell', (cell: vscode.NotebookCell) => {
 		cell.metadata = { editable: false, runnable: true };
 	}));
