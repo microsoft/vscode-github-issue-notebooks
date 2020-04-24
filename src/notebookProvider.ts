@@ -13,6 +13,7 @@ interface RawNotebookCell {
 	language: string;
 	value: string;
 	kind: vscode.CellKind;
+	editable?: boolean;
 }
 
 export class IssuesNotebookProvider implements vscode.NotebookProvider {
@@ -47,7 +48,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 					item.language,
 					item.kind,
 					[],
-					{ editable: true, runnable: true }
+					{ editable: item.editable ?? true, runnable: true }
 				);
 			}
 		});
@@ -212,7 +213,8 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
-				value: cell.document.getText()
+				value: cell.document.getText(),
+				editable: cell.metadata.editable
 			});
 		}
 		await vscode.workspace.fs.writeFile(document.uri, Buffer.from(JSON.stringify(contents)));
