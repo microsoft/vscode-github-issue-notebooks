@@ -83,7 +83,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		if (!cell) {
 			// run them all
 			for (let cell of document.cells) {
-				if (cell.cellKind === vscode.CellKind.Code) {
+				if (cell.cellKind === vscode.CellKind.Code && cell.metadata.runnable) {
 					await this.executeCell(document, cell, token);
 				}
 			}
