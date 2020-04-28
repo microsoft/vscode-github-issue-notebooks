@@ -45,7 +45,7 @@ export function registerCommands(context: vscode.ExtensionContext) {
 				{ modal: true },
 				'OK'
 			);
-			if (option !== 'Continue') {
+			if (option !== 'OK') {
 				return;
 			}
 		}
