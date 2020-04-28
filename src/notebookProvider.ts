@@ -138,6 +138,8 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				return;
 			}
 			// print as error
+			cell.metadata.statusMessage = 'Error';
+			cell.metadata.runState = vscode.NotebookCellRunState.Error;
 			cell.outputs = [{
 				outputKind: vscode.CellOutputKind.Error,
 				ename: err instanceof Error && err.name || 'error',
@@ -192,12 +194,9 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
 
 		// status line
-		html += `<div class="stats" data-ts=${now}>${totalCount} results${totalCount !== allItems.length ? ` (showing ${allItems.length})` : ''}, queried {{NOW}}, took ${(duration / 1000).toPrecision(2)}secs</div>`;
-		html += `<script>
-			var node = document.currentScript.parentElement.querySelector(".stats");
-			node.innerText = node.innerText.replace("{{NOW}}", new Date(Number(node.dataset['ts'])).toLocaleString());
-			</script>`;
-
+		const showingSegment = totalCount !== allItems.length ? ` (showing ${allItems.length})` : '';
+		cell.metadata.runState = vscode.NotebookCellRunState.Success;
+		cell.metadata.statusMessage = `${totalCount} results${showingSegment}, queried ${new Date(now).toLocaleString()}, took ${(duration / 1000).toPrecision(2)}secs`;
 		cell.outputs = [{
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
@@ -254,7 +253,7 @@ export function getHtmlStub(): string {
 	return `
 <style>
 	.item-row {
-		display: flex; 
+		display: flex;
 		padding: .5em 0;
 		color: var(--vscode-foreground);
 	}
