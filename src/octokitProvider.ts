@@ -13,9 +13,10 @@ export class OctokitProvider {
 
 	async lib() {
 		try {
-			let [first] = await vscode.authentication.getSessions('github', []);
+			const scopes = ['repo'];
+			let [first] = await vscode.authentication.getSessions('github', scopes);
 			if (!first) {
-				first = await vscode.authentication.login('github', []);
+				first = await vscode.authentication.login('github', scopes);
 			}
 			const token = await first.getAccessToken();
 			this._octokit = new Octokit({ auth: token });
