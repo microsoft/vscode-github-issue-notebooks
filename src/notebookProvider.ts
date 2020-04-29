@@ -140,7 +140,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 						request: { signal: abortCtl.signal }
 					});
 					count += response.data.items.length;
-					totalCount += response.data.total_count;
+					totalCount = response.data.total_count;
 					allItems = allItems.concat(<any>response.data.items);
 					if (count >= Math.min(1000, response.data.total_count)) {
 						break;
@@ -184,6 +184,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 		}
 
 		// "render"
+		const maxCount = 12;
 		const duration = Date.now() - now;
 		const seen = new Set<number>();
 		let html = getHtmlStub();
@@ -203,20 +204,19 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			md += '\n';
 
 			// html
-			html += renderItemAsHtml(item, hasManyRepos, count++ > 12);
+			html += renderItemAsHtml(item, hasManyRepos, count++ > maxCount);
 		}
 
 		//collapse/expand btns
-		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
+		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show ${allItems.length - (1 + maxCount)} More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
 
 		// status line
-		const showingSegment = totalCount !== allItems.length ? ` (showing ${allItems.length})` : '';
 		cell.metadata.runState = vscode.NotebookCellRunState.Success;
-		cell.metadata.statusMessage = `${totalCount} results${showingSegment}, queried ${new Date(now).toLocaleString()}, took ${(duration / 1000).toPrecision(2)}secs`;
+		cell.metadata.statusMessage = `${totalCount} results, took ${(duration / 1000).toPrecision(2)}secs`;
 		cell.outputs = [{
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
-				['text/html']: `<div class="${count > 12 ? 'large collapsed' : ''}">${html}</div>`,
+				['text/html']: `<div class="${count > maxCount ? 'large collapsed' : ''}">${html}</div>`,
 				['text/markdown']: md,
 				['x-application/github-issues']: allItems
 			}
