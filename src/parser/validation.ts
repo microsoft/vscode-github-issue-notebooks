@@ -20,7 +20,7 @@ export const enum Code {
 }
 
 export class ValidationError {
-	constructor(readonly node: Node, readonly code: Code, readonly message: string, readonly conflictNode?: Node) { }
+	constructor(readonly node: Node, readonly code: Code, readonly message: string, readonly conflictNode?: Node, readonly hint?: boolean) { }
 }
 
 export function validateQueryDocument(doc: QueryDocumentNode, symbols: SymbolTable): Iterable<ValidationError> {
@@ -92,6 +92,10 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 
 	// check name first
 	const info = QualifiedValueNodeSchema.get(node.qualifier.value);
+	if (!info && node.value._type === NodeType.Missing) {
+		// skip -> likely not a key-value-expression
+		return;
+	}
 	if (!info) {
 		bucket.push(new ValidationError(node.qualifier, Code.QualifierUnknown, `Unknown qualifier: '${node.qualifier.value}'`));
 		return;
@@ -120,8 +124,8 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 	}
 
 	// missing => done
-	if (valueNode._type === NodeType.Missing) {
-		bucket.push(new ValidationError(valueNode, Code.NodeMissing, valueNode.message));
+	if (info && valueNode._type === NodeType.Missing) {
+		bucket.push(new ValidationError(valueNode, Code.NodeMissing, valueNode.message, undefined, true));
 		return;
 	}
 

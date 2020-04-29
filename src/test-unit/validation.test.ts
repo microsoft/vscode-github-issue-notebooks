@@ -58,6 +58,9 @@ suite('Validation', function () {
 		assertValidateErrors('$var=42\ncomments:$var..123');
 		assertValidateErrors('$var=123\ncomments:$var..2020-03-22', Code.RangeMixesTypes);
 		assertValidateErrors('is:issue is:pr is:open', Code.ValueConflict);
+		assertValidateErrors('foo:');
+		assertValidateErrors('label:', Code.NodeMissing);
+		assertValidateErrors('-label:', Code.NodeMissing);
 	});
 
 	test('variable definition', function () {

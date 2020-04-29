@@ -602,6 +602,10 @@ class LanguageValidationDiagnostic extends vscode.Diagnostic {
 			)];
 			this.tags = [vscode.DiagnosticTag.Unnecessary];
 		}
+
+		if (error.hint) {
+			this.severity = vscode.DiagnosticSeverity.Information;
+		}
 	}
 }
 
@@ -635,7 +639,7 @@ export class GithubValidation implements IProjectValidation {
 				const newDiagnostics: vscode.Diagnostic[] = [];
 				const work: Promise<any>[] = [];
 				Utils.walk(queryDoc, async (node, parent) => {
-					if (node._type !== NodeType.QualifiedValue || parent?._type !== NodeType.Query) {
+					if (parent?._type !== NodeType.Query || node._type !== NodeType.QualifiedValue || node.value._type === NodeType.Missing) {
 						return;
 					}
 					const repos = [...getRepoInfos(queryDoc, project, parent)];

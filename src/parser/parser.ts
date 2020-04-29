@@ -321,7 +321,7 @@ export class Parser {
 			?? this._parseVariableName()
 			?? this._parseLiteral()
 			?? this._parseAny(TokenType.SHA)
-			?? this._createMissing('expected value');
+			?? this._createMissing(`This looks like a 'key:value'-expression but lacks value.`, true);
 
 		return {
 			_type: NodeType.QualifiedValue,
@@ -368,12 +368,13 @@ export class Parser {
 		};
 	}
 
-	private _createMissing(message: string): MissingNode {
+	private _createMissing(message: string, optional?: boolean): MissingNode {
 		return {
 			_type: NodeType.Missing,
 			start: this._token!.start,
 			end: this._token!.start,
-			message
+			message,
+			optional
 		};
 	}
 }
