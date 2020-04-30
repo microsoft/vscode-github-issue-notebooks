@@ -42,6 +42,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
 
 		editor.document.languages = ['github-issues'];
+		editor.document.metadata.cellRunnable = false;
 
 		let contents = '';
 		try {
