@@ -15,17 +15,19 @@ export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: Qu
 
 	const repoStrings: string[] = [];
 
-	let stack: Node[] = [node];
+	let stack: { node: Node, doc: QueryDocumentNode; }[] = [{ doc, node }];
 
 	while (stack.length) {
 
-		Utils.walk(stack.shift()!, (node, parent) => {
+		const { doc, node } = stack.shift()!;
+
+		Utils.walk(node, (node, parent) => {
 
 			if (node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition) {
 				// check variables
 				let symbol = project.symbols.getFirst(node.value);
 				if (symbol) {
-					stack.push(symbol.def);
+					stack.push({ node: symbol.def, doc: symbol.root });
 				}
 
 			} else if (node._type === NodeType.QualifiedValue && node.qualifier.value === 'repo') {
