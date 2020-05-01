@@ -119,7 +119,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 		const now = Date.now();
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
-		let totalCount: number = 0;
+		let tooLarge = false;
 		// fetch
 		try {
 			const abortCtl = new AbortController();
@@ -141,8 +141,8 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 						request: { signal: abortCtl.signal }
 					});
 					count += response.data.items.length;
-					totalCount = response.data.total_count;
 					allItems = allItems.concat(<any>response.data.items);
+					tooLarge = tooLarge || response.data.total_count > 1000;
 					if (count >= Math.min(1000, response.data.total_count)) {
 						break;
 					}
@@ -213,7 +213,7 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 
 		// status line
 		cell.metadata.runState = vscode.NotebookCellRunState.Success;
-		cell.metadata.statusMessage = `${totalCount} results, took ${(duration / 1000).toPrecision(2)}secs`;
+		cell.metadata.statusMessage = `${seen.size}${tooLarge ? '+' : ''} results, took ${(duration / 1000).toPrecision(2)}secs`;
 		cell.outputs = [{
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
