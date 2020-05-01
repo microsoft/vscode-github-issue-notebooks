@@ -427,7 +427,7 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 		<span>#${item.number} opened ${new Date(item.created_at).toLocaleDateString()} by ${escapeHtml(item.user.login)}</span>
 	</div>
 	</div>
-	<div class="user">${!item.assignees ? '' : item.assignees.map(user => `<a href="${user.html_url}"><img src="${user.avatar_url}" width="20" height="20" alt="@${user.login}"></a>`).join('')}</div>
+	<div class="user">${!item.assignees ? '' : item.assignees.map(user => `<a href="${user.html_url}"><img src="${user.avatar_url}" width="20" height="22" alt="@${user.login}"></a>`).join('')}</div>
 </div>
 `;
 }
