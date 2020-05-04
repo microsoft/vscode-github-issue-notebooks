@@ -28,7 +28,8 @@ The following features are currently supported
   * validation
   * completions
   * code navigation (find references, to go definition)
-  * rename 
+  * rename
+  * formatting
 
 ### Query Syntax
 
@@ -43,5 +44,3 @@ var ::= "$" [_a-zA-Z] [_a-zA-Z0-9]*
 ```
 
 Note that new line characters always terminate an expression.
-
-
