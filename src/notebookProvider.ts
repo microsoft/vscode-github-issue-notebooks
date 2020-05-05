@@ -34,19 +34,21 @@ function escapeHtml(string: string) {
 
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 
+	private _localDisposables: vscode.Disposable[];
 	constructor(
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
 	) {
 
-		vscode.notebook.onDidOpenNotebookDocument(document => {
+		this._localDisposables = [];
+
+		this._localDisposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
 			if (this.container.lookupProject(document.uri, false)) {
 				return;
 			}
 
 			// (1) register a new project for this notebook
 			// (2) eager fetch and analysis of all cells
-			// todo@API unregister
 			// todo@API add new cells
 			const project = new Project();
 			this.container.register(
@@ -67,7 +69,11 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 					console.error(err);
 				}
 			}, 0);
-		});
+		}));
+
+		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(() => {
+			// todo unregister
+		}));
 	}
 
 	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
@@ -250,6 +256,10 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 				['x-application/github-issues']: allItems
 			}
 		}];
+	}
+
+	dispose() {
+		this._localDisposables.forEach(d => d.dispose());
 	}
 }
 
