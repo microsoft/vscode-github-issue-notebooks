@@ -32,21 +32,48 @@ function escapeHtml(string: string) {
 }
 
 
-export class IssuesNotebookProvider implements vscode.NotebookProvider {
+export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 
 	constructor(
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
-	) { }
+	) {
 
-	async resolveNotebook(editor: vscode.NotebookEditor): Promise<void> {
+		vscode.notebook.onDidOpenNotebookDocument(document => {
+			if (this.container.lookupProject(document.uri, false)) {
+				return;
+			}
 
-		editor.document.languages = ['github-issues'];
-		editor.document.metadata.cellRunnable = false;
+			// (1) register a new project for this notebook
+			// (2) eager fetch and analysis of all cells
+			// todo@API unregister
+			// todo@API add new cells
+			const project = new Project();
+			this.container.register(
+				document.uri,
+				project,
+				uri => document.cells.some(cell => cell.uri.toString() === uri.toString()),
+			);
+			setTimeout(() => {
+				try {
+					for (let cell of document.cells) {
+						if (cell.cellKind === vscode.CellKind.Code) {
+							const query = project.getOrCreate(cell.document);
+							cell.metadata.runnable = isRunnable(query);
+						}
+					}
+				} catch (err) {
+					console.error('FAILED to eagerly feed notebook cell document into project');
+					console.error(err);
+				}
+			}, 0);
+		});
+	}
 
+	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
 		let contents = '';
 		try {
-			contents = Buffer.from(await vscode.workspace.fs.readFile(editor.document.uri)).toString('utf8');
+			contents = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
 		} catch {
 		}
 
@@ -57,43 +84,44 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 			//?
 			raw = [];
 		}
-		await editor.edit(editBuilder => {
-			for (let item of raw) {
-				editBuilder.insert(
-					0,
-					item.value,
-					item.language,
-					item.kind,
-					[],
-					{ editable: item.editable ?? true, runnable: true }
-				);
-			}
-		});
 
-		// (1) register a new project for this notebook
-		// (2) eager fetch and analysis of all cells
-		// todo@API unregister
-		// todo@API add new cells
-		const project = new Project();
-		this.container.register(
-			editor.document.uri,
-			project,
-			uri => editor.document.cells.some(cell => cell.uri.toString() === uri.toString()),
-		);
-		setTimeout(() => {
-			try {
-				for (let cell of editor.document.cells) {
-					if (cell.cellKind === vscode.CellKind.Code) {
-						const query = project.getOrCreate(cell.document);
-						cell.metadata.runnable = isRunnable(query);
-					}
-				}
-			} catch (err) {
-				console.error('FAILED to eagerly feed notebook cell document into project');
-				console.error(err);
-			}
-		}, 0);
+		const notebookData: vscode.NotebookData = {
+			languages: ['github-issues'],
+			metadata: { cellRunnable: false },
+			cells: raw.map(item => ({
+				source: item.value,
+				language: item.language,
+				cellKind: item.kind,
+				outputs: [],
+				metadata: { editable: item.editable ?? true, runnable: true }
+			}))
+		};
+
+		return notebookData;
 	}
+
+	saveNotebook(document: vscode.NotebookDocument, _cancellation: vscode.CancellationToken): Promise<void> {
+		return this._save(document, document.uri);
+	}
+
+	saveNotebookAs(targetResource: vscode.Uri, document: vscode.NotebookDocument, _cancellation: vscode.CancellationToken): Promise<void> {
+		return this._save(document, targetResource);
+	}
+
+	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri): Promise<void> {
+		let contents: RawNotebookCell[] = [];
+		for (let cell of document.cells) {
+			contents.push({
+				kind: cell.cellKind,
+				language: cell.language,
+				value: cell.document.getText(),
+				editable: cell.metadata.editable
+			});
+		}
+		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents)));
+	}
+
+	onDidChangeNotebook: vscode.Event<void> = new vscode.EventEmitter<void>().event;
 
 	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
 
@@ -222,20 +250,6 @@ export class IssuesNotebookProvider implements vscode.NotebookProvider {
 				['x-application/github-issues']: allItems
 			}
 		}];
-	}
-
-	async save(document: vscode.NotebookDocument): Promise<boolean> {
-		let contents: RawNotebookCell[] = [];
-		for (let cell of document.cells) {
-			contents.push({
-				kind: cell.cellKind,
-				language: cell.language,
-				value: cell.document.getText(),
-				editable: cell.metadata.editable
-			});
-		}
-		await vscode.workspace.fs.writeFile(document.uri, Buffer.from(JSON.stringify(contents)));
-		return true;
 	}
 }
 

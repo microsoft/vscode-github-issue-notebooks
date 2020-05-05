@@ -129,6 +129,14 @@ declare module 'vscode' {
 		export function login(providerId: string, scopes: string[]): Thenable<AuthenticationSession>;
 
 		/**
+		* Logout of a specific session.
+		* @param providerId The id of the provider to use
+		* @param sessionId The session id to remove
+		* provider
+		*/
+		export function logout(providerId: string, sessionId: string): Thenable<void>;
+
+		/**
 		* An [event](#Event) which fires when the array of sessions has changed, or data
 		* within a session has changed for a provider. Fires with the ids of the providers
 		* that have had session data change.
@@ -1257,14 +1265,18 @@ declare module 'vscode' {
 		/**
 		 * Undo the edit operation.
 		 *
-		 * This is invoked by VS Code when the user triggers an undo.
+		 * This is invoked by VS Code when the user undoes this edit. To implement `undo`, your
+		 * extension should restore the document and editor to the state they were in just before this
+		 * edit was added to VS Code's internal edit stack by `onDidChangeCustomDocument`.
 		 */
 		undo(): Thenable<void> | void;
 
 		/**
 		 * Redo the edit operation.
 		 *
-		 * This is invoked by VS Code when the user triggers a redo.
+		 * This is invoked by VS Code when the user redoes this edit. To implement `redo`, your
+		 * extension should restore the document and editor to the state they were in just after this
+		 * edit was added to VS Code's internal edit stack by `onDidChangeCustomDocument`.
 		 */
 		redo(): Thenable<void> | void;
 
@@ -1439,7 +1451,7 @@ declare module 'vscode' {
 		 * This method is invoked by VS Code when the user triggers 'save as' on a custom editor. The implementer must
 		 * persist the custom editor to `destination`.
 		 *
-		 * When the user accepts save as, the current editor is be replaced by an editor for the newly saved file.
+		 * When the user accepts save as, the current editor is be replaced by an non-dirty editor for the newly saved file.
 		 *
 		 * @param document Document to save.
 		 * @param destination Location to save to.
@@ -1701,6 +1713,8 @@ declare module 'vscode' {
 		 * Defaults to true.
 		 */
 		hasExecutionOrder?: boolean;
+
+		displayOrder?: GlobPattern[];
 	}
 
 	export interface NotebookDocument {
@@ -1792,13 +1806,53 @@ declare module 'vscode' {
 		// readonly contentChanges: ReadonlyArray<TextDocumentContentChangeEvent>;
 	}
 
+	export interface NotebookCellData {
+		readonly cellKind: CellKind;
+		readonly source: string;
+		language: string;
+		outputs: CellOutput[];
+		metadata: NotebookCellMetadata;
+	}
+
+	export interface NotebookData {
+		readonly cells: NotebookCellData[];
+		readonly languages: string[];
+		readonly metadata: NotebookDocumentMetadata;
+	}
+
+	export interface NotebookContentProvider {
+		openNotebook(uri: Uri): NotebookData | Promise<NotebookData>;
+		saveNotebook(document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
+		saveNotebookAs(targetResource: Uri, document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
+		readonly onDidChangeNotebook: Event<void>;
+		// revert?(document: NotebookDocument, cancellation: CancellationToken): Thenable<void>;
+		// backup?(document: NotebookDocument, cancellation: CancellationToken): Thenable<CustomDocumentBackup>;
+
+		/**
+		 * Responsible for filling in outputs for the cell
+		 */
+		executeCell(document: NotebookDocument, cell: NotebookCell | undefined, token: CancellationToken): Promise<void>;
+	}
+
 	export namespace notebook {
+		export function registerNotebookContentProvider(
+			notebookType: string,
+			provider: NotebookContentProvider
+		): Disposable;
+
 		export function registerNotebookProvider(
 			notebookType: string,
 			provider: NotebookProvider
 		): Disposable;
 
-		export function registerNotebookOutputRenderer(type: string, outputSelector: NotebookOutputSelector, renderer: NotebookOutputRenderer): Disposable;
+		export function registerNotebookOutputRenderer(
+			type: string,
+			outputSelector: NotebookOutputSelector,
+			renderer: NotebookOutputRenderer
+		): Disposable;
+
+		export const onDidOpenNotebookDocument: Event<NotebookDocument>;
+		// export const onDidChangeVisibleNotebookEditors: Event<NotebookEditor[]>;
 
 		// remove activeNotebookDocument, now that there is activeNotebookEditor.document
 		export let activeNotebookDocument: NotebookDocument | undefined;
