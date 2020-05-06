@@ -106,8 +106,13 @@ export class ProjectContainer {
 
 	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
 
-	register(uri: vscode.Uri, project: Project, association: ProjectAssociation) {
-		this._associations.set(uri.toString(), [association, project]);
+	register(uri: vscode.Uri, project: Project, association: ProjectAssociation): vscode.Disposable {
+		const key = uri.toString();
+		if (this._associations.has(key)) {
+			throw new Error();
+		}
+		this._associations.set(key, [association, project]);
+		return new vscode.Disposable(() => this._associations.delete(key));
 	}
 
 	lookupProject(uri: vscode.Uri): Project;

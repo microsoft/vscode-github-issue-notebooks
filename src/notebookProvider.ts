@@ -41,6 +41,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 	) {
 
 		this._localDisposables = [];
+		let projectRegistration: vscode.Disposable | undefined;
 
 		this._localDisposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
 			if (this.container.lookupProject(document.uri, false)) {
@@ -51,7 +52,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 			// (2) eager fetch and analysis of all cells
 			// todo@API add new cells
 			const project = new Project();
-			this.container.register(
+			projectRegistration = this.container.register(
 				document.uri,
 				project,
 				uri => document.cells.some(cell => cell.uri.toString() === uri.toString()),
@@ -72,8 +73,12 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 		}));
 
 		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(() => {
-			// todo unregister
+			projectRegistration?.dispose();
 		}));
+	}
+
+	dispose() {
+		this._localDisposables.forEach(d => d.dispose());
 	}
 
 	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
@@ -256,10 +261,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 				['x-application/github-issues']: allItems
 			}
 		}];
-	}
-
-	dispose() {
-		this._localDisposables.forEach(d => d.dispose());
 	}
 }
 
