@@ -34,13 +34,16 @@ function escapeHtml(string: string) {
 
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 
-	private _localDisposables: vscode.Disposable[];
+	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentEditEvent>();
+	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
+
+	private readonly _localDisposables: vscode.Disposable[] = [];
+
 	constructor(
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
 	) {
 
-		this._localDisposables = [];
 		let projectRegistration: vscode.Disposable | undefined;
 
 		this._localDisposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
@@ -132,7 +135,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents)));
 	}
 
-	onDidChangeNotebook: vscode.Event<void> = new vscode.EventEmitter<void>().event;
 
 	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
 

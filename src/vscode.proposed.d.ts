@@ -78,6 +78,11 @@ declare module 'vscode' {
 		readonly displayName: string;
 
 		/**
+		 * Whether it is possible to be signed into multiple accounts at once.
+		 */
+		supportsMultipleAccounts: boolean;
+
+		/**
 		 * An [event](#Event) which fires when the array of sessions has changed, or data
 		 * within a session has changed.
 		 */
@@ -109,6 +114,41 @@ declare module 'vscode' {
 		export const providerIds: string[];
 
 		/**
+		 * Returns whether a provider has any sessions matching the requested scopes. This request
+		 * is transparent to the user, not UI is shown. Rejects if a provider with providerId is not
+		 * registered.
+		 * @param providerId The id of the provider
+		 * @param scopes A list of scopes representing the permissions requested. These are dependent on the authentication
+		 * provider
+		 */
+		export function hasSessions(providerId: string, scopes: string[]): Thenable<boolean>;
+
+		export interface GetSessionOptions {
+			/**
+			 *  Whether login should be performed if there is no matching session. Defaults to false.
+			 */
+			createIfNone?: boolean;
+
+			/**
+			 * Whether the existing user session preference should be cleared. Set to allow the user to switch accounts.
+			 * Defaults to false.
+			 */
+			clearSessionPreference?: boolean;
+		}
+
+		/**
+		 * Get an authentication session matching the desired scopes. Rejects if a provider with providerId is not
+		 * registered, or if the user does not consent to sharing authentication information with
+		 * the extension. If there are multiple sessions with the same scopes, the user will be shown a
+		 * quickpick to select which account they would like to use.
+		 * @param providerId The id of the provider to use
+		 * @param scopes A list of scopes representing the permissions requested. These are dependent on the authentication provider
+		 * @param options The [getSessionOptions](#GetSessionOptions) to use
+		 */
+		export function getSession(providerId: string, scopes: string[], options: GetSessionOptions): Thenable<AuthenticationSession | undefined>;
+
+		/**
+		 * @deprecated
 		 * Get existing authentication sessions. Rejects if a provider with providerId is not
 		 * registered, or if the user does not consent to sharing authentication information with
 		 * the extension.
@@ -116,9 +156,10 @@ declare module 'vscode' {
 		 * @param scopes A list of scopes representing the permissions requested. These are dependent on the authentication
 		 * provider
 		 */
-		export function getSessions(providerId: string, scopes: string[]): Thenable<readonly AuthenticationSession[]>;
+		export function getSessions(providerId: string, scopes: string[]): Thenable<ReadonlyArray<AuthenticationSession>>;
 
 		/**
+		 * @deprecated
 		* Prompt a user to login to create a new authenticaiton session. Rejects if a provider with
 		* providerId is not registered, or if the user does not consent to sharing authentication
 		* information with the extension.
@@ -129,6 +170,7 @@ declare module 'vscode' {
 		export function login(providerId: string, scopes: string[]): Thenable<AuthenticationSession>;
 
 		/**
+		 * @deprecated
 		* Logout of a specific session.
 		* @param providerId The id of the provider to use
 		* @param sessionId The session id to remove
@@ -930,103 +972,6 @@ declare module 'vscode' {
 
 	//#endregion
 
-	//#region Contribute to terminal environment https://github.com/microsoft/vscode/issues/46696
-
-	export enum EnvironmentVariableMutatorType {
-		/**
-		 * Replace the variable's existing value.
-		 */
-		Replace = 1,
-		/**
-		 * Append to the end of the variable's existing value.
-		 */
-		Append = 2,
-		/**
-		 * Prepend to the start of the variable's existing value.
-		 */
-		Prepend = 3
-	}
-
-	export interface EnvironmentVariableMutator {
-		/**
-		 * The type of mutation that will occur to the variable.
-		 */
-		readonly type: EnvironmentVariableMutatorType;
-
-		/**
-		 * The value to use for the variable.
-		 */
-		readonly value: string;
-	}
-
-	/**
-	 * A collection of mutations that an extension can apply to a process environment.
-	 */
-	export interface EnvironmentVariableCollection {
-		/**
-		 * Whether the collection should be cached for the workspace and applied to the terminal
-		 * across window reloads. When true the collection will be active immediately such when the
-		 * window reloads. Additionally, this API will return the cached version if it exists. The
-		 * collection will be invalidated when the extension is uninstalled or when the collection
-		 * is cleared. Defaults to true.
-		 */
-		persistent: boolean;
-
-		/**
-		 * Replace an environment variable with a value.
-		 *
-		 * Note that an extension can only make a single change to any one variable, so this will
-		 * overwrite any previous calls to replace, append or prepend.
-		 */
-		replace(variable: string, value: string): void;
-
-		/**
-		 * Append a value to an environment variable.
-		 *
-		 * Note that an extension can only make a single change to any one variable, so this will
-		 * overwrite any previous calls to replace, append or prepend.
-		 */
-		append(variable: string, value: string): void;
-
-		/**
-		 * Prepend a value to an environment variable.
-		 *
-		 * Note that an extension can only make a single change to any one variable, so this will
-		 * overwrite any previous calls to replace, append or prepend.
-		 */
-		prepend(variable: string, value: string): void;
-
-		/**
-		 * Gets the mutator that this collection applies to a variable, if any.
-		 */
-		get(variable: string): EnvironmentVariableMutator | undefined;
-
-		/**
-		 * Iterate over each mutator in this collection.
-		 */
-		forEach(callback: (variable: string, mutator: EnvironmentVariableMutator, collection: EnvironmentVariableCollection) => any, thisArg?: any): void;
-
-		/**
-		 * Deletes this collection's mutator for a variable.
-		 */
-		delete(variable: string): void;
-
-		/**
-		 * Clears all mutators from this collection.
-		 */
-		clear(): void;
-	}
-
-	export interface ExtensionContext {
-		/**
-		 * Gets the extension's environment variable collection for this workspace, enabling changes
-		 * to be applied to terminal environment variables.
-		 */
-		readonly environmentVariableCollection: EnvironmentVariableCollection;
-	}
-
-	//#endregion
-
 	//#region @jrieken -> exclusive document filters
 
 	export interface DocumentFilter {
@@ -1737,12 +1682,6 @@ declare module 'vscode' {
 		edit(callback: (editBuilder: NotebookEditorCellEdit) => void): Thenable<boolean>;
 	}
 
-	export interface NotebookProvider {
-		resolveNotebook(editor: NotebookEditor): Promise<void>;
-		executeCell(document: NotebookDocument, cell: NotebookCell | undefined, token: CancellationToken): Promise<void>;
-		save(document: NotebookDocument): Promise<boolean>;
-	}
-
 	export interface NotebookOutputSelector {
 		type: string;
 		subTypes?: string[];
@@ -1785,11 +1724,20 @@ declare module 'vscode' {
 		readonly metadata: NotebookDocumentMetadata;
 	}
 
+	interface NotebookDocumentEditEvent {
+
+		/**
+		 * The document that the edit is for.
+		 */
+		readonly document: NotebookDocument;
+	}
+
 	export interface NotebookContentProvider {
 		openNotebook(uri: Uri): NotebookData | Promise<NotebookData>;
 		saveNotebook(document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
 		saveNotebookAs(targetResource: Uri, document: NotebookDocument, cancellation: CancellationToken): Promise<void>;
-		readonly onDidChangeNotebook: Event<void>;
+		readonly onDidChangeNotebook: Event<NotebookDocumentEditEvent>;
+
 		// revert?(document: NotebookDocument, cancellation: CancellationToken): Thenable<void>;
 		// backup?(document: NotebookDocument, cancellation: CancellationToken): Thenable<CustomDocumentBackup>;
 
@@ -1803,11 +1751,6 @@ declare module 'vscode' {
 		export function registerNotebookContentProvider(
 			notebookType: string,
 			provider: NotebookContentProvider
-		): Disposable;
-
-		export function registerNotebookProvider(
-			notebookType: string,
-			provider: NotebookProvider
 		): Disposable;
 
 		export function registerNotebookOutputRenderer(
@@ -1835,6 +1778,43 @@ declare module 'vscode' {
 		 * @param selector
 		 */
 		export function createConcatTextDocument(notebook: NotebookDocument, selector?: DocumentSelector): NotebookConcatTextDocument;
+	}
+
+	//#endregion
+
+	//#region @connor4312 extension mode: https://github.com/microsoft/vscode/issues/95926
+
+	/**
+	 * The ExtensionMode is provided on the `ExtensionContext` and indicates the
+	 * mode the specific extension is running in.
+	 */
+	export enum ExtensionMode {
+		/**
+		 * The extension is installed normally (for example, from the marketplace
+		 * or VSIX) in VS Code.
+		 */
+		Release = 1,
+
+		/**
+		 * The extension is running from an `--extensionDevelopmentPath` provided
+		 * when launching VS Code.
+		 */
+		Development = 2,
+
+		/**
+		 * The extension is running from an `--extensionDevelopmentPath` and
+		 * the extension host is running unit tests.
+		 */
+		Test = 3,
+	}
+
+	export interface ExtensionContext {
+		/**
+		 * The mode the extension is running in. This is specific to the current
+		 * extension. One extension may be in `ExtensionMode.Development` while
+		 * other extensions in the host run in `ExtensionMode.Release`.
+		 */
+		readonly extensionMode: ExtensionMode;
 	}
 
 	//#endregion
@@ -2077,28 +2057,6 @@ declare module 'vscode' {
 		 * systems do not present title on save dialogs.
 		 */
 		title?: string;
-	}
-
-	//#endregion
-
-	//#region Comment
-	export interface CommentOptions {
-		/**
-		 * An optional string to show on the comment input box when it's collapsed.
-		 */
-		prompt?: string;
-
-		/**
-		 * An optional string to show as placeholder in the comment input box when it's focused.
-		 */
-		placeHolder?: string;
-	}
-
-	export interface CommentController {
-		/**
-		 * Comment controller options
-		 */
-		options?: CommentOptions;
 	}
 
 	//#endregion
