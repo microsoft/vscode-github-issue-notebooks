@@ -18,8 +18,7 @@ export class OctokitProvider {
 				console.warn('NO SESSION');
 				return this._octokit;
 			}
-			const token = await session.getAccessToken();
-			this._octokit = new Octokit({ auth: token });
+			this._octokit = new Octokit({ auth: session.accessToken });
 			this._isAuthenticated = true;
 
 		} catch (err) {
