@@ -32,12 +32,14 @@ function escapeHtml(string: string) {
 }
 
 
-export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
+export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
+	label: string = 'GitHub Issues Kernel';
 
 	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentEditEvent>();
 	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
+	kernel: vscode.NotebookKernel;
 
 	constructor(
 		readonly container: ProjectContainer,
@@ -78,7 +80,11 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(() => {
 			projectRegistration?.dispose();
 		}));
+
+		this.kernel = this;
 	}
+
+	preloads: vscode.Uri[] = [];
 
 	dispose() {
 		this._localDisposables.forEach(d => d.dispose());
@@ -135,6 +141,15 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents)));
 	}
 
+	async executeAllCells(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<void> {
+		// run them all
+		for (let cell of document.cells) {
+			if (cell.cellKind === vscode.CellKind.Code && cell.metadata.runnable) {
+				await this.executeCell(document, cell, token);
+			}
+		}
+		return;
+	}
 
 	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
 
