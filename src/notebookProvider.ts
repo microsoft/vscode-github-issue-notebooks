@@ -173,7 +173,9 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		const query = project.getOrCreate(doc);
 		project.symbols.update(query);
 
-		const now = Date.now();
+		const startTime = Date.now();
+		cell.metadata.runStartTime = startTime;
+		cell.metadata.runState = vscode.NotebookCellRunState.Running;
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 		let tooLarge = false;
 		// fetch
@@ -242,7 +244,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		// "render"
 		const maxCount = 12;
-		const duration = Date.now() - now;
+		const duration = Date.now() - startTime;
 		const seen = new Set<number>();
 		let html = getHtmlStub();
 		let md = '';
@@ -269,7 +271,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		// status line
 		cell.metadata.runState = vscode.NotebookCellRunState.Success;
-		cell.metadata.statusMessage = `${seen.size}${tooLarge ? '+' : ''} results, took ${(duration / 1000).toPrecision(2)}secs`;
+		cell.metadata.lastRunDuration = duration;
+		cell.metadata.statusMessage = `${seen.size}${tooLarge ? '+' : ''} results`;
 		cell.outputs = [{
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
