@@ -406,15 +406,15 @@ export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 
 		if (info?.placeholderType === ValuePlaceholderType.Repository) {
 			type RepoInfo = { full_name: string; };
-			const options = octokit.repos.listForAuthenticatedUser.endpoint.merge();
-			return octokit.paginate<RepoInfo>(<any>options).then(values => values.map(value => ({ label: value.full_name, range })));
+			const response = await octokit.repos.listForAuthenticatedUser({ per_page: 100, sort: 'pushed', affiliation: 'owner,collaborator' });
+			return (<RepoInfo[]>response.data).map(value => ({ label: value.full_name, range }));
 		}
 	}
 }
 
 export class GithubRepoSearchCompletions implements vscode.CompletionItemProvider {
 
-	static readonly triggerCharacters = [':'];
+	static readonly triggerCharacters = [':', '/'];
 
 	constructor(readonly container: ProjectContainer, readonly octokitProvider: OctokitProvider) { }
 
@@ -444,7 +444,7 @@ export class GithubRepoSearchCompletions implements vscode.CompletionItemProvide
 		const len = document.offsetAt(position) - qualified.value.start;
 		let q = Utils.print(qualified.value, doc.text, name => project.symbols.getFirst(name)?.value).substr(0, len);
 		if (!q) {
-			return;
+			return new vscode.CompletionList([], true);
 		}
 		const idx = q.indexOf('/');
 		if (idx > 0) {
@@ -452,7 +452,7 @@ export class GithubRepoSearchCompletions implements vscode.CompletionItemProvide
 		}
 
 		const octokit = await this.octokitProvider.lib();
-		const repos = await octokit.search.repos({ q, per_page: 30 });
+		const repos = await octokit.search.repos({ q, per_page: 10 });
 
 		// create completion items
 		const items = repos.data.items.map(item => {
