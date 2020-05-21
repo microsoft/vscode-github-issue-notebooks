@@ -107,7 +107,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		const notebookData: vscode.NotebookData = {
 			languages: ['github-issues'],
-			metadata: { cellRunnable: false },
+			metadata: { cellRunnable: false, cellHasExecutionOrder: false },
 			cells: raw.map(item => ({
 				source: item.value,
 				language: item.language,
