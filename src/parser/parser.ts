@@ -56,7 +56,7 @@ export class Parser {
 	private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
 
 		const start = this._token.start;
-		const nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[] = [];
+		const nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode | SortByNode)[] = [];
 		let sortby: SortByNode | undefined;
 		while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
@@ -103,15 +103,8 @@ export class Parser {
 			// (a) we have parse sortby but the query isn't at its end -> treat as normal text
 			// (b) parse sortby and keep it for potential use
 			if (sortby) {
-				nodes.push({
-					_type: NodeType.Literal,
-					start: sortby.keyword.start,
-					end: sortby.keyword.end,
-					value: this._scanner.value(sortby.keyword)
-				});
-				if (sortby.criteria._type !== NodeType.Missing) {
-					nodes.push(sortby.criteria);
-				}
+				sortby.invalid = true;
+				nodes.push(sortby);
 				sortby = undefined;
 			}
 			if (nodes.length > 0 && (sortby = this._parseSortBy())) {

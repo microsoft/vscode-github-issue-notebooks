@@ -11,6 +11,7 @@ export const enum Code {
 	NodeMissing = 'NodeMissing',
 	OrNotAllowed = 'OrNotAllowed',
 	SortByNotAllowed = 'SortByNotAllowed',
+	SortByNotIgnored = 'SortByNotIgnored',
 	VariableDefinedRecursive = 'VariableDefinedRecursive',
 	VariableUnknown = 'VariableUnknown',
 	ValueConflict = 'ValueConflict',
@@ -77,6 +78,8 @@ function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sy
 			if (!info) {
 				bucket.push(new ValidationError(node, Code.VariableUnknown, `Unknown variable`));
 			}
+		} else if (node._type === NodeType.SortBy && node.invalid /*always true when appearing as child*/) {
+			bucket.push(new ValidationError(node, Code.SortByNotIgnored, 'sort-by must appear at end of query', undefined, true));
 		}
 	}
 

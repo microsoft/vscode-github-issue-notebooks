@@ -90,4 +90,10 @@ suite('Validation', function () {
 		assertValidateErrors('repo:foo OR no:assignee no:label');
 		assertValidateErrors('repo:foo OR is:open is:issue');
 	});
+
+	test('Show Error/Warning when the query is invalid #24', function () {
+		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/24
+		assertValidateErrors('fooBar -assignee:@me sort asc by created');
+		assertValidateErrors('fooBar sort asc by created -assignee:@me', Code.SortByNotIgnored);
+	});
 });

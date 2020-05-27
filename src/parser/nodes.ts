@@ -86,13 +86,14 @@ export interface VariableDefinitionNode extends BaseNode {
 
 export interface SortByNode extends BaseNode {
 	_type: NodeType.SortBy;
+	invalid?: boolean;
 	keyword: Token & { type: TokenType.SortAscBy | TokenType.SortDescBy; };
 	criteria: LiteralNode | MissingNode;
 }
 
 export interface QueryNode extends BaseNode {
 	_type: NodeType.Query;
-	nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[];
+	nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode | SortByNode)[];
 	sortby?: SortByNode;
 }
 
@@ -209,8 +210,7 @@ export namespace Utils {
 					// no value for those
 					return '';
 				case NodeType.SortBy:
-					return text.substring(node.criteria.start, node.criteria.end);
-
+					return text.substring(node.invalid ? node.keyword.start : node.criteria.start, node.criteria.end);
 				case NodeType.VariableName:
 					// look up variable (must be defined first)
 					return variableValue(node.value) ?? `${node.value}`;
