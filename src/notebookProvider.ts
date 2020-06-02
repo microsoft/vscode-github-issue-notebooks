@@ -273,12 +273,12 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}
 
 		//collapse/expand btns
-		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show ${allItems.length - (1 + maxCount)} More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
+		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show ${count - (1 + maxCount)} More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
 
 		// status line
 		cell.metadata.runState = vscode.NotebookCellRunState.Success;
 		cell.metadata.lastRunDuration = duration;
-		cell.metadata.statusMessage = `${seen.size}${tooLarge ? '+' : ''} results`;
+		cell.metadata.statusMessage = `${count}${tooLarge ? '+' : ''} results`;
 		cell.outputs = [{
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
