@@ -4,32 +4,34 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { IssuesNotebookProvider } from './notebookProvider';
 
-export function registerCommands(context: vscode.ExtensionContext) {
+export function registerCommands(notebookProvider: IssuesNotebookProvider): vscode.Disposable {
+
+	const subscriptions: vscode.Disposable[] = [];
+
 	// commands
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.lockCell', (cell: vscode.NotebookCell) => {
-		cell.metadata = { ...cell.metadata, editable: false };
+	subscriptions.push(vscode.commands.registerCommand('github-issues.lockCell', (cell: vscode.NotebookCell) => {
+		notebookProvider.setCellLockState(cell, true);
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.unlockCell', (cell: vscode.NotebookCell) => {
-		cell.metadata = { ...cell.metadata, editable: true };
+	subscriptions.push(vscode.commands.registerCommand('github-issues.unlockCell', (cell: vscode.NotebookCell) => {
+		notebookProvider.setCellLockState(cell, false);
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.unlockDocument', () => {
+	subscriptions.push(vscode.commands.registerCommand('github-issues.unlockDocument', () => {
 		if (vscode.notebook.activeNotebookEditor) {
-			const { document } = vscode.notebook.activeNotebookEditor;
-			document.metadata = { ...document.metadata, editable: true, cellEditable: true };
+			notebookProvider.setDocumentLockState(vscode.notebook.activeNotebookEditor.document, false);
 		}
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.lockDocument', () => {
+	subscriptions.push(vscode.commands.registerCommand('github-issues.lockDocument', () => {
 		if (vscode.notebook.activeNotebookEditor) {
-			const { document } = vscode.notebook.activeNotebookEditor;
-			document.metadata = { ...document.metadata, editable: false, cellEditable: false };
+			notebookProvider.setDocumentLockState(vscode.notebook.activeNotebookEditor.document, true);
 		}
 	}));
 
-	context.subscriptions.push(vscode.commands.registerCommand('github-issues.openAll', async (cell: vscode.NotebookCell) => {
+	subscriptions.push(vscode.commands.registerCommand('github-issues.openAll', async (cell: vscode.NotebookCell) => {
 
 		const output = <vscode.CellDisplayOutput>cell.outputs.filter(output => output.outputKind === vscode.CellOutputKind.Rich)[0];
 		if (!output) {
@@ -53,4 +55,6 @@ export function registerCommands(context: vscode.ExtensionContext) {
 			await vscode.env.openExternal(vscode.Uri.parse(item.html_url));
 		}
 	}));
+
+	return vscode.Disposable.from(...subscriptions);
 }

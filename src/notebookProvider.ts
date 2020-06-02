@@ -90,6 +90,20 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		this._localDisposables.forEach(d => d.dispose());
 	}
 
+	// -- utils
+
+	setCellLockState(cell: vscode.NotebookCell, locked: boolean) {
+		cell.metadata = { ...cell.metadata, editable: !locked };
+		this._onDidChangeNotebook.fire({ document: cell.notebook });
+	}
+
+	setDocumentLockState(notebook: vscode.NotebookDocument, locked: boolean) {
+		notebook.metadata = { ...notebook.metadata, editable: !locked, cellEditable: !locked };
+		this._onDidChangeNotebook.fire({ document: notebook });
+	}
+
+	// -- IO
+
 	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
 		let contents = '';
 		try {
@@ -141,6 +155,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents)));
 	}
 
+	// --- kernel world
+
 	async executeAllCells(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<void> {
 		// run them all
 		for (let cell of document.cells) {
@@ -151,17 +167,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		return;
 	}
 
-	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell | undefined, token: vscode.CancellationToken): Promise<void> {
-
-		if (!cell) {
-			// run them all
-			for (let cell of document.cells) {
-				if (cell.cellKind === vscode.CellKind.Code && cell.metadata.runnable) {
-					await this.executeCell(document, cell, token);
-				}
-			}
-			return;
-		}
+	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell, token: vscode.CancellationToken): Promise<void> {
 
 		const doc = await vscode.workspace.openTextDocument(cell.uri);
 		const project = this.container.lookupProject(doc.uri);

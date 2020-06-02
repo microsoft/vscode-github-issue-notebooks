@@ -13,8 +13,8 @@ import { OctokitProvider } from './octokitProvider';
 export function activate(context: vscode.ExtensionContext) {
 	const octokit = new OctokitProvider();
 	const projectContainer = new ProjectContainer();
-	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', new IssuesNotebookProvider(projectContainer, octokit)));
+	const notebookProvider = new IssuesNotebookProvider(projectContainer, octokit);
+	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', notebookProvider));
 	context.subscriptions.push(registerLanguageProvider(projectContainer, octokit));
-	registerCommands(context);
+	context.subscriptions.push(registerCommands(notebookProvider));
 }
-
