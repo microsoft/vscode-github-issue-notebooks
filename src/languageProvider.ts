@@ -581,9 +581,25 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 	}
 }
 
-export interface IProjectValidation {
-	readonly collection: vscode.DiagnosticCollection;
-	validateProject(projects: Iterable<Project>, token: vscode.CancellationToken): void;
+export abstract class IProjectValidation {
+
+	protected readonly _collections = new Map<Project, vscode.DiagnosticCollection>();
+
+	abstract validateProject(project: Project, token: vscode.CancellationToken): void;
+
+	clearProject(project: Project) {
+		let collection = this._collections.get(project);
+		if (collection) {
+			collection.dispose();
+			this._collections.delete(project);
+		}
+	}
+
+	clearDocument(uri: vscode.Uri): void {
+		for (let collection of this._collections.values()) {
+			collection.delete(uri);
+		}
+	}
 }
 
 class LanguageValidationDiagnostic extends vscode.Diagnostic {
@@ -610,70 +626,83 @@ class LanguageValidationDiagnostic extends vscode.Diagnostic {
 	}
 }
 
-export class LanguageValidation implements IProjectValidation {
+export class LanguageValidation extends IProjectValidation {
 
-	collection = vscode.languages.createDiagnosticCollection();
 
-	validateProject(projects: Iterable<Project>) {
+	validateProject(project: Project) {
 
-		for (let project of projects) {
-			for (let { node, doc } of project.all()) {
-				const newDiagnostics: vscode.Diagnostic[] = [];
-				for (let error of validateQueryDocument(node, project.symbols)) {
-					newDiagnostics.push(new LanguageValidationDiagnostic(error, project, doc));
-				}
-				this.collection.set(doc.uri, newDiagnostics);
+		let collection = this._collections.get(project);
+		if (!collection) {
+			collection = vscode.languages.createDiagnosticCollection();
+			this._collections.set(project, collection);
+		}
+
+		for (let { node, doc } of project.all()) {
+			const newDiagnostics: vscode.Diagnostic[] = [];
+			for (let error of validateQueryDocument(node, project.symbols)) {
+				newDiagnostics.push(new LanguageValidationDiagnostic(error, project, doc));
 			}
+			collection.set(doc.uri, newDiagnostics);
 		}
 	}
 }
 
-export class GithubValidation implements IProjectValidation {
+export class GithubValidation extends IProjectValidation {
 
-	readonly collection = vscode.languages.createDiagnosticCollection();
+	constructor(readonly githubData: GithubData) {
+		super();
+	}
 
-	constructor(readonly githubData: GithubData) { }
+	validateProject(project: Project, token: vscode.CancellationToken) {
 
-	validateProject(projects: Iterable<Project>, token: vscode.CancellationToken): void {
-		for (let project of projects) {
-			for (let { node: queryDoc, doc } of project.all()) {
-				const newDiagnostics: vscode.Diagnostic[] = [];
-				const work: Promise<any>[] = [];
-				Utils.walk(queryDoc, async (node, parent) => {
-					if (parent?._type !== NodeType.Query || node._type !== NodeType.QualifiedValue || node.value._type === NodeType.Missing) {
-						return;
-					}
-					const repos = [...getRepoInfos(queryDoc, project, parent)];
-					if (repos.length === 0) {
-						return;
-					}
-					const value = Utils.print(node.value, queryDoc.text, name => project.symbols.getFirst(name)?.value).replace(/^"(.*)"$/, '$1');
-					const info = QualifiedValueNodeSchema.get(node.qualifier.value);
+		let collection = this._collections.get(project);
+		if (!collection) {
+			collection = vscode.languages.createDiagnosticCollection();
+			this._collections.set(project, collection);
+		}
 
-					if (info?.placeholderType === ValuePlaceholderType.Label) {
-						work.push(this._checkLabels(value, repos).then(valid => {
-							if (!valid) {
-								const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Unknown label`, vscode.DiagnosticSeverity.Warning);
-								newDiagnostics.push(diag);
-							}
-						}));
+		for (let { node: queryDoc, doc } of project.all()) {
+			const newDiagnostics: vscode.Diagnostic[] = [];
+			const work: Promise<any>[] = [];
+			Utils.walk(queryDoc, async (node, parent) => {
+				if (parent?._type !== NodeType.Query || node._type !== NodeType.QualifiedValue || node.value._type === NodeType.Missing) {
+					return;
+				}
+				const repos = [...getRepoInfos(queryDoc, project, parent)];
+				if (repos.length === 0) {
+					return;
+				}
+				const value = Utils.print(node.value, queryDoc.text, name => project.symbols.getFirst(name)?.value).replace(/^"(.*)"$/, '$1');
+				const info = QualifiedValueNodeSchema.get(node.qualifier.value);
 
-					} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
-						work.push(this._checkMilestones(value, repos).then(valid => {
-							if (!valid) {
-								const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Unknown milestone`, vscode.DiagnosticSeverity.Warning);
-								newDiagnostics.push(diag);
-							}
-						}));
-					}
-				});
+				if (info?.placeholderType === ValuePlaceholderType.Label) {
+					work.push(this._checkLabels(value, repos).then(valid => {
+						if (!valid) {
+							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Unknown label`, vscode.DiagnosticSeverity.Warning);
+							newDiagnostics.push(diag);
+						}
+					}));
 
-				Promise.all(work).then(() => {
-					if (!token.isCancellationRequested) {
-						this.collection.set(doc.uri, newDiagnostics);
-					}
-				});
-			}
+				} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
+					work.push(this._checkMilestones(value, repos).then(valid => {
+						if (!valid) {
+							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Unknown milestone`, vscode.DiagnosticSeverity.Warning);
+							newDiagnostics.push(diag);
+						}
+					}));
+				}
+			});
+
+			Promise.all(work).then(() => {
+				if (token.isCancellationRequested) {
+					return;
+				}
+				let collection = this._collections.get(project);
+				if (collection && project.has(doc)) {
+					// project or document might have been dismissed already
+					collection.set(doc.uri, newDiagnostics);
+				}
+			});
 		}
 	}
 
@@ -714,14 +743,21 @@ export class Validation {
 		function validateAllSoon() {
 			cts.cancel();
 			cts = new vscode.CancellationTokenSource();
-			let handle = setTimeout(
-				() => validation.forEach(validation => validation.validateProject(container.all(), cts.token)),
-				500
-			);
+			let handle = setTimeout(() => {
+				for (let project of container.all()) {
+					for (let strategy of validation) {
+						strategy.validateProject(project, cts.token);
+					}
+				}
+			}, 500);
 			cts.token.onCancellationRequested(() => clearTimeout(handle));
 		}
 		validateAllSoon();
-		this._disposables.push(vscode.workspace.onDidChangeTextDocument(() => validateAllSoon()));
+		this._disposables.push(vscode.workspace.onDidChangeTextDocument(e => {
+			if (vscode.languages.match(selector, e.document)) {
+				validateAllSoon();
+			}
+		}));
 		this._disposables.push(vscode.workspace.onDidOpenTextDocument(doc => {
 			if (vscode.languages.match(selector, doc)) {
 				// add new document to project, then validate
@@ -731,14 +767,12 @@ export class Validation {
 		}));
 		this._disposables.push(vscode.workspace.onDidCloseTextDocument(doc => {
 			for (let strategy of validation) {
-				strategy.collection.delete(doc.uri);
+				strategy.clearDocument(doc.uri);
 			}
 		}));
-		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(e => {
-			for (let { uri } of e.cells) {
-				for (let strategy of validation) {
-					strategy.collection.delete(uri);
-				}
+		this._disposables.push(container.onDidRemove(project => {
+			for (let strategy of validation) {
+				strategy.clearProject(project);
 			}
 		}));
 	}

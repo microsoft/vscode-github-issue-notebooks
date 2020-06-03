@@ -33,6 +33,10 @@ export class Project {
 		return value.node;
 	}
 
+	has(doc: vscode.TextDocument): boolean {
+		return this._cached.has(doc.uri.toString());
+	}
+
 	delete(doc: vscode.TextDocument): void {
 		this._cached.delete(doc.uri.toString());
 	}
@@ -104,6 +108,9 @@ export interface ProjectAssociation {
 
 export class ProjectContainer {
 
+	private _onDidRemove = new vscode.EventEmitter<Project>();
+	readonly onDidRemove = this._onDidRemove.event;
+
 	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
 
 	register(uri: vscode.Uri, project: Project, association: ProjectAssociation): vscode.Disposable {
@@ -112,12 +119,26 @@ export class ProjectContainer {
 			throw new Error(`Project for '${key}' already EXISTS. All projects: ${[...this._associations.keys()].join()}`);
 		}
 		this._associations.set(key, [association, project]);
-		return new vscode.Disposable(() => this._associations.delete(key));
+		return new vscode.Disposable(() => {
+			let tuple = this._associations.get(key);
+			if (tuple) {
+				this._associations.delete(key);
+				this._onDidRemove.fire(tuple[1]);
+			}
+		});
 	}
 
 	lookupProject(uri: vscode.Uri): Project;
 	lookupProject(uri: vscode.Uri, fallback: false): Project | undefined;
 	lookupProject(uri: vscode.Uri, fallback: boolean = true): Project | undefined {
+
+		// notebook uri itself
+		let candidate = this._associations.get(uri.toString());
+		if (candidate) {
+			return candidate[1];
+		}
+
+		// a cell uri
 		for (let [association, value] of this._associations.values()) {
 			if (association(uri)) {
 				return value;
