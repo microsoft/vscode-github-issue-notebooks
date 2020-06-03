@@ -729,6 +729,11 @@ export class Validation {
 				validateAllSoon();
 			}
 		}));
+		this._disposables.push(vscode.workspace.onDidCloseTextDocument(doc => {
+			for (let strategy of validation) {
+				strategy.collection.delete(doc.uri);
+			}
+		}));
 		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(e => {
 			for (let { uri } of e.cells) {
 				for (let strategy of validation) {
