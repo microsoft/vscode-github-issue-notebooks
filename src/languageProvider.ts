@@ -582,6 +582,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 }
 
 export interface IProjectValidation {
+	readonly collection: vscode.DiagnosticCollection;
 	validateProject(projects: Iterable<Project>, token: vscode.CancellationToken): void;
 }
 
@@ -611,7 +612,7 @@ class LanguageValidationDiagnostic extends vscode.Diagnostic {
 
 export class LanguageValidation implements IProjectValidation {
 
-	private _collection = vscode.languages.createDiagnosticCollection();
+	collection = vscode.languages.createDiagnosticCollection();
 
 	validateProject(projects: Iterable<Project>) {
 
@@ -621,7 +622,7 @@ export class LanguageValidation implements IProjectValidation {
 				for (let error of validateQueryDocument(node, project.symbols)) {
 					newDiagnostics.push(new LanguageValidationDiagnostic(error, project, doc));
 				}
-				this._collection.set(doc.uri, newDiagnostics);
+				this.collection.set(doc.uri, newDiagnostics);
 			}
 		}
 	}
@@ -629,7 +630,7 @@ export class LanguageValidation implements IProjectValidation {
 
 export class GithubValidation implements IProjectValidation {
 
-	private _collection = vscode.languages.createDiagnosticCollection();
+	readonly collection = vscode.languages.createDiagnosticCollection();
 
 	constructor(readonly githubData: GithubData) { }
 
@@ -669,7 +670,7 @@ export class GithubValidation implements IProjectValidation {
 
 				Promise.all(work).then(() => {
 					if (!token.isCancellationRequested) {
-						this._collection.set(doc.uri, newDiagnostics);
+						this.collection.set(doc.uri, newDiagnostics);
 					}
 				});
 			}
@@ -726,6 +727,13 @@ export class Validation {
 				// add new document to project, then validate
 				container.lookupProject(doc.uri).getOrCreate(doc);
 				validateAllSoon();
+			}
+		}));
+		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(e => {
+			for (let { uri } of e.cells) {
+				for (let strategy of validation) {
+					strategy.collection.delete(uri);
+				}
 			}
 		}));
 	}
