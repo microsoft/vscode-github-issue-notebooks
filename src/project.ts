@@ -109,7 +109,7 @@ export class ProjectContainer {
 	register(uri: vscode.Uri, project: Project, association: ProjectAssociation): vscode.Disposable {
 		const key = uri.toString();
 		if (this._associations.has(key)) {
-			throw new Error();
+			throw new Error(`Project for '${key}' already EXISTS. All projects: ${[...this._associations.keys()].join()}`);
 		}
 		this._associations.set(key, [association, project]);
 		return new vscode.Disposable(() => this._associations.delete(key));
