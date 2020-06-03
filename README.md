@@ -43,4 +43,29 @@ def ::= var "=" query
 var ::= "$" [_a-zA-Z] [_a-zA-Z0-9]*
 ```
 
-Note that new line characters always terminate an expression.
+Note that new line characters always terminate an expression. 
+
+#### Samples
+
+A few sample queries from the vscode-project, paste each into a sparate code cell
+
+_Define variables for vscode and the current milestone (May 2020):_
+
+```
+$vscode=repo:microsoft/vscode 
+$milestone=milestone:"May 2020"
+```
+
+_All current bugs I have created that are closed but not yet verified (using above variables):_
+
+```
+$vscode $milestone is:closed author:@me -assignee:@me label:bug -label:verified
+```
+
+_All issues that affect performance (startup, freezing, leakage):_
+
+```
+$vscode assignee:@me is:open label:freeze-slow-crash-leak
+$vscode assignee:@me is:open label:perf
+$vscode assignee:@me is:open label:perf-startup
+```
