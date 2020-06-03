@@ -184,6 +184,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	}
 
 	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell, token: vscode.CancellationToken): Promise<void> {
+		const originalRunState = cell.metadata.runState;
 
 		const doc = await vscode.workspace.openTextDocument(cell.uri);
 		const project = this.container.lookupProject(doc.uri);
@@ -232,6 +233,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		} catch (err) {
 			// ignore cancellation
 			if (token.isCancellationRequested) {
+				cell.metadata.runState = originalRunState;
 				return;
 			}
 			// print as error
