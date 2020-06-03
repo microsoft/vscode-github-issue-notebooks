@@ -46,39 +46,55 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		readonly octokit: OctokitProvider
 	) {
 
-		let projectRegistration: vscode.Disposable | undefined;
+		let projectRegistrations = new Map<string, vscode.Disposable>();
 
 		this._localDisposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
-			if (this.container.lookupProject(document.uri, false)) {
-				return;
-			}
 
 			// (1) register a new project for this notebook
 			// (2) eager fetch and analysis of all cells
 			// todo@API add new cells
 			const project = new Project();
-			projectRegistration = this.container.register(
+			const registration = this.container.register(
 				document.uri,
 				project,
 				uri => document.cells.some(cell => cell.uri.toString() === uri.toString()),
 			);
-			setTimeout(() => {
-				try {
-					for (let cell of document.cells) {
-						if (cell.cellKind === vscode.CellKind.Code) {
-							const query = project.getOrCreate(cell.document);
-							cell.metadata.runnable = isRunnable(query);
-						}
+			projectRegistrations.set(document.uri.toString(), registration);
+
+			try {
+				for (let cell of document.cells) {
+					if (cell.cellKind === vscode.CellKind.Code) {
+						const query = project.getOrCreate(cell.document);
+						cell.metadata.runnable = isRunnable(query);
 					}
-				} catch (err) {
-					console.error('FAILED to eagerly feed notebook cell document into project');
-					console.error(err);
 				}
-			}, 0);
+			} catch (err) {
+				console.error('FAILED to eagerly feed notebook cell document into project');
+				console.error(err);
+			}
 		}));
 
-		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(() => {
-			projectRegistration?.dispose();
+		this._localDisposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
+			let project = this.container.lookupProject(e.document.uri, false);
+			if (!project) {
+				return;
+			}
+			for (let change of e.changes) {
+				for (let cell of change.items) {
+					if (cell.cellKind === vscode.CellKind.Code) {
+						const query = project.getOrCreate(cell.document);
+						cell.metadata.runnable = isRunnable(query);
+					}
+				}
+			}
+		}));
+
+		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(document => {
+			let registration = projectRegistrations.get(document.uri.toString());
+			if (registration) {
+				registration.dispose();
+				projectRegistrations.delete(document.uri.toString());
+			}
 		}));
 
 		this.kernel = this;
