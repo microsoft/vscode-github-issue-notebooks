@@ -175,6 +175,11 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['state', QualifiedValueInfo.enum(new ValueSet(true, 'open', 'closed'))],
 	['status', QualifiedValueInfo.enum(new ValueSet(true, 'pending', 'success', 'failure'))],
 	['type', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
+	['sort', QualifiedValueInfo.enum(new ValueSet(true,
+		'created-desc', 'created-asc', 'comments-desc ', 'comments-asc', 'updated-desc', 'updated-asc',
+		'reactions-+1-desc', 'reactions--1-desc', 'reactions-smile-desc', 'reactions-tada-desc', 'reactions-thinking_face-desc', 'reactions-heart-desc', 'reactions-rocket-desc', 'reactions-eyes-desc',
+		'reactions-+1-asc', 'reactions--1-asc', 'reactions-smile-asc', 'reactions-tada-asc', 'reactions-thinking_face-asc', 'reactions-heart-asc', 'reactions-rocket-asc', 'reactions-eyes-asc',
+	))],
 	// placeholder 
 	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
 	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
