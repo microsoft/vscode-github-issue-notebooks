@@ -71,9 +71,9 @@ suite('Parser', function () {
 	});
 
 	test('Query with sortby', function () {
-		assertNodeTypes('label:foo sort asc by comments', NodeType.QualifiedValue);
-		assertNodeTypes('label:foo sortby sort desc by comments', NodeType.QualifiedValue, NodeType.Literal);
-		assertNodeTypesDeep('label:123 sort asc by sort asc by comments', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.SortBy, NodeType.Missing, NodeType.SortBy, NodeType.Literal);
+		assertNodeTypes('label:foo sort:comments-asc', NodeType.QualifiedValue);
+		assertNodeTypes('label:foo sort:comments-asc sortby', NodeType.QualifiedValue, NodeType.Literal);
+		assertNodeTypesDeep('label:123 sort:comments-asc', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 	});
 });
 
@@ -207,7 +207,7 @@ suite('Print Nodes', function () {
 
 	test('Show Error/Warning when the query is invalid #24', function () {
 		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/24
-		assertPrinted('fooBar -assignee:@me sort asc by created', ['fooBar -assignee:@me']);
+		assertPrinted('fooBar -assignee:@me sort:created-asc', ['fooBar -assignee:@me']);
 		assertPrinted('fooBar sort asc by created -assignee:@me');
 	});
 });

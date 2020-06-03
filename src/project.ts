@@ -4,10 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SymbolTable, ValueType } from './parser/symbols';
-import { QueryDocumentNode, Node, Utils, NodeType } from './parser/nodes';
+import { SymbolTable } from './parser/symbols';
+import { QueryDocumentNode, Node, Utils, NodeType, QueryNode } from './parser/nodes';
 import { Parser } from './parser/parser';
-import { TokenType } from './parser/scanner';
 
 export class Project {
 
@@ -75,21 +74,31 @@ export class Project {
 
 		const variableAccess = (name: string) => this.symbols.getFirst(name)?.value;
 
+		function fillInQuery(node: QueryNode) {
+			let sort: string | undefined;
+			let order: 'asc' | 'desc' | undefined;
+			if (node.sortby) {
+				const value = Utils.print(node.sortby.value, entry.node.text, variableAccess);
+				const idx = value.lastIndexOf('-');
+				if (idx >= 0) {
+					sort = value.substring(0, idx);
+					order = value.substring(idx + 1) as any;
+				}
+			}
+			result.push({
+				q: Utils.print(node, entry.node.text, variableAccess),
+				sort,
+				order,
+			});
+		}
+
 		function fillInQueryData(node: Node) {
 			switch (node._type) {
 				case NodeType.Query:
-					result.push({
-						q: Utils.print(node, entry.node.text, variableAccess),
-						sort: node.sortby && Utils.print(node.sortby, entry.node.text, variableAccess),
-						order: node.sortby && node.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
-					});
+					fillInQuery(node);
 					break;
 				case NodeType.OrExpression:
-					result.push({
-						q: Utils.print(node.left, entry.node.text, variableAccess),
-						sort: node.left.sortby && Utils.print(node.left.sortby, entry.node.text, variableAccess),
-						order: node.left.sortby && node.left.sortby.keyword.type === TokenType.SortAscBy ? 'asc' : 'desc'
-					});
+					fillInQuery(node.left);
 					// recurse
 					fillInQueryData(node.right);
 			}

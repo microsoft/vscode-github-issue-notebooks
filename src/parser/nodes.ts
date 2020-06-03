@@ -15,7 +15,6 @@ export const enum NodeType {
 	Number = 'Number',
 	OrExpression = 'OrExpression',
 	QualifiedValue = 'QualifiedValue',
-	SortBy = 'SortBy',
 	Query = 'Query',
 	QueryDocument = 'QueryDocument',
 	Range = 'Range',
@@ -84,17 +83,10 @@ export interface VariableDefinitionNode extends BaseNode {
 	value: QueryNode | MissingNode;
 }
 
-export interface SortByNode extends BaseNode {
-	_type: NodeType.SortBy;
-	invalid?: boolean;
-	keyword: Token & { type: TokenType.SortAscBy | TokenType.SortDescBy; };
-	criteria: LiteralNode | MissingNode;
-}
-
 export interface QueryNode extends BaseNode {
 	_type: NodeType.Query;
-	nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode | SortByNode)[];
-	sortby?: SortByNode;
+	nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[];
+	sortby?: QualifiedValueNode;
 }
 
 export interface OrExpressionNode extends BaseNode {
@@ -111,7 +103,7 @@ export interface QueryDocumentNode extends BaseNode {
 	nodes: (QueryNode | OrExpressionNode | VariableDefinitionNode)[];
 }
 
-export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode | SortByNode;
+export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
 
 export type Node = QueryDocumentNode // level 1
 	| QueryNode | OrExpressionNode | VariableDefinitionNode // level 2
@@ -164,10 +156,6 @@ export namespace Utils {
 					stack.unshift(node.left);
 					stack.unshift(node);
 					break;
-				case NodeType.SortBy:
-					stack.unshift(node.criteria);
-					stack.unshift(node);
-					break;
 				case NodeType.Query:
 					if (node.sortby) {
 						stack.unshift(node.sortby);
@@ -209,8 +197,6 @@ export namespace Utils {
 				case NodeType.Missing:
 					// no value for those
 					return '';
-				case NodeType.SortBy:
-					return text.substring(node.invalid ? node.keyword.start : node.criteria.start, node.criteria.end);
 				case NodeType.VariableName:
 					// look up variable (must be defined first)
 					return variableValue(node.value) ?? `${node.value}`;

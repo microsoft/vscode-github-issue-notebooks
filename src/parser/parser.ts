@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryNode, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SortByNode, SimpleNode } from "./nodes";
+import { QueryNode, NodeType, AnyNode, LiteralNode, NumberNode, DateNode, CompareNode, RangeNode, QualifiedValueNode, VariableNameNode, VariableDefinitionNode, MissingNode, OrExpressionNode, QueryDocumentNode, SimpleNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
 export class Parser {
@@ -56,8 +56,8 @@ export class Parser {
 	private _parseQuery(allowOR: boolean): QueryNode | OrExpressionNode | undefined {
 
 		const start = this._token.start;
-		const nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode | SortByNode)[] = [];
-		let sortby: SortByNode | undefined;
+		const nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[] = [];
+		let sortby: QualifiedValueNode | undefined;
 		while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
 			// skip over whitespace
@@ -99,18 +99,6 @@ export class Parser {
 				});
 			}
 
-			// sortby-logic:
-			// (a) we have parse sortby but the query isn't at its end -> treat as normal text
-			// (b) parse sortby and keep it for potential use
-			if (sortby) {
-				sortby.invalid = true;
-				nodes.push(sortby);
-				sortby = undefined;
-			}
-			if (nodes.length > 0 && (sortby = this._parseSortBy())) {
-				continue;
-			}
-
 			// parse the query AS-IS
 			const node = this._parseQualifiedValue()
 				?? this._parseNumber()
@@ -119,7 +107,14 @@ export class Parser {
 				?? this._parseLiteral()
 				?? this._parseAny(this._token.type);
 
-			if (node) {
+			if (!node) {
+				continue;
+			}
+
+			// push to children array unless this is the FIRST sort:xyz-node
+			if (!sortby && node._type === NodeType.QualifiedValue && node.qualifier.value === 'sort') {
+				sortby = node;
+			} else {
 				nodes.push(node);
 			}
 		}
@@ -135,21 +130,6 @@ export class Parser {
 			sortby,
 			nodes,
 		};
-	}
-
-	private _parseSortBy(): SortByNode | undefined {
-		const keyword = this._accept(TokenType.SortAscBy) ?? this._accept(TokenType.SortDescBy);
-		if (keyword) {
-			while (this._accept(TokenType.Whitespace)) { }
-			const criteria = this._parseLiteral() ?? this._createMissing('expected sort criteria');
-			return {
-				_type: NodeType.SortBy,
-				start: keyword.start,
-				end: criteria.end,
-				criteria,
-				keyword
-			};
-		}
 	}
 
 	private _parseAny(type: TokenType): AnyNode | undefined {

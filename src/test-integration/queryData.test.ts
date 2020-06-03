@@ -27,7 +27,7 @@ suite('Project', () => {
 		}
 
 		await assertQueryData('foo repo:bar');
-		await assertQueryData('foo repo:bar sort asc by comments', [{ q: 'foo repo:bar', order: 'asc', sort: 'comments' }]);
+		await assertQueryData('foo repo:bar sort:comments-asc', [{ q: 'foo repo:bar', order: 'asc', sort: 'comments' }]);
 		await assertQueryData('$bar=bazz\n$bar repo:bar', [{ q: 'bazz repo:bar' }]);
 		await assertQueryData('$bar=bazz', []);
 		await assertQueryData('foo OR bar', [{ q: 'foo' }, { q: 'bar' }]);

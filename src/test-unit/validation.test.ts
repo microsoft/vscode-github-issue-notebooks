@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { suite, test } from 'mocha';
-import { NodeType, QueryNode, Utils } from '../parser/nodes';
 import { Parser } from '../parser/parser';
 import * as assert from 'assert';
 import { validateQueryDocument, Code } from '../parser/validation';
@@ -69,7 +68,7 @@ suite('Validation', function () {
 		assertValidateErrors('$var=', Code.NodeMissing);
 		assertValidateErrors('$var=foo $var', Code.VariableDefinedRecursive);
 		assertValidateErrors('$var=$foo', Code.VariableUnknown);
-		assertValidateErrors('$var=foo sort desc by comments', Code.SortByNotAllowed);
+		assertValidateErrors('$var=foo sort:comments-desc', Code.SortByNotAllowed);
 	});
 
 	test('repeated milestone etc', function () {
@@ -93,7 +92,7 @@ suite('Validation', function () {
 
 	test('Show Error/Warning when the query is invalid #24', function () {
 		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/24
-		assertValidateErrors('fooBar -assignee:@me sort asc by created');
-		assertValidateErrors('fooBar sort asc by created -assignee:@me', Code.SortByNotIgnored);
+		assertValidateErrors('fooBar -assignee:@me sort:created-asc');
+		assertValidateErrors('fooBar sort:created-asc -assignee:@me');
 	});
 });

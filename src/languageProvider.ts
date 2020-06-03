@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { Node, NodeType, Utils, QueryDocumentNode } from './parser/nodes';
 import { validateQueryDocument, ValidationError, Code } from './parser/validation';
-import { SortByNodeSchema, QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
+import { QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
 import { ProjectContainer, Project } from './project';
 import { Scanner, TokenType, Token } from './parser/scanner';
 import { OctokitProvider } from './octokitProvider';
@@ -262,9 +262,6 @@ export class DocumentSemanticTokensProvider implements vscode.DocumentSemanticTo
 			if (node._type === NodeType.OrExpression) {
 				token = node.or;
 			}
-			if (node._type === NodeType.SortBy) {
-				token = node.keyword;
-			}
 			if (token) {
 				const { line, character } = document.positionAt(token.start);
 				builder.push(line, character, token.end - token.start, 0);
@@ -287,11 +284,6 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 		const parents: Node[] = [];
 		const node = Utils.nodeAt(query, offset, parents) ?? query;
 		const parent = parents[parents.length - 2];
-
-		if (parent?._type === NodeType.SortBy) {
-			// complete the sortby statement
-			return [...SortByNodeSchema].map(value => new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
-		}
 
 		if (parent?._type === NodeType.QualifiedValue && node === parent.value) {
 			// RHS of a qualified value => complete value set

@@ -4,14 +4,13 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils, QualifiedValueNode, RangeNode } from "./nodes";
-import { ValueType, SymbolTable, SortByNodeSchema, QualifiedValueNodeSchema, RepeatInfo } from "./symbols";
+import { ValueType, SymbolTable, QualifiedValueNodeSchema, RepeatInfo } from "./symbols";
 import { TokenType } from "./scanner";
 
 export const enum Code {
 	NodeMissing = 'NodeMissing',
 	OrNotAllowed = 'OrNotAllowed',
 	SortByNotAllowed = 'SortByNotAllowed',
-	SortByNotIgnored = 'SortByNotIgnored',
 	VariableDefinedRecursive = 'VariableDefinedRecursive',
 	VariableUnknown = 'VariableUnknown',
 	ValueConflict = 'ValueConflict',
@@ -78,16 +77,12 @@ function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sy
 			if (!info) {
 				bucket.push(new ValidationError(node, Code.VariableUnknown, `Unknown variable`));
 			}
-		} else if (node._type === NodeType.SortBy && node.invalid /*always true when appearing as child*/) {
-			bucket.push(new ValidationError(node, Code.SortByNotIgnored, 'sort-by must appear at end of query', undefined, true));
 		}
 	}
 
 	// sortby
 	if (query.sortby) {
-		if (query.sortby.criteria._type === NodeType.Literal && !SortByNodeSchema.has(query.sortby.criteria.value)) {
-			bucket.push(new ValidationError(query.sortby.criteria, Code.ValueUnknown, `Unknown value, must be one of: ${[...SortByNodeSchema].join(', ')}`));
-		}
+		_validateQualifiedValue(query.sortby, bucket, symbols, mutual);
 	}
 }
 

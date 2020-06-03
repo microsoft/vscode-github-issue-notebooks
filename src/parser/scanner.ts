@@ -24,8 +24,6 @@ export const enum TokenType {
 	Whitespace = 'Whitespace',
 	EOF = 'EOF',
 	//not GH standard
-	SortDescBy = 'SortDescBy',
-	SortAscBy = 'SortAscBy',
 	LineComment = 'LineComment',
 	OR = 'OR',
 	Equals = 'Equals',
@@ -62,8 +60,6 @@ export class Scanner {
 		[TokenType.GreaterThan, />/y],
 		[TokenType.Not, /\bNOT\b/y],
 		[TokenType.OR, /\bOR\b/y],
-		[TokenType.SortAscBy, /\bsort asc by\b/y],
-		[TokenType.SortDescBy, /\bsort desc by\b/y],
 		[TokenType.VariableName, /\$[_a-zA-Z][_a-zA-Z0-9]*/y],
 		[TokenType.RangeFixedStart, new RegExp("\\.\\.\\*", 'y')],
 		[TokenType.RangeFixedEnd, new RegExp("\\*\\.\\.", 'y')],
