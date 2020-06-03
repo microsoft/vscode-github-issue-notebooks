@@ -37,7 +37,7 @@ This extension supports to search for issues and pull requests using GitHub sear
 
 ```
 doc ::= query | or | def
-query ::= <GH_QUERY> ('sort asc by' | 'sort desc by' <GH_SORT>)?
+query ::= <GH_QUERY>
 or ::= query "OR" query | or
 def ::= var "=" query
 var ::= "$" [_a-zA-Z] [_a-zA-Z0-9]*
