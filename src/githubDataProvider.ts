@@ -18,6 +18,8 @@ export type MilestoneInfo = {
 	description: string;
 	open_issues: number;
 	closed_issues: number;
+	closed_at: string;
+	due_on: string;
 };
 
 export type UserInfo = {
@@ -52,7 +54,7 @@ export class GithubData {
 	async getOrFetchMilestones(info: RepoInfo): Promise<MilestoneInfo[]> {
 		return this._getOrFetch<MilestoneInfo>('milestone', info, async () => {
 			const octokit = await this.octokitProvider.lib();
-			const options = octokit.issues.listMilestonesForRepo.endpoint.merge(info);
+			const options = octokit.issues.listMilestonesForRepo.endpoint.merge({ ...info, state: 'all', sort: 'due_on' });
 			return octokit.paginate<MilestoneInfo>((<any>options));
 		});
 	}

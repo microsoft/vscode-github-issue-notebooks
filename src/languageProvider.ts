@@ -545,10 +545,13 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 
 			const milestones = await this._githubData.getOrFetchMilestones(info);
 			for (let milestone of milestones) {
+				if (milestone.state === 'closed') {
+					return;
+				}
 				let existing = result.get(milestone.title);
 				if (existing) {
 					existing.documentation = undefined;
-					existing.sortText = String.fromCharCode(0) + existing.label;
+					existing.sortText = String.fromCharCode(0) + existing.sortText;
 				} else {
 					result.set(milestone.title, {
 						label: milestone.title,
@@ -556,7 +559,8 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 						documentation: milestone.description,
 						kind: vscode.CompletionItemKind.Event,
 						insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
-						filterText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined
+						filterText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
+						sortText: milestone.due_on,
 					});
 				}
 			}
@@ -676,17 +680,23 @@ export class GithubValidation extends IProjectValidation {
 				const info = QualifiedValueNodeSchema.get(node.qualifier.value);
 
 				if (info?.placeholderType === ValuePlaceholderType.Label) {
-					work.push(this._checkLabels(value, repos).then(valid => {
-						if (!valid) {
-							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Unknown label`, vscode.DiagnosticSeverity.Warning);
+					work.push(this._checkLabels(value, repos).then(missing => {
+						if (missing.length === repos.length) {
+							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Label '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
+							newDiagnostics.push(diag);
+						} else if (missing.length > 0) {
+							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Label '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
 							newDiagnostics.push(diag);
 						}
 					}));
 
 				} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
-					work.push(this._checkMilestones(value, repos).then(valid => {
-						if (!valid) {
-							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Unknown milestone`, vscode.DiagnosticSeverity.Warning);
+					work.push(this._checkMilestones(value, repos).then(missing => {
+						if (missing.length === repos.length) {
+							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Milestone '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
+							newDiagnostics.push(diag);
+						} else if (missing.length > 0) {
+							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Milestone '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
 							newDiagnostics.push(diag);
 						}
 					}));
@@ -707,25 +717,27 @@ export class GithubValidation extends IProjectValidation {
 	}
 
 	private async _checkLabels(label: string, repos: RepoInfo[]) {
-		for (let info of repos) {
+		let result: RepoInfo[] = [];
+		for (const info of repos) {
 			const labels = await this.githubData.getOrFetchLabels(info);
 			const found = labels.find(info => info.name === label);
 			if (!found) {
-				return false;
+				result.push(info);
 			}
 		}
-		return true;
+		return result;
 	}
 
 	private async _checkMilestones(milestone: string, repos: RepoInfo[]) {
+		let result: RepoInfo[] = [];
 		for (let info of repos) {
 			const labels = await this.githubData.getOrFetchMilestones(info);
 			const found = labels.find(info => info.title === milestone);
 			if (!found) {
-				return false;
+				result.push(info);
 			}
 		}
-		return true;
+		return result;
 	}
 }
 
