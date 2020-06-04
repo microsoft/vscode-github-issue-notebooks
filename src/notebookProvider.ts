@@ -87,6 +87,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 					}
 				}
 			}
+			// added/removed cells -> fire blind update
+			container.rescanProjects();
 		}));
 
 		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(document => {

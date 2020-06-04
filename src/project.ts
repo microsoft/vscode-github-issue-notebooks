@@ -120,6 +120,9 @@ export class ProjectContainer {
 	private _onDidRemove = new vscode.EventEmitter<Project>();
 	readonly onDidRemove = this._onDidRemove.event;
 
+	private _onDidChange = new vscode.EventEmitter<undefined>();
+	readonly onDidChange = this._onDidChange.event;
+
 	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
 
 	register(uri: vscode.Uri, project: Project, association: ProjectAssociation): vscode.Disposable {
@@ -160,6 +163,17 @@ export class ProjectContainer {
 		const project = new Project();
 		this.register(uri, project, candidate => candidate.toString() === uri.toString());
 		return project;
+	}
+
+	rescanProjects(): void {
+		for (let [association, project] of this._associations.values()) {
+			for (let { doc } of [...project.all()]) {
+				if (!association(doc.uri)) {
+					project.delete(doc);
+				}
+			}
+		}
+		this._onDidChange.fire(undefined);
 	}
 
 	*all(): Iterable<Project> {

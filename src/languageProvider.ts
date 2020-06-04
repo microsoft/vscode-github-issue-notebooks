@@ -590,12 +590,6 @@ export abstract class IProjectValidation {
 			this._collections.delete(project);
 		}
 	}
-
-	clearDocument(uri: vscode.Uri): void {
-		for (let collection of this._collections.values()) {
-			collection.delete(uri);
-		}
-	}
 }
 
 class LanguageValidationDiagnostic extends vscode.Diagnostic {
@@ -631,6 +625,8 @@ export class LanguageValidation extends IProjectValidation {
 		if (!collection) {
 			collection = vscode.languages.createDiagnosticCollection();
 			this._collections.set(project, collection);
+		} else {
+			collection.clear();
 		}
 
 		for (let { node, doc } of project.all()) {
@@ -655,6 +651,8 @@ export class GithubValidation extends IProjectValidation {
 		if (!collection) {
 			collection = vscode.languages.createDiagnosticCollection();
 			this._collections.set(project, collection);
+		} else {
+			collection.clear();
 		}
 
 		for (let { node: queryDoc, doc } of project.all()) {
@@ -744,7 +742,7 @@ export class Validation {
 
 
 		let cts = new vscode.CancellationTokenSource();
-		function validateAllSoon() {
+		function validateAllSoon(delay = 300) {
 			cts.cancel();
 			cts = new vscode.CancellationTokenSource();
 			let handle = setTimeout(() => {
@@ -753,26 +751,17 @@ export class Validation {
 						strategy.validateProject(project, cts.token);
 					}
 				}
-			}, 500);
+			}, delay);
 			cts.token.onCancellationRequested(() => clearTimeout(handle));
 		}
 		validateAllSoon();
 		this._disposables.push(vscode.workspace.onDidChangeTextDocument(e => {
 			if (vscode.languages.match(selector, e.document)) {
-				validateAllSoon();
+				validateAllSoon(500);
 			}
 		}));
-		this._disposables.push(vscode.workspace.onDidOpenTextDocument(doc => {
-			if (vscode.languages.match(selector, doc)) {
-				// add new document to project, then validate
-				container.lookupProject(doc.uri).getOrCreate(doc);
-				validateAllSoon();
-			}
-		}));
-		this._disposables.push(vscode.workspace.onDidCloseTextDocument(doc => {
-			for (let strategy of validation) {
-				strategy.clearDocument(doc.uri);
-			}
+		this._disposables.push(container.onDidChange(() => {
+			validateAllSoon();
 		}));
 		this._disposables.push(container.onDidRemove(project => {
 			for (let strategy of validation) {
