@@ -209,7 +209,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			for (let queryData of allQueryData) {
 				const octokit = await this.octokit.lib();
 
-				let page = 0;
+				let page = 1;
 				let count = 0;
 				while (!token.isCancellationRequested) {
 
@@ -267,17 +267,17 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}
 
 		// "render"
-		const maxCount = 12;
+		const maxCount = 13;
 		const duration = Date.now() - startTime;
-		const seen = new Set<number>();
+		const seen = new Set<string>();
 		let html = getHtmlStub();
 		let md = '';
 		let count = 0;
 		for (let item of allItems) {
-			if (seen.has(item.id)) {
+			if (seen.has(item.url)) {
 				continue;
 			}
-			seen.add(item.id);
+			seen.add(item.url);
 
 			// markdown
 			md += `- [#${item.number}](${item.html_url} "${escapeHtml(item.title)}") ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
@@ -287,11 +287,13 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			md += '\n';
 
 			// html
-			html += renderItemAsHtml(item, hasManyRepos, count++ > maxCount);
+			html += renderItemAsHtml(item, hasManyRepos, count++ >= maxCount);
 		}
 
 		//collapse/expand btns
-		html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show ${count - (1 + maxCount)} More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
+		if (count > maxCount) {
+			html += `<div class="collapse"><script>function toggle(element, more) { element.parentNode.parentNode.classList.toggle("collapsed", !more)}</script><span class="more" onclick="toggle(this, true)">▼ Show ${count - (maxCount)} More</span><span class="less" onclick="toggle(this, false)">▲ Show Less</span></div>`;
+		}
 
 		// status line
 		cell.metadata.runState = vscode.NotebookCellRunState.Success;
