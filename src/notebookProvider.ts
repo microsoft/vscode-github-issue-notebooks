@@ -99,6 +99,16 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			}
 		}));
 
+		this._localDisposables.push(vscode.notebook.onDidChangeCellOutputs(e => {
+			e.cells.forEach(cell => {
+				if (cell.outputs.length === 0) {
+					cell.metadata.statusMessage = undefined;
+					cell.metadata.lastRunDuration = undefined;
+					cell.metadata.runState = vscode.NotebookCellRunState.Idle;
+				}
+			});
+		}));
+
 		this.kernel = this;
 	}
 
