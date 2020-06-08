@@ -75,6 +75,10 @@ suite('Parser', function () {
 		assertNodeTypes('label:foo sort:comments-asc sortby', NodeType.QualifiedValue, NodeType.Literal);
 		assertNodeTypesDeep('label:123 sort:comments-asc', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 	});
+
+	test('Bad diagnostics on my milestone query #35', function () {
+		assertNodeTypes('milestone:4.7.0', NodeType.QualifiedValue);
+	});
 });
 
 

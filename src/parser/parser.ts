@@ -157,6 +157,38 @@ export class Parser {
 		};
 	}
 
+	private _parseNumberLiteral(): NumberNode | LiteralNode | undefined {
+		let tk = this._accept(TokenType.Number);
+		if (!tk) {
+			return undefined;
+		}
+
+		let value = this._scanner.value(tk);
+		let end = tk.end;
+		while (this._token.type !== TokenType.Whitespace && this._token.type !== TokenType.EOF) {
+			value += this._scanner.value(this._token);
+			end = this._token.end;
+			this._accept(this._token.type);
+		}
+
+		if (end === tk.end) {
+			// didnt move forward
+			return {
+				_type: NodeType.Number,
+				start: tk.start,
+				end,
+				value: Number(this._scanner.value(tk))
+			};
+		}
+
+		return {
+			_type: NodeType.Literal,
+			start: tk.start,
+			end,
+			value
+		};
+	}
+
 	private _parseNumber(): NumberNode | undefined {
 		const tk = this._accept(TokenType.Number);
 		if (!tk) {
@@ -255,15 +287,17 @@ export class Parser {
 		};
 	}
 
-	private _parseRangeFixedStart(): RangeNode | DateNode | NumberNode | undefined {
+	private _parseRangeFixedStart(): RangeNode | undefined {
 		// value..*
+		const anchor = this._token;
 		const value = this._parseDate() ?? this._parseNumber();
 		if (!value) {
 			return;
 		}
 		const token = this._accept(TokenType.RangeFixedStart);
 		if (!token) {
-			return value;
+			this._reset(anchor);
+			return undefined;
 		}
 		return {
 			_type: NodeType.Range,
@@ -290,7 +324,7 @@ export class Parser {
 			?? this._parseRangeFixedStart()
 			?? this._parseRangeFixedEnd()
 			?? this._parseDate()
-			?? this._parseNumber()
+			?? this._parseNumberLiteral()
 			?? this._parseVariableName()
 			?? this._parseLiteral()
 			?? this._parseAny(TokenType.SHA)
