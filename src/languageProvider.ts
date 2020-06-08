@@ -538,7 +538,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 			const milestones = await this._githubData.getOrFetchMilestones(info);
 			for (let milestone of milestones) {
 				if (milestone.state === 'closed') {
-					return;
+					continue;
 				}
 				let existing = result.get(milestone.title);
 				if (existing) {
