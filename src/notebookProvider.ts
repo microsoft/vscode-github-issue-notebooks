@@ -250,6 +250,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			}
 			// print as error
 			cell.metadata.statusMessage = 'Error';
+			cell.metadata.lastRunDuration = undefined;
 			cell.metadata.runState = vscode.NotebookCellRunState.Error;
 			cell.outputs = [{
 				outputKind: vscode.CellOutputKind.Error,
