@@ -170,7 +170,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				editable: cell.metadata.editable
 			});
 		}
-		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents)));
+		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents, undefined, 2)));
 	}
 
 	// --- kernel world
