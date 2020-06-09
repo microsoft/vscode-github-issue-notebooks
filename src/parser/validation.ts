@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { NodeType, Node, QueryNode, QueryDocumentNode, VariableDefinitionNode, Utils, QualifiedValueNode, RangeNode } from "./nodes";
-import { ValueType, SymbolTable, QualifiedValueNodeSchema, RepeatInfo } from "./symbols";
+import { Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, Utils, VariableDefinitionNode } from "./nodes";
 import { TokenType } from "./scanner";
+import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueType } from "./symbols";
 
 export const enum Code {
 	NodeMissing = 'NodeMissing',

@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import * as vscode from 'vscode';
-import { Project, ProjectContainer } from './project';
-import { OctokitProvider } from "./octokitProvider";
 import AbortController from "abort-controller";
+import * as vscode from 'vscode';
+import { OctokitProvider } from "./octokitProvider";
+import { ProjectContainer } from './project';
 
 interface RawNotebookCell {
 	language: string;

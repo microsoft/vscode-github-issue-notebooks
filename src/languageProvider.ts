@@ -4,14 +4,14 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Node, NodeType, Utils, QueryDocumentNode } from './parser/nodes';
-import { validateQueryDocument, ValidationError, Code } from './parser/validation';
-import { QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
-import { ProjectContainer, Project } from './project';
-import { Scanner, TokenType, Token } from './parser/scanner';
-import { OctokitProvider } from './octokitProvider';
-import { getRepoInfos, RepoInfo, isRunnable } from './utils';
 import { GithubData } from './githubDataProvider';
+import { OctokitProvider } from './octokitProvider';
+import { Node, NodeType, QueryDocumentNode, Utils } from './parser/nodes';
+import { Scanner, Token, TokenType } from './parser/scanner';
+import { QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
+import { Code, validateQueryDocument, ValidationError } from './parser/validation';
+import { Project, ProjectContainer } from './project';
+import { getRepoInfos, isRunnable, RepoInfo } from './utils';
 
 const selector = { language: 'github-issues' };
 

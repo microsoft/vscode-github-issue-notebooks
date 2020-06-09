@@ -3,10 +3,10 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import * as assert from 'assert';
 import { suite, test } from 'mocha';
 import { NodeType, QueryNode, Utils } from '../parser/nodes';
 import { Parser } from '../parser/parser';
-import * as assert from 'assert';
 
 suite('Parser', function () {
 

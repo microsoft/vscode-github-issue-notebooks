@@ -4,10 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SymbolTable } from './parser/symbols';
-import { QueryDocumentNode, Node, Utils, NodeType, QueryNode } from './parser/nodes';
+import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
 import { Parser } from './parser/parser';
-import { isRunnable } from './utils';
+import { SymbolTable } from './parser/symbols';
 
 export class Project {
 

@@ -3,11 +3,11 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import * as assert from 'assert';
 import { suite, test } from 'mocha';
 import { Parser } from '../parser/parser';
-import * as assert from 'assert';
-import { validateQueryDocument, Code } from '../parser/validation';
 import { SymbolTable } from '../parser/symbols';
+import { Code, validateQueryDocument } from '../parser/validation';
 
 suite('Validation', function () {
 

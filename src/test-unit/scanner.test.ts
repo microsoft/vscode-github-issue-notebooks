@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
+import * as assert from 'assert';
 import { suite, test } from 'mocha';
 import { Scanner, TokenType } from "../parser/scanner";
-import * as assert from 'assert';
 
 suite('Scanner', function () {
 

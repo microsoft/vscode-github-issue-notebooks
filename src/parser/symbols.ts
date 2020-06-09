@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryDocumentNode, Node, Utils, NodeType, VariableDefinitionNode } from "./nodes";
+import { NodeType, QueryDocumentNode, Utils, VariableDefinitionNode } from "./nodes";
 
 export enum ValueType {
 	Number = 'number',

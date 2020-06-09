@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { QueryDocumentNode, Utils, NodeType, Node, QueryNode } from "./parser/nodes";
+import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from "./parser/nodes";
 import { Project } from "./project";
 
 export interface RepoInfo {
