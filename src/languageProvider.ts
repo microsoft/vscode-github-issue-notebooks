@@ -780,32 +780,48 @@ export class RunnableState {
 	private _disposables: vscode.Disposable[] = [];
 
 	constructor(readonly container: ProjectContainer) {
-		const update = (document: vscode.TextDocument) => {
-			if (vscode.languages.match(selector, document)) {
-				this._updateRunnableState(document);
+		const update = (cell: vscode.NotebookCell) => {
+			if (cell.cellKind === vscode.CellKind.Code && vscode.languages.match(selector, cell.document)) {
+				this._updateRunnableState(cell);
 			}
 		};
-		vscode.workspace.textDocuments.forEach(update);
-		vscode.workspace.onDidChangeTextDocument(e => update(e.document), this, this._disposables);
+		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(notebook => {
+			for (let cell of notebook.cells) {
+				update(cell);
+			}
+		}));
+		this._disposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
+			for (let change of e.changes) {
+				for (let cell of change.items) {
+					update(cell);
+				}
+			}
+		}));
+		this._disposables.push(vscode.workspace.onDidChangeTextDocument(e => {
+			if (!vscode.languages.match(selector, e.document)) {
+				return;
+			}
+			if (!vscode.notebook.activeNotebookEditor) {
+				//todo@jrieken I need API to retrieve all notebook documents
+				return;
+			}
+			const cell = vscode.notebook.activeNotebookEditor.document.cells.find(cell => cell.document === e.document);
+			if (cell) {
+				update(cell);
+			}
+		}));
 	}
 
 	dispose(): void {
 		this._disposables.forEach(d => d.dispose());
 	}
 
-	private _updateRunnableState(document: vscode.TextDocument) {
-		const project = this.container.lookupProject(document.uri, false);
+	private _updateRunnableState(cell: vscode.NotebookCell) {
+		const project = this.container.lookupProject(cell.document.uri, false);
 		if (!project) {
 			return;
 		}
-		const query = project.getOrCreate(document);
-		if (!vscode.notebook.activeNotebookEditor) {
-			return; // problem???
-		}
-		const cell = vscode.notebook.activeNotebookEditor.document.cells.find(cell => cell.uri.toString() === document.uri.toString());
-		if (!cell) {
-			return; // problem???
-		}
+		const query = project.getOrCreate(cell.document);
 		cell.metadata.runnable = isRunnable(query);
 	}
 }

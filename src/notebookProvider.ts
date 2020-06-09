@@ -7,7 +7,6 @@ import * as vscode from 'vscode';
 import { Project, ProjectContainer } from './project';
 import { OctokitProvider } from "./octokitProvider";
 import AbortController from "abort-controller";
-import { isRunnable } from './utils';
 
 interface RawNotebookCell {
 	language: string;
@@ -45,60 +44,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
 	) {
-
-		let projectRegistrations = new Map<string, vscode.Disposable>();
-
-		this._localDisposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
-
-			// (1) register a new project for this notebook
-			// (2) eager fetch and analysis of all cells
-			// todo@API add new cells
-			const project = new Project();
-			const registration = this.container.register(
-				document.uri,
-				project,
-				uri => document.cells.some(cell => cell.uri.toString() === uri.toString()),
-			);
-			projectRegistrations.set(document.uri.toString(), registration);
-
-			try {
-				for (let cell of document.cells) {
-					if (cell.cellKind === vscode.CellKind.Code) {
-						const query = project.getOrCreate(cell.document);
-						cell.metadata.runnable = isRunnable(query);
-					}
-				}
-			} catch (err) {
-				console.error('FAILED to eagerly feed notebook cell document into project');
-				console.error(err);
-			}
-		}));
-
-		this._localDisposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
-			let project = this.container.lookupProject(e.document.uri, false);
-			if (!project) {
-				return;
-			}
-			for (let change of e.changes) {
-				for (let cell of change.items) {
-					if (cell.cellKind === vscode.CellKind.Code) {
-						const query = project.getOrCreate(cell.document);
-						cell.metadata.runnable = isRunnable(query);
-					}
-				}
-			}
-			// added/removed cells -> fire blind update
-			container.rescanProjects();
-		}));
-
-		this._localDisposables.push(vscode.notebook.onDidCloseNotebookDocument(document => {
-			let registration = projectRegistrations.get(document.uri.toString());
-			if (registration) {
-				registration.dispose();
-				projectRegistrations.delete(document.uri.toString());
-			}
-		}));
-
 		this._localDisposables.push(vscode.notebook.onDidChangeCellOutputs(e => {
 			e.cells.forEach(cell => {
 				if (cell.outputs.length === 0) {

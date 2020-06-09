@@ -7,6 +7,7 @@ import * as vscode from 'vscode';
 import { SymbolTable } from './parser/symbols';
 import { QueryDocumentNode, Node, Utils, NodeType, QueryNode } from './parser/nodes';
 import { Parser } from './parser/parser';
+import { isRunnable } from './utils';
 
 export class Project {
 
@@ -110,8 +111,7 @@ export class Project {
 	}
 }
 
-
-export interface ProjectAssociation {
+interface ProjectAssociation {
 	(uri: vscode.Uri): boolean;
 }
 
@@ -123,21 +123,61 @@ export class ProjectContainer {
 	private _onDidChange = new vscode.EventEmitter<undefined>();
 	readonly onDidChange = this._onDidChange.event;
 
+	private readonly _disposables: vscode.Disposable[] = [];
 	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
 
-	register(uri: vscode.Uri, project: Project, association: ProjectAssociation): vscode.Disposable {
-		const key = uri.toString();
-		if (this._associations.has(key)) {
-			throw new Error(`Project for '${key}' already EXISTS. All projects: ${[...this._associations.keys()].join()}`);
-		}
-		this._associations.set(key, [association, project]);
-		return new vscode.Disposable(() => {
-			let tuple = this._associations.get(key);
+	constructor() {
+
+		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
+
+			const key = document.uri.toString();
+			if (this._associations.has(key)) {
+				throw new Error(`Project for '${key}' already EXISTS. All projects: ${[...this._associations.keys()].join()}`);
+			}
+
+			const project = new Project();
+			this._associations.set(key, [
+				uri => document.cells.some(cell => cell.uri.toString() === uri.toString()),
+				project
+			]);
+
+			try {
+				document.cells.forEach(cell => project?.getOrCreate(cell.document));
+			} catch (err) {
+				console.error('FAILED to eagerly feed notebook cell document into project');
+				console.error(err);
+			}
+		}));
+
+		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(document => {
+			const key = document.uri.toString();
+			const tuple = this._associations.get(key);
 			if (tuple) {
 				this._associations.delete(key);
 				this._onDidRemove.fire(tuple[1]);
 			}
-		});
+		}));
+
+		this._disposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
+			let project = this.lookupProject(e.document.uri, false);
+			if (project) {
+				// added/removed cells -> fire blind update
+				e.document.cells.forEach(cell => project?.getOrCreate(cell.document));
+				this._rescanProjects();
+			}
+		}));
+	}
+
+
+	private _rescanProjects(): void {
+		for (let [association, project] of this._associations.values()) {
+			for (let { doc } of [...project.all()]) {
+				if (!association(doc.uri)) {
+					project.delete(doc);
+				}
+			}
+		}
+		this._onDidChange.fire(undefined);
 	}
 
 	lookupProject(uri: vscode.Uri): Project;
@@ -160,23 +200,10 @@ export class ProjectContainer {
 			return undefined;
 		}
 		console.log('returning AD-HOC project for ' + uri.toString());
-		const project = new Project();
-		this.register(uri, project, candidate => candidate.toString() === uri.toString());
-		return project;
+		return new Project();
 	}
 
-	rescanProjects(): void {
-		for (let [association, project] of this._associations.values()) {
-			for (let { doc } of [...project.all()]) {
-				if (!association(doc.uri)) {
-					project.delete(doc);
-				}
-			}
-		}
-		this._onDidChange.fire(undefined);
-	}
-
-	*all(): Iterable<Project> {
+	* all(): Iterable<Project> {
 		for (let [, value] of this._associations) {
 			yield value[1];
 		}
