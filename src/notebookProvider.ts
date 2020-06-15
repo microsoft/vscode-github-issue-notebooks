@@ -411,27 +411,27 @@ export function renderItemAsHtml(item: SearchIssuesAndPullRequestsResponseItemsI
 		return ((0.299 * r + 0.587 * g + 0.114 * b) / 255) > 0.5 ? 'black' : 'white';
 	}
 
-	//#region GH PR Integration
-	//todo@jrieken - have API that allows the PR extension to contribute this
+	// //#region GH PR Integration
+	// //todo@jrieken - have API that allows the PR extension to contribute this
 	let startWorking: string = '';
-	if (!item.closed_at
-		&& vscode.extensions.getExtension('github.vscode-pull-request-github-insiders')
-	) {
-		let repoPos = item.repository_url.lastIndexOf('/');
-		let ownerPos = item.repository_url.lastIndexOf('/', repoPos - 1);
-		startWorking = `
-		<span class="start-working">
-		<span>&nbsp;\u2022&nbsp;</span>
-		<a href="${vscode.Uri.parse('command:issue.startWorking').with({
-			query: JSON.stringify([{
-				owner: item.repository_url.substring(repoPos, ownerPos),
-				repo: item.repository_url.substring(ownerPos),
-				number: item.number
-			}])
-		}).toString()}">Start Working...</a>
-		</span>`;
-	}
-	//#endregion
+	// if (!item.closed_at
+	// 	&& vscode.extensions.getExtension('github.vscode-pull-request-github-insiders')
+	// ) {
+	// 	let repoPos = item.repository_url.lastIndexOf('/');
+	// 	let ownerPos = item.repository_url.lastIndexOf('/', repoPos - 1);
+	// 	startWorking = `
+	// 	<span class="start-working">
+	// 	<span>&nbsp;\u2022&nbsp;</span>
+	// 	<a href="${vscode.Uri.parse('command:issue.startWorking').with({
+	// 		query: JSON.stringify([{
+	// 			owner: item.repository_url.substring(repoPos, ownerPos),
+	// 			repo: item.repository_url.substring(ownerPos),
+	// 			number: item.number
+	// 		}])
+	// 	}).toString()}">Start Working...</a>
+	// 	</span>`;
+	// }
+	// //#endregion
 
 	function getRepoLabel(): string {
 		if (!showRepo) {
