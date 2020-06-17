@@ -75,6 +75,11 @@
 				"title": "Open All In Browser",
 				"command": "github-issues.openAll",
 				"icon": "$(globe)"
+			},
+			{
+				"title": "Open Query In Browser",
+				"command": "github-issues.openUrl",
+				"icon": "$(home)"
 			}
 		],
 		"menus": {
@@ -89,6 +94,10 @@
 				},
 				{
 					"command": "github-issues.openAll",
+					"when": "false"
+				},
+				{
+					"command": "github-issues.openUrl",
 					"when": "false"
 				}
 			],
@@ -107,6 +116,7 @@
 			"notebook/cell/title": [
 				{
 					"command": "github-issues.openAll",
+					"alt": "github-issues.openUrl",
 					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellHasOutputs",
 					"group": "inline@1"
 				},

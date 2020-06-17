@@ -5,8 +5,9 @@
 
 import * as vscode from 'vscode';
 import { IssuesNotebookProvider } from './notebookProvider';
+import { ProjectContainer } from './project';
 
-export function registerCommands(notebookProvider: IssuesNotebookProvider): vscode.Disposable {
+export function registerCommands(projectContainer: ProjectContainer, notebookProvider: IssuesNotebookProvider): vscode.Disposable {
 
 	const subscriptions: vscode.Disposable[] = [];
 
@@ -53,6 +54,24 @@ export function registerCommands(notebookProvider: IssuesNotebookProvider): vsco
 		}
 		for (let item of items) {
 			await vscode.env.openExternal(vscode.Uri.parse(item.html_url));
+		}
+	}));
+
+	subscriptions.push(vscode.commands.registerCommand('github-issues.openUrl', async (cell: vscode.NotebookCell) => {
+		const project = projectContainer.lookupProject(cell.uri, false);
+		if (!project) {
+			return;
+		}
+		const data = project.queryData(cell.document);
+		for (let d of data) {
+			let url = `https://github.com/issues?q=${d.q}`;
+			if (d.sort) {
+				url += ` sort:${d.sort}`;
+			}
+			if (d.order) {
+				url += `-${d.order}`;
+			}
+			await vscode.env.openExternal(vscode.Uri.parse(url));
 		}
 	}));
 
