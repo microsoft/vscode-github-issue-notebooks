@@ -34,8 +34,8 @@ function escapeHtml(string: string) {
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
 	label: string = 'GitHub Issues Kernel';
 
-	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentEditEvent>();
-	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
+	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentContentChangeEvent>();
+	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentContentChangeEvent> = this._onDidChangeNotebook.event;
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
 	kernel: vscode.NotebookKernel;
@@ -55,6 +55,9 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}));
 
 		this.kernel = this;
+	}
+	async resolveNotebook(_document: vscode.NotebookDocument, _webview: { readonly onDidReceiveMessage: vscode.Event<any>; postMessage(message: any): Thenable<boolean>; asWebviewUri(localResource: vscode.Uri): vscode.Uri; }): Promise<void> {
+		// nothing
 	}
 
 	preloads: vscode.Uri[] = [];
@@ -77,10 +80,11 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	// -- IO
 
-	async openNotebook(uri: vscode.Uri): Promise<vscode.NotebookData> {
+	async openNotebook(uri: vscode.Uri, context: vscode.NotebookDocumentOpenContext): Promise<vscode.NotebookData> {
+		let actualUri = context.backupId ? vscode.Uri.parse(context.backupId) : uri;
 		let contents = '';
 		try {
-			contents = Buffer.from(await vscode.workspace.fs.readFile(uri)).toString('utf8');
+			contents = Buffer.from(await vscode.workspace.fs.readFile(actualUri)).toString('utf8');
 		} catch {
 		}
 
@@ -113,6 +117,14 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	saveNotebookAs(targetResource: vscode.Uri, document: vscode.NotebookDocument, _cancellation: vscode.CancellationToken): Promise<void> {
 		return this._save(document, targetResource);
+	}
+
+	async backupNotebook(document: vscode.NotebookDocument, context: vscode.NotebookDocumentBackupContext, _cancellation: vscode.CancellationToken): Promise<vscode.NotebookDocumentBackup> {
+		await this._save(document, context.destination);
+		return {
+			id: context.destination.toString(),
+			delete: () => vscode.workspace.fs.delete(context.destination)
+		};
 	}
 
 	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri): Promise<void> {
