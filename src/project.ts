@@ -119,7 +119,7 @@ export class ProjectContainer {
 	private _onDidRemove = new vscode.EventEmitter<Project>();
 	readonly onDidRemove = this._onDidRemove.event;
 
-	private _onDidChange = new vscode.EventEmitter<undefined>();
+	private _onDidChange = new vscode.EventEmitter<Project>();
 	readonly onDidChange = this._onDidChange.event;
 
 	private readonly _disposables: vscode.Disposable[] = [];
@@ -146,6 +146,8 @@ export class ProjectContainer {
 				console.error('FAILED to eagerly feed notebook cell document into project');
 				console.error(err);
 			}
+
+			this._onDidChange.fire(project);
 		}));
 
 		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(document => {
@@ -159,24 +161,19 @@ export class ProjectContainer {
 
 		this._disposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
 			let project = this.lookupProject(e.document.uri, false);
-			if (project) {
-				// added/removed cells -> fire blind update
-				e.document.cells.forEach(cell => project?.getOrCreate(cell.document));
-				this._rescanProjects();
+			if (!project) {
+				return;
 			}
-		}));
-	}
-
-
-	private _rescanProjects(): void {
-		for (let [association, project] of this._associations.values()) {
-			for (let { doc } of [...project.all()]) {
-				if (!association(doc.uri)) {
-					project.delete(doc);
+			for (let change of e.changes) {
+				for (let cell of change.deletedItems) {
+					project.delete(cell.document);
+				}
+				for (let cell of change.items) {
+					project.getOrCreate(cell.document);
 				}
 			}
-		}
-		this._onDidChange.fire(undefined);
+			this._onDidChange.fire(project);
+		}));
 	}
 
 	lookupProject(uri: vscode.Uri): Project;
