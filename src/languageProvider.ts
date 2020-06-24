@@ -287,12 +287,18 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 
 		if (parent?._type === NodeType.QualifiedValue && node === parent.value) {
 			// RHS of a qualified value => complete value set
+			const replacing = project.rangeOf(node);
+			const inserting = replacing.with(undefined, position);
 			const result: vscode.CompletionItem[] = [];
 			const info = QualifiedValueNodeSchema.get(parent.qualifier.value);
 			if (info?.enumValues) {
 				for (let set of info.enumValues) {
 					for (let value of set.entries) {
-						result.push(new vscode.CompletionItem(value, vscode.CompletionItemKind.EnumMember));
+						result.push({
+							label: value,
+							kind: vscode.CompletionItemKind.EnumMember,
+							range: { inserting, replacing }
+						});
 					}
 				}
 			}
@@ -318,23 +324,6 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 					kind: vscode.CompletionItemKind.Value,
 				});
 			}
-
-			// sort by for query
-			if (node._type !== NodeType.Query || !node.sortby) {
-				result.push({
-					label: 'sort asc by',
-					kind: vscode.CompletionItemKind.Keyword,
-					insertText: 'sort asc by ',
-					command: { command: 'editor.action.triggerSuggest', title: '' }
-				});
-				result.push({
-					label: 'sort desc by',
-					kind: vscode.CompletionItemKind.Keyword,
-					insertText: 'sort desc by ',
-					command: { command: 'editor.action.triggerSuggest', title: '' }
-				});
-			}
-
 			return result;
 		}
 	}
