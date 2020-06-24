@@ -128,7 +128,7 @@
 				{
 					"command": "github-issues.unlockCell",
 					"when": "notebookViewType == github-issues && notebookCellType == code && !notebookCellEditable",
-					"group": "inline@3"
+					"group": "inline@2"
 				}
 			]
 		}

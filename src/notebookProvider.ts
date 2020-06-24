@@ -91,8 +91,8 @@ class NotebookCellExecution {
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
 	label: string = 'GitHub Issues Kernel';
 
-	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentContentChangeEvent>();
-	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentContentChangeEvent> = this._onDidChangeNotebook.event;
+	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentEditEvent>();
+	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
 	kernel: vscode.NotebookKernel;
@@ -126,13 +126,17 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	// -- utils
 
 	setCellLockState(cell: vscode.NotebookCell, locked: boolean) {
-		cell.metadata = { ...cell.metadata, editable: !locked };
-		this._onDidChangeNotebook.fire({ document: cell.notebook });
+		const redo = () => { cell.metadata = { ...cell.metadata, editable: !locked }; };
+		const undo = () => { cell.metadata = { ...cell.metadata, editable: locked }; };
+		redo();
+		this._onDidChangeNotebook.fire({ document: cell.notebook, undo, redo });
 	}
 
 	setDocumentLockState(notebook: vscode.NotebookDocument, locked: boolean) {
-		notebook.metadata = { ...notebook.metadata, editable: !locked, cellEditable: !locked };
-		this._onDidChangeNotebook.fire({ document: notebook });
+		const redo = () => { notebook.metadata = { ...notebook.metadata, editable: !locked, cellEditable: !locked }; };
+		const undo = () => { notebook.metadata = { ...notebook.metadata, editable: !locked, cellEditable: !locked }; };
+		redo();
+		this._onDidChangeNotebook.fire({ document: notebook, undo, redo });
 	}
 
 	// -- IO
