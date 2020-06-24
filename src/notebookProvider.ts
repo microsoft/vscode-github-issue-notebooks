@@ -30,6 +30,63 @@ function escapeHtml(string: string) {
 	return string.replace(/[&<>"'`=\/]/g, s => entityMap[s]);
 }
 
+class NotebookCellExecution {
+
+	private static _tokenPool = 0;
+	private static _tokens = new WeakMap<vscode.NotebookCell, number>();
+
+	private readonly _token: number = NotebookCellExecution._tokenPool++;
+
+	private readonly _originalRunState: vscode.NotebookCellRunState | undefined;
+	private readonly _startTime: number = Date.now();
+
+	readonly cts = new vscode.CancellationTokenSource();
+
+	constructor(readonly cell: vscode.NotebookCell) {
+		NotebookCellExecution._tokens.set(this.cell, this._token);
+		this._originalRunState = cell.metadata.runState;
+		cell.metadata.runState = vscode.NotebookCellRunState.Running;
+		cell.metadata.runStartTime = this._startTime;
+	}
+
+	private _isLatest(): boolean {
+		// these checks should be provided by VS Code
+		return NotebookCellExecution._tokens.get(this.cell) === this._token;
+	}
+
+	cancel(): void {
+		if (this._isLatest()) {
+			this.cts.cancel();
+			this.cell.metadata.runState = this._originalRunState;
+			NotebookCellExecution._tokens.delete(this.cell);
+		}
+	}
+
+	resolve(outputs: vscode.CellOutput[], message?: string): void {
+		if (this._isLatest()) {
+			this.cell.metadata.runState = vscode.NotebookCellRunState.Success;
+			this.cell.metadata.lastRunDuration = Date.now() - this._startTime;
+			this.cell.metadata.statusMessage = message;
+			this.cell.outputs = outputs;
+		}
+	}
+
+	reject(err: any): void {
+		if (this._isLatest()) {
+			// print as error
+			this.cell.metadata.statusMessage = 'Error';
+			this.cell.metadata.lastRunDuration = undefined;
+			this.cell.metadata.runState = vscode.NotebookCellRunState.Error;
+			this.cell.outputs = [{
+				outputKind: vscode.CellOutputKind.Error,
+				ename: err instanceof Error && err.name || 'error',
+				evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
+				traceback: []
+			}];
+		}
+	}
+
+}
 
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
 	label: string = 'GitHub Issues Kernel';
@@ -152,35 +209,58 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		return;
 	}
 
-	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell, token: vscode.CancellationToken): Promise<void> {
-		const originalRunState = cell.metadata.runState;
+	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell, tk: vscode.CancellationToken): Promise<void> {
 
-		const doc = await vscode.workspace.openTextDocument(cell.uri);
+		const execution = new NotebookCellExecution(cell);
+		tk.onCancellationRequested(() => execution.cancel());
+
+		const d1 = vscode.notebook.onDidChangeNotebookCells(e => {
+			if (e.document !== document) {
+				return;
+			}
+			const didChange = e.changes.some(change => change.items.includes(cell) || change.deletedItems.includes(cell));
+			if (didChange) {
+				execution.cancel();
+			}
+		});
+
+		const d2 = vscode.workspace.onDidChangeTextDocument(e => {
+			if (e.document === cell.document) {
+				execution.cancel();
+			}
+		});
+
+		try {
+			return await this._doExecuteCell(execution);
+		} finally {
+			d1.dispose();
+			d2.dispose();
+		}
+	}
+	private async _doExecuteCell(execution: NotebookCellExecution): Promise<void> {
+
+		const doc = await vscode.workspace.openTextDocument(execution.cell.uri);
 		const project = this.container.lookupProject(doc.uri);
 		const allQueryData = project.queryData(doc);
-
 
 		// update all symbols defined in the cell so that
 		// more recent values win
 		const query = project.getOrCreate(doc);
 		project.symbols.update(query);
 
-		const startTime = Date.now();
-		cell.metadata.runStartTime = startTime;
-		cell.metadata.runState = vscode.NotebookCellRunState.Running;
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 		let tooLarge = false;
 		// fetch
 		try {
 			const abortCtl = new AbortController();
-			token.onCancellationRequested(_ => abortCtl.abort());
+			execution.cts.token.onCancellationRequested(_ => abortCtl.abort());
 
 			for (let queryData of allQueryData) {
 				const octokit = await this.octokit.lib();
 
 				let page = 1;
 				let count = 0;
-				while (!token.isCancellationRequested) {
+				while (!execution.cts.token.isCancellationRequested) {
 
 					const response = await octokit.search.issuesAndPullRequests({
 						q: queryData.q,
@@ -200,21 +280,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				}
 			}
 		} catch (err) {
-			// ignore cancellation
-			if (token.isCancellationRequested) {
-				cell.metadata.runState = originalRunState;
-				return;
-			}
 			// print as error
-			cell.metadata.statusMessage = 'Error';
-			cell.metadata.lastRunDuration = undefined;
-			cell.metadata.runState = vscode.NotebookCellRunState.Error;
-			cell.outputs = [{
-				outputKind: vscode.CellOutputKind.Error,
-				ename: err instanceof Error && err.name || 'error',
-				evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
-				traceback: []
-			}];
+			execution.reject(err);
 			return;
 		}
 
@@ -238,7 +305,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		// "render"
 		const maxCount = 13;
-		const duration = Date.now() - startTime;
 		const seen = new Set<string>();
 		let html = getHtmlStub();
 		let md = '';
@@ -266,17 +332,14 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}
 
 		// status line
-		cell.metadata.runState = vscode.NotebookCellRunState.Success;
-		cell.metadata.lastRunDuration = duration;
-		cell.metadata.statusMessage = `${count}${tooLarge ? '+' : ''} results`;
-		cell.outputs = [{
+		execution.resolve([{
 			outputKind: vscode.CellOutputKind.Rich,
 			data: {
 				['text/html']: `<div class="${count > maxCount ? 'large collapsed' : ''}">${html}</div>`,
 				['text/markdown']: md,
 				['x-application/github-issues']: allItems
 			}
-		}];
+		}], `${count}${tooLarge ? '+' : ''} results`);
 	}
 }
 
