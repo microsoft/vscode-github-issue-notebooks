@@ -104,12 +104,12 @@
 			"editor/title": [
 				{
 					"command": "github-issues.unlockDocument",
-					"when": "notebookEditorFocused && !notebookEditable",
+					"when": "notebookViewType == github-issues && notebookEditorFocused && !notebookEditable",
 					"group": "navigation@1"
 				},
 				{
 					"command": "github-issues.lockDocument",
-					"when": "notebookEditorFocused && notebookEditable",
+					"when": "notebookViewType == github-issues && notebookEditorFocused && notebookEditable",
 					"group": "navigation@2"
 				}
 			],
