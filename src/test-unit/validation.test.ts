@@ -81,6 +81,10 @@ suite('Validation', function () {
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -assignee:jrieken -assignee:octref');
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -assignee:jrieken -assignee:octref assignee:bar');
 
+		// author: repeat_negated
+		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -author:jrieken author:octref author:bar', Code.ValueConflict);
+		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -author:jrieken -author:octref author:bar');
+
 		// repeat: repeat_no
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open milestone:"April 2020" milestone:"Backlog"', Code.ValueConflict);
 		assertValidateErrors('repo:microsoft/vscode label:notebook is:open -milestone:"April 2020" -milestone:"Backlog"', Code.ValueConflict);

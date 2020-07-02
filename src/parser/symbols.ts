@@ -193,7 +193,7 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['team', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	// placeholder (username)
 	['assignee', QualifiedValueInfo.username(RepeatInfo.RepeatNegated)],
-	['author', QualifiedValueInfo.username()],
+	['author', QualifiedValueInfo.username(RepeatInfo.RepeatNegated)],
 	['commenter', QualifiedValueInfo.username(RepeatInfo.Repeat)],
 	['involves', QualifiedValueInfo.username(RepeatInfo.Repeat)],
 	['mentions', QualifiedValueInfo.username(RepeatInfo.Repeat)],
