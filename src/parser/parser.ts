@@ -57,7 +57,6 @@ export class Parser {
 
 		const start = this._token.start;
 		const nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[] = [];
-		let sortby: QualifiedValueNode | undefined;
 		while (this._token.type !== TokenType.NewLine && this._token.type !== TokenType.EOF) {
 
 			// skip over whitespace
@@ -77,7 +76,6 @@ export class Parser {
 						_type: NodeType.Query,
 						start,
 						end: nodes[nodes.length - 1].end,
-						sortby,
 						nodes,
 					};
 					return {
@@ -111,12 +109,7 @@ export class Parser {
 				continue;
 			}
 
-			// push to children array unless this is the FIRST sort:xyz-node
-			if (!sortby && node._type === NodeType.QualifiedValue && node.qualifier.value === 'sort') {
-				sortby = node;
-			} else {
-				nodes.push(node);
-			}
+			nodes.push(node);
 		}
 
 		if (nodes.length === 0) {
@@ -127,7 +120,6 @@ export class Parser {
 			_type: NodeType.Query,
 			start,
 			end: nodes[nodes.length - 1].end,
-			sortby,
 			nodes,
 		};
 	}

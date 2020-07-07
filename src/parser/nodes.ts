@@ -86,7 +86,6 @@ export interface VariableDefinitionNode extends BaseNode {
 export interface QueryNode extends BaseNode {
 	_type: NodeType.Query;
 	nodes: (QualifiedValueNode | NumberNode | DateNode | VariableNameNode | LiteralNode | AnyNode)[];
-	sortby?: QualifiedValueNode;
 }
 
 export interface OrExpressionNode extends BaseNode {
@@ -157,11 +156,6 @@ export namespace Utils {
 					stack.unshift(node);
 					break;
 				case NodeType.Query:
-					if (node.sortby) {
-						stack.unshift(node.sortby);
-						stack.unshift(node);
-					}
-				// !!!fall through!!!
 				case NodeType.QueryDocument:
 					for (let i = node.nodes.length - 1; i >= 0; i--) {
 						stack.unshift(node.nodes[i]);
@@ -185,6 +179,12 @@ export namespace Utils {
 
 	export function containsPosition(node: Node, offset: number): boolean {
 		return node.start <= offset && offset <= node.end;
+	}
+
+	export function isSortExpression(node: Node): boolean {
+		return node._type === NodeType.QualifiedValue
+			&& node.qualifier.value === 'sort'
+			&& node.value._type !== NodeType.Missing;
 	}
 
 	export type PrintableNode = Exclude<Node, OrExpressionNode | QueryDocumentNode | VariableDefinitionNode>;
@@ -215,7 +215,7 @@ export namespace Utils {
 						: node.open ? `${_print(node.open)}..*` : `*..${_print(node.close!)}`;
 				case NodeType.QualifiedValue:
 					// aaa:bbb
-					return `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
+					return isSortExpression(node) ? '' : `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
 				case NodeType.Query:
 					// aaa bbb ccc
 					// note: ignores `sortby`-part
@@ -223,8 +223,10 @@ export namespace Utils {
 					let lastEnd = -1;
 					for (let child of node.nodes) {
 						let value = _print(child);
-						result += lastEnd !== -1 && child.start !== lastEnd ? ' ' : '';
-						result += value;
+						if (value) {
+							result += lastEnd !== -1 && child.start !== lastEnd ? ' ' : '';
+							result += value;
+						}
 						lastEnd = child.end;
 					}
 					return result;

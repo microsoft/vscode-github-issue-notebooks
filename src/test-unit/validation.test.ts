@@ -68,7 +68,7 @@ suite('Validation', function () {
 		assertValidateErrors('$var=', Code.NodeMissing);
 		assertValidateErrors('$var=foo $var', Code.VariableDefinedRecursive);
 		assertValidateErrors('$var=$foo', Code.VariableUnknown);
-		assertValidateErrors('$var=foo sort:comments-desc', Code.SortByNotAllowed);
+		assertValidateErrors('$var=foo sort:comments-desc');
 	});
 
 	test('repeated milestone etc', function () {
@@ -98,5 +98,9 @@ suite('Validation', function () {
 		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/24
 		assertValidateErrors('fooBar -assignee:@me sort:created-asc');
 		assertValidateErrors('fooBar sort:created-asc -assignee:@me');
+	});
+
+	test('Can\'t assign `sort:reactions-+1-desc` to a variable #54', function () {
+		assertValidateErrors('$upvote_sort=sort:reactions-+1-desc');
 	});
 });

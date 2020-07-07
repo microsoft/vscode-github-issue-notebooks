@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
+import { Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
 import { Parser } from './parser/parser';
 import { SymbolTable } from './parser/symbols';
 
@@ -77,8 +77,9 @@ export class Project {
 		function fillInQuery(node: QueryNode) {
 			let sort: string | undefined;
 			let order: 'asc' | 'desc' | undefined;
-			if (node.sortby) {
-				const value = Utils.print(node.sortby.value, entry.node.text, variableAccess);
+			const sortby = <QualifiedValueNode>node.nodes.filter(candidate => Utils.isSortExpression(candidate)).pop();
+			if (sortby) {
+				const value = Utils.print(sortby.value, entry.node.text, variableAccess);
 				const idx = value.lastIndexOf('-');
 				if (idx >= 0) {
 					sort = value.substring(0, idx);

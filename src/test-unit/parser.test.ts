@@ -71,8 +71,8 @@ suite('Parser', function () {
 	});
 
 	test('Query with sortby', function () {
-		assertNodeTypes('label:foo sort:comments-asc', NodeType.QualifiedValue);
-		assertNodeTypes('label:foo sort:comments-asc sortby', NodeType.QualifiedValue, NodeType.Literal);
+		assertNodeTypes('label:foo sort:comments-asc', NodeType.QualifiedValue, NodeType.QualifiedValue);
+		assertNodeTypes('label:foo sort:comments-asc sortby', NodeType.QualifiedValue, NodeType.QualifiedValue, NodeType.Literal);
 		assertNodeTypesDeep('label:123 sort:comments-asc', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 	});
 

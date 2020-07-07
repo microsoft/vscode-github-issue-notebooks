@@ -10,7 +10,6 @@ import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueType } from "./
 export const enum Code {
 	NodeMissing = 'NodeMissing',
 	OrNotAllowed = 'OrNotAllowed',
-	SortByNotAllowed = 'SortByNotAllowed',
 	VariableDefinedRecursive = 'VariableDefinedRecursive',
 	VariableUnknown = 'VariableUnknown',
 	ValueConflict = 'ValueConflict',
@@ -54,11 +53,6 @@ function _validateVariableDefinition(defNode: VariableDefinitionNode, bucket: Va
 			bucket.push(new ValidationError(node, Code.VariableDefinedRecursive, `Cannot reference a variable from its definition`));
 		}
 	});
-
-	// no sort-by-statement
-	if (defNode.value.sortby) {
-		bucket.push(new ValidationError(defNode.value.sortby, Code.SortByNotAllowed, `sort-by is not supported when defining a variable`));
-	}
 }
 
 function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: SymbolTable): void {
@@ -78,11 +72,6 @@ function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sy
 				bucket.push(new ValidationError(node, Code.VariableUnknown, `Unknown variable`));
 			}
 		}
-	}
-
-	// sortby
-	if (query.sortby) {
-		_validateQualifiedValue(query.sortby, bucket, symbols, mutual);
 	}
 }
 
