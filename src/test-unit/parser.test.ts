@@ -22,13 +22,23 @@ suite('Parser', function () {
 		assert.equal((<QueryNode>nodes[0]).nodes.length, types.length);
 	}
 
-	function assertNodeTypesDeep(input: string, ...types: NodeType[]) {
+	function parseAndFlatten(input: string) {
 		const parser = new Parser();
 		const query = parser.parse(input);
-		const actual: NodeType[] = [];
-		Utils.walk(query, node => actual.push(node._type));
-		types.unshift(NodeType.QueryDocument);
+		const nodes: NodeType[] = [];
+		Utils.walk(query, node => nodes.push(node._type));
+		return nodes.slice(1);
+	}
+
+	function assertNodeTypesDeep(input: string, ...types: NodeType[]) {
+		const actual = parseAndFlatten(input);
 		assert.deepEqual(actual, types, input);
+	}
+
+	function assertVariableValueNodeTypesDeep(input: string, ...types: NodeType[]) {
+		const actual = parseAndFlatten(input);
+		assert.deepEqual(actual.slice(0, 3), [NodeType.VariableDefinition, NodeType.VariableName, NodeType.Query]);
+		assert.deepEqual(actual.slice(3), types, input);
 	}
 
 	test('QualifiedValue', function () {
@@ -42,6 +52,21 @@ suite('Parser', function () {
 		assertNodeTypes('label:*..12', NodeType.QualifiedValue);
 		assertNodeTypes('label:12..*', NodeType.QualifiedValue);
 		assertNodeTypes('label:12..23', NodeType.QualifiedValue);
+	});
+
+	test('VariableDefinition', function () {
+		assertVariableValueNodeTypesDeep('$a=label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+
+		// Ignore any whitespace around '=' sign.
+		assertVariableValueNodeTypesDeep('$a =label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a= label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a = label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a\t=label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a=\tlabel:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a\t=\tlabel:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+
+		assertVariableValueNodeTypesDeep('$a=label:foo bar', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a=label:foo bar NOT buzz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any, NodeType.Literal);
 	});
 
 	test('Sequence', function () {
@@ -79,6 +104,8 @@ suite('Parser', function () {
 	test('Bad diagnostics on my milestone query #35', function () {
 		assertNodeTypes('milestone:4.7.0', NodeType.QualifiedValue);
 	});
+
+
 });
 
 
