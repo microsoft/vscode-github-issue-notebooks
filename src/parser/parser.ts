@@ -353,6 +353,7 @@ export class Parser {
 		if (!name) {
 			return;
 		}
+		this._accept(TokenType.Whitespace);
 		if (!this._accept(TokenType.Equals)) {
 			this._reset(anchor);
 			return;
