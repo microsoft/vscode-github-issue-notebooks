@@ -58,15 +58,18 @@ suite('Parser', function () {
 		assertVariableValueNodeTypesDeep('$a=label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 
 		// Ignore any whitespace around '=' sign.
-		assertVariableValueNodeTypesDeep('$a =label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-		assertVariableValueNodeTypesDeep('$a= label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-		assertVariableValueNodeTypesDeep('$a = label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-		assertVariableValueNodeTypesDeep('$a\t=label:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-		assertVariableValueNodeTypesDeep('$a=\tlabel:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
-		assertVariableValueNodeTypesDeep('$a\t=\tlabel:bug', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a =value', NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a= value', NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a = value', NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a\t=value', NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a=\tvalue', NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a\t=\tvalue', NodeType.Literal);
 
+		assertVariableValueNodeTypesDeep('$a=foo bar', NodeType.Literal, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a=foo label:bar', NodeType.Literal, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 		assertVariableValueNodeTypesDeep('$a=label:foo bar', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal);
 		assertVariableValueNodeTypesDeep('$a=label:foo bar NOT buzz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.Literal, NodeType.Any, NodeType.Literal);
+		assertVariableValueNodeTypesDeep('$a=label:foo label:bar', NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 	});
 
 	test('Sequence', function () {
