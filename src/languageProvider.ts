@@ -790,13 +790,12 @@ export class RunnableState {
 			if (!vscode.languages.match(selector, e.document)) {
 				return;
 			}
-			if (!vscode.notebook.activeNotebookEditor) {
-				//todo@jrieken I need API to retrieve all notebook documents
-				return;
-			}
-			const cell = vscode.notebook.activeNotebookEditor.document.cells.find(cell => cell.document === e.document);
-			if (cell) {
-				update(cell);
+			for (const notebook of vscode.notebook.notebookDocuments) {
+				const cell = notebook.cells.find(cell => cell.document === e.document);
+				if (cell) {
+					update(cell);
+					break;
+				}
 			}
 		}));
 	}
