@@ -126,6 +126,10 @@ export class ProjectContainer {
 
 		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(notebook => {
 
+			if (notebook.viewType !== 'github-issues') {
+				return;
+			}
+
 			if (this._associations.has(notebook)) {
 				throw new Error(`Project for '${notebook.uri.toString()}' already EXISTS. All projects: ${[...this._associations.keys()].map(nb => nb.uri.toString()).join()}`);
 			}
