@@ -47,7 +47,7 @@ Note that new line characters always terminate an expression.
 
 #### Samples
 
-A few sample queries from the vscode-project, paste each into a sparate code cell
+A few sample queries from the vscode-project, paste each into a separate code cell
 
 _Define variables for vscode and the current milestone (May 2020):_
 
