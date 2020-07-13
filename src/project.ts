@@ -10,9 +10,9 @@ import { SymbolTable } from './parser/symbols';
 
 export class Project {
 
-	private _nodeToUri = new WeakMap<Node, vscode.Uri>();
-	private _cached = new Map<string, { versionParsed: number, doc: vscode.TextDocument, node: QueryDocumentNode; }>();
-	private _parser = new Parser();
+	private readonly _nodeToUri = new WeakMap<Node, vscode.Uri>();
+	private readonly _cached = new Map<string, { versionParsed: number, doc: vscode.TextDocument, node: QueryDocumentNode; }>();
+	private readonly _parser = new Parser();
 
 	readonly symbols: SymbolTable = new SymbolTable();
 
@@ -111,10 +111,6 @@ export class Project {
 	}
 }
 
-interface ProjectAssociation {
-	(uri: vscode.Uri): boolean;
-}
-
 export class ProjectContainer {
 
 	private _onDidRemove = new vscode.EventEmitter<Project>();
@@ -124,25 +120,21 @@ export class ProjectContainer {
 	readonly onDidChange = this._onDidChange.event;
 
 	private readonly _disposables: vscode.Disposable[] = [];
-	private readonly _associations = new Map<string, [ProjectAssociation, Project]>();
+	private readonly _associations = new Map<vscode.NotebookDocument, Project>();
 
 	constructor() {
 
-		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(document => {
+		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(notebook => {
 
-			const key = document.uri.toString();
-			if (this._associations.has(key)) {
-				throw new Error(`Project for '${key}' already EXISTS. All projects: ${[...this._associations.keys()].join()}`);
+			if (this._associations.has(notebook)) {
+				throw new Error(`Project for '${notebook.uri.toString()}' already EXISTS. All projects: ${[...this._associations.keys()].map(nb => nb.uri.toString()).join()}`);
 			}
 
 			const project = new Project();
-			this._associations.set(key, [
-				uri => document.cells.some(cell => cell.uri.toString() === uri.toString()),
-				project
-			]);
+			this._associations.set(notebook, project);
 
 			try {
-				document.cells.forEach(cell => project?.getOrCreate(cell.document));
+				notebook.cells.forEach(cell => project?.getOrCreate(cell.document));
 			} catch (err) {
 				console.error('FAILED to eagerly feed notebook cell document into project');
 				console.error(err);
@@ -151,12 +143,11 @@ export class ProjectContainer {
 			this._onDidChange.fire(project);
 		}));
 
-		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(document => {
-			const key = document.uri.toString();
-			const tuple = this._associations.get(key);
-			if (tuple) {
-				this._associations.delete(key);
-				this._onDidRemove.fire(tuple[1]);
+		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(notebook => {
+			const project = this._associations.get(notebook);
+			if (project) {
+				this._associations.delete(notebook);
+				this._onDidRemove.fire(project);
 			}
 		}));
 
@@ -181,16 +172,16 @@ export class ProjectContainer {
 	lookupProject(uri: vscode.Uri, fallback: false): Project | undefined;
 	lookupProject(uri: vscode.Uri, fallback: boolean = true): Project | undefined {
 
-		// notebook uri itself
-		let candidate = this._associations.get(uri.toString());
-		if (candidate) {
-			return candidate[1];
-		}
-
-		// a cell uri
-		for (let [association, value] of this._associations.values()) {
-			if (association(uri)) {
-				return value;
+		for (let [notebook, project] of this._associations) {
+			if (notebook.uri.toString() === uri.toString()) {
+				// notebook uri itself
+				return project;
+			}
+			for (let cell of notebook.cells) {
+				if (cell.uri.toString() === uri.toString()) {
+					// a cell uri
+					return project;
+				}
 			}
 		}
 		if (!fallback) {
@@ -200,9 +191,7 @@ export class ProjectContainer {
 		return new Project();
 	}
 
-	* all(): Iterable<Project> {
-		for (let [, value] of this._associations) {
-			yield value[1];
-		}
+	all(): Iterable<Project> {
+		return this._associations.values();
 	}
 }
