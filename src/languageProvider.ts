@@ -23,11 +23,17 @@ export class HoverProvider implements vscode.HoverProvider {
 		const offset = document.offsetAt(position);
 		const project = this.container.lookupProject(document.uri);
 		const query = project.getOrCreate(document);
-		const node = Utils.nodeAt(query, offset);
+		const parents: Node[] = [];
+		const node = Utils.nodeAt(query, offset, parents);
 
 		if (node?._type === NodeType.VariableName) {
 			const info = project.symbols.getFirst(node.value);
 			return new vscode.Hover(`\`${info?.value}\`${info?.type ? ` (${info.type})` : ''}`, project.rangeOf(node));
+		}
+
+		if (node?._type === NodeType.Literal && parents[parents.length - 2]?._type === NodeType.QualifiedValue) {
+			const info = QualifiedValueNodeSchema.get(node.value);
+			return info?.description && new vscode.Hover(info.description) || undefined;
 		}
 
 		return undefined;
@@ -305,14 +311,15 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			return result;
 		}
 
-		if (node?._type === NodeType.Query || node._type === NodeType.Literal || node._type === NodeType.VariableName) {
+		if (node?._type === NodeType.QueryDocument || node?._type === NodeType.Query || node._type === NodeType.Literal || node._type === NodeType.VariableName) {
 			const result: vscode.CompletionItem[] = [];
 
 			// names of qualified value node
-			for (let [key] of QualifiedValueNodeSchema) {
+			for (let [key, value] of QualifiedValueNodeSchema) {
 				result.push({
 					label: key,
-					kind: vscode.CompletionItemKind.Enum
+					kind: vscode.CompletionItemKind.Enum,
+					documentation: value.description
 				});
 			}
 
@@ -321,7 +328,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 				result.push({
 					label: symbol.name,
 					detail: symbol.type ? `${symbol.value} (${symbol.type})` : symbol.value,
-					kind: vscode.CompletionItemKind.Value,
+					kind: vscode.CompletionItemKind.Variable,
 				});
 			}
 			return result;

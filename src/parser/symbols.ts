@@ -126,27 +126,28 @@ export const enum RepeatInfo {
 
 class QualifiedValueInfo {
 
-	static enum(sets: ValueSet | ValueSet[], repeatable?: RepeatInfo) {
-		return new QualifiedValueInfo(ValueType.Literal, Array.isArray(sets) ? sets : [sets], undefined, repeatable);
+	static enum(sets: ValueSet | ValueSet[], repeatable?: RepeatInfo, description?: string) {
+		return new QualifiedValueInfo(ValueType.Literal, Array.isArray(sets) ? sets : [sets], undefined, repeatable, description);
 	}
 
-	static placeholder(placeholder: ValuePlaceholderType, repeatable?: RepeatInfo) {
-		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder, repeatable);
+	static placeholder(placeholder: ValuePlaceholderType, repeatable?: RepeatInfo, description?: string) {
+		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder, repeatable, description);
 	}
 
-	static simple(type: ValueType) {
-		return new QualifiedValueInfo(type, undefined, undefined);
+	static simple(type: ValueType, description?: string) {
+		return new QualifiedValueInfo(type, undefined, undefined, undefined, description);
 	}
 
-	static username(repeatable?: RepeatInfo) {
-		return new QualifiedValueInfo(ValueType.Literal, [new ValueSet(true, '@me')], ValuePlaceholderType.Username, repeatable);
+	static username(repeatable?: RepeatInfo, description?: string) {
+		return new QualifiedValueInfo(ValueType.Literal, [new ValueSet(true, '@me')], ValuePlaceholderType.Username, repeatable, description);
 	}
 
 	constructor(
 		readonly type: ValueType,
 		readonly enumValues: readonly ValueSet[] | undefined,
 		readonly placeholderType: ValuePlaceholderType | undefined,
-		readonly repeatable: RepeatInfo = RepeatInfo.No
+		readonly repeatable: RepeatInfo = RepeatInfo.No,
+		readonly description: string | undefined
 	) { }
 }
 
@@ -166,15 +167,15 @@ export const QueryNodeImpliesPullRequestSchema = new Set<string>([
 export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	// value sets
 	['archived', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'))],
-	['draft', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'))],
-	['in', QualifiedValueInfo.enum(new ValueSet(true, 'title', 'body', 'comments'))],
+	['draft', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'), undefined, 'Draft pull requests')],
+	['in', QualifiedValueInfo.enum(new ValueSet(true, 'title', 'body', 'comments'), undefined, 'Search in the title, body, comments, or any combination of these')],
 	['is', QualifiedValueInfo.enum([new ValueSet(true, 'locked', 'unlocked'), new ValueSet(true, 'merged', 'unmerged'), new ValueSet(true, 'public', 'private'), new ValueSet(true, 'open', 'closed'), new ValueSet(true, 'pr', 'issue')], RepeatInfo.Repeat)],
 	['linked', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
 	['no', QualifiedValueInfo.enum(new ValueSet(false, 'label', 'milestone', 'assignee', 'project'), RepeatInfo.Repeat)],
 	['review', QualifiedValueInfo.enum(new ValueSet(true, 'none', 'required', 'approved'))],
-	['state', QualifiedValueInfo.enum(new ValueSet(true, 'open', 'closed'))],
-	['status', QualifiedValueInfo.enum(new ValueSet(true, 'pending', 'success', 'failure'))],
-	['type', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
+	['state', QualifiedValueInfo.enum(new ValueSet(true, 'open', 'closed'), undefined, 'Issues and pull requests based on whether they are open or closed')],
+	['status', QualifiedValueInfo.enum(new ValueSet(true, 'pending', 'success', 'failure'), undefined, 'Pull requests based on the status of the commits')],
+	['type', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'), undefined, 'Only issues or only pull requests')],
 	['sort', QualifiedValueInfo.enum(new ValueSet(true,
 		'created-desc', 'created-asc', 'comments-desc', 'comments-asc', 'updated-desc', 'updated-asc',
 		'reactions-+1-desc', 'reactions--1-desc', 'reactions-smile-desc', 'reactions-tada-desc', 'reactions-thinking_face-desc', 'reactions-heart-desc', 'reactions-rocket-desc', 'reactions-eyes-desc',
@@ -183,33 +184,33 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	// placeholder 
 	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
 	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
-	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, RepeatInfo.Repeat)],
+	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, RepeatInfo.Repeat, 'Issues and pull requests with a certain label')],
 	['language', QualifiedValueInfo.placeholder(ValuePlaceholderType.Language)],
-	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone)],
-	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, RepeatInfo.Repeat)],
+	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone, undefined, 'Issues and pull requests for a certain miletsone')],
+	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, RepeatInfo.Repeat, 'Issues and pull requests in all repositories owned by a certain organization')],
 	['project', QualifiedValueInfo.placeholder(ValuePlaceholderType.ProjectBoard)],
-	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, RepeatInfo.Repeat)],
+	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, RepeatInfo.Repeat, 'Issues and pull requests in a certain repository')],
+	['user', QualifiedValueInfo.username(RepeatInfo.Repeat, 'Issues and pull requests in all repositories owned by a certain user')],
 	['team-review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	['team', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	// placeholder (username)
-	['assignee', QualifiedValueInfo.username(RepeatInfo.RepeatNegated)],
-	['author', QualifiedValueInfo.username(RepeatInfo.RepeatNegated)],
-	['commenter', QualifiedValueInfo.username(RepeatInfo.Repeat)],
-	['involves', QualifiedValueInfo.username(RepeatInfo.Repeat)],
-	['mentions', QualifiedValueInfo.username(RepeatInfo.Repeat)],
-	['review-requested', QualifiedValueInfo.username()],
-	['reviewed-by', QualifiedValueInfo.username()],
-	['user', QualifiedValueInfo.username(RepeatInfo.Repeat)],
+	['assignee', QualifiedValueInfo.username(RepeatInfo.RepeatNegated, 'Issues and pull requests that are assigned to a certain user')],
+	['author', QualifiedValueInfo.username(RepeatInfo.RepeatNegated, 'Issues and pull requests created by a certain user')],
+	['commenter', QualifiedValueInfo.username(RepeatInfo.Repeat, 'Issues and pull requests that contain a comment from a certain user')],
+	['mentions', QualifiedValueInfo.username(RepeatInfo.Repeat, 'Issues and pull requests that mention a certain user')],
+	['involves', QualifiedValueInfo.username(RepeatInfo.Repeat, 'Issues and pull requests that in some way involve a user. The involves qualifier is a logical OR between the author, assignee, mentions, and commenter qualifiers for a single user')],
+	['review-requested', QualifiedValueInfo.username(undefined, 'Pull requests where a specific user is requested for review')],
+	['reviewed-by', QualifiedValueInfo.username(undefined, 'Pull requests reviewed by a particular user')],
 	// simple value
-	['closed', QualifiedValueInfo.simple(ValueType.Date)],
-	['comments', QualifiedValueInfo.simple(ValueType.Number)],
-	['created', QualifiedValueInfo.simple(ValueType.Date)],
-	['interactions', QualifiedValueInfo.simple(ValueType.Number)],
-	['merged', QualifiedValueInfo.simple(ValueType.Date)],
-	['pushed', QualifiedValueInfo.simple(ValueType.Date)],
-	['reactions', QualifiedValueInfo.simple(ValueType.Number)],
+	['closed', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were closed')],
+	['created', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were created')],
+	['merged', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were merged')],
+	['pushed', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were pushed')],
+	['updated', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were updated')],
+	['comments', QualifiedValueInfo.simple(ValueType.Number, 'Issues and pull request by number of comments')],
+	['interactions', QualifiedValueInfo.simple(ValueType.Number, 'Issues and pull request by number of interactions')],
+	['reactions', QualifiedValueInfo.simple(ValueType.Number, 'Issues and pull request by number of reactions')],
 	['size', QualifiedValueInfo.simple(ValueType.Number)],
 	['stars', QualifiedValueInfo.simple(ValueType.Number)],
 	['topics', QualifiedValueInfo.simple(ValueType.Number)],
-	['updated', QualifiedValueInfo.simple(ValueType.Date)],
 ]);
