@@ -18,7 +18,7 @@ declare module 'vscode' {
 
 	// #region auth provider: https://github.com/microsoft/vscode/issues/88309
 
-	export class AuthenticationSession {
+	export interface AuthenticationSession {
 		/**
 		 * The identifier of the authentication session.
 		 */
@@ -39,8 +39,6 @@ declare module 'vscode' {
 		 * are defined by the authentication provider.
 		 */
 		readonly scopes: ReadonlyArray<string>;
-
-		constructor(id: string, accessToken: string, account: AuthenticationSessionAccountInformation, scopes: string[]);
 	}
 
 	/**
@@ -213,17 +211,6 @@ declare module 'vscode' {
 		export const providers: ReadonlyArray<AuthenticationProviderInformation>;
 
 		/**
-		 * Returns whether a provider has any sessions matching the requested scopes. This request
-		 * is transparent to the user, no UI is shown. Rejects if a provider with providerId is not
-		 * registered.
-		 * @param providerId The id of the provider
-		 * @param scopes A list of scopes representing the permissions requested. These are dependent on the authentication
-		 * provider
-		 * @returns A thenable that resolve to whether the provider has sessions with the requested scopes.
-		 */
-		export function hasSessions(providerId: string, scopes: string[]): Thenable<boolean>;
-
-		/**
 		 * Get an authentication session matching the desired scopes. Rejects if a provider with providerId is not
 		 * registered, or if the user does not consent to sharing authentication information with
 		 * the extension. If there are multiple sessions with the same scopes, the user will be shown a
@@ -233,7 +220,7 @@ declare module 'vscode' {
 		 * @param options The [getSessionOptions](#GetSessionOptions) to use
 		 * @returns A thenable that resolves to an authentication session
 		 */
-		export function getSession(providerId: string, scopes: string[], options: AuthenticationGetSessionOptions & { createIfNone: true }): Thenable<AuthenticationSession>;
+		export function getSession(providerId: string, scopes: string[], options: AuthenticationGetSessionOptions & { createIfNone: true; }): Thenable<AuthenticationSession>;
 
 		/**
 		 * Get an authentication session matching the desired scopes. Rejects if a provider with providerId is not
@@ -1117,7 +1104,7 @@ declare module 'vscode' {
 		 * that could have problems when asynchronous usage may overlap.
 		 * @param context Information about what links are being provided for.
 		 */
-		provideTerminalLinks(context: TerminalLinkContext): ProviderResult<T[]>
+		provideTerminalLinks(context: TerminalLinkContext): ProviderResult<T[]>;
 
 		/**
 		 * Handle an activated terminal link.
@@ -1400,7 +1387,7 @@ declare module 'vscode' {
 		/**
 		 * Additional attributes of a cell metadata.
 		 */
-		custom?: { [key: string]: any };
+		custom?: { [key: string]: any; };
 	}
 
 	export interface CellDisplayOutput {
@@ -1434,6 +1421,11 @@ declare module 'vscode' {
 		Idle = 2,
 		Success = 3,
 		Error = 4
+	}
+
+	export enum NotebookRunState {
+		Running = 1,
+		Idle = 2
 	}
 
 	export interface NotebookCellMetadata {
@@ -1488,7 +1480,7 @@ declare module 'vscode' {
 		/**
 		 * Additional attributes of a cell metadata.
 		 */
-		custom?: { [key: string]: any };
+		custom?: { [key: string]: any; };
 	}
 
 	export interface NotebookCell {
@@ -1537,7 +1529,12 @@ declare module 'vscode' {
 		/**
 		 * Additional attributes of the document metadata.
 		 */
-		custom?: { [key: string]: any };
+		custom?: { [key: string]: any; };
+
+		/**
+		 * The document's current run state
+		 */
+		runState?: NotebookRunState;
 	}
 
 	export interface NotebookDocument {
@@ -1552,6 +1549,7 @@ declare module 'vscode' {
 	}
 
 	export interface NotebookConcatTextDocument {
+		uri: Uri;
 		isClosed: boolean;
 		dispose(): void;
 		onDidChange: Event<void>;
@@ -1566,7 +1564,7 @@ declare module 'vscode' {
 
 		locationAt(positionOrRange: Position | Range): Location;
 		positionAt(location: Location): Position;
-		contains(uri: Uri): boolean
+		contains(uri: Uri): boolean;
 	}
 
 	export interface NotebookEditorCellEdit {
@@ -1604,6 +1602,11 @@ declare module 'vscode' {
 		 * Fired when the panel is disposed.
 		 */
 		readonly onDidDispose: Event<void>;
+
+		/**
+		 * Active kernel used in the editor
+		 */
+		readonly kernel?: NotebookKernel;
 
 		/**
 		 * Fired when the output hosting webview posts a message.
@@ -1834,16 +1837,38 @@ declare module 'vscode' {
 	}
 
 	export interface NotebookKernel {
+		readonly id: string;
 		label: string;
+		description?: string;
+		isPreferred?: boolean;
 		preloads?: Uri[];
-		executeCell(document: NotebookDocument, cell: NotebookCell, token: CancellationToken): Promise<void>;
-		executeAllCells(document: NotebookDocument, token: CancellationToken): Promise<void>;
+		executeCell(document: NotebookDocument, cell: NotebookCell): void;
+		cancelCellExecution?(document: NotebookDocument, cell: NotebookCell): void;
+		executeAllCells(document: NotebookDocument): void;
+		cancelAllCellsExecution?(document: NotebookDocument): void;
+	}
+
+	export interface NotebookDocumentFilter {
+		viewType?: string;
+		filenamePattern?: GlobPattern;
+		excludeFileNamePattern?: GlobPattern;
+	}
+
+	export interface NotebookKernelProvider<T extends NotebookKernel = NotebookKernel> {
+		onDidChangeKernels?: Event<void>;
+		provideKernels(document: NotebookDocument, token: CancellationToken): ProviderResult<T[]>;
+		resolveKernel?(kernel: T, document: NotebookDocument, webview: NotebookCommunication, token: CancellationToken): ProviderResult<void>;
 	}
 
 	export namespace notebook {
 		export function registerNotebookContentProvider(
 			notebookType: string,
 			provider: NotebookContentProvider
+		): Disposable;
+
+		export function registerNotebookKernelProvider(
+			selector: NotebookDocumentFilter,
+			provider: NotebookKernelProvider
 		): Disposable;
 
 		export function registerNotebookKernel(
@@ -1882,6 +1907,8 @@ declare module 'vscode' {
 		 * @param selector
 		 */
 		export function createConcatTextDocument(notebook: NotebookDocument, selector?: DocumentSelector): NotebookConcatTextDocument;
+
+		export const onDidChangeActiveNotebookKernel: Event<{ document: NotebookDocument, kernel: NotebookKernel | undefined; }>;
 	}
 
 	//#endregion

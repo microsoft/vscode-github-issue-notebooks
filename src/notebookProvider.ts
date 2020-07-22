@@ -86,9 +86,54 @@ class NotebookCellExecution {
 		}
 	}
 
+	dispose() {
+		this.cts.dispose();
+	}
+}
+
+class NotebookDocumentExecution {
+
+	private static _tokenPool = 0;
+	private static _tokens = new WeakMap<vscode.NotebookDocument, number>();
+
+	private readonly _token: number = NotebookDocumentExecution._tokenPool++;
+
+	private readonly _originalRunState: vscode.NotebookRunState | undefined;
+
+	readonly cts = new vscode.CancellationTokenSource();
+
+	constructor(readonly document: vscode.NotebookDocument) {
+		NotebookDocumentExecution._tokens.set(this.document, this._token);
+		this._originalRunState = document.metadata.runState;
+		document.metadata.runState = vscode.NotebookRunState.Running;
+	}
+
+	private _isLatest(): boolean {
+		// these checks should be provided by VS Code
+		return NotebookDocumentExecution._tokens.get(this.document) === this._token;
+	}
+
+	cancel(): void {
+		if (this._isLatest()) {
+			this.cts.cancel();
+			this.document.metadata.runState = this._originalRunState;
+			NotebookDocumentExecution._tokens.delete(this.document);
+		}
+	}
+
+	resolve(): void {
+		if (this._isLatest()) {
+			this.document.metadata.runState = vscode.NotebookRunState.Idle;
+		}
+	}
+
+	dispose(): void {
+		this.cts.dispose();
+	}
 }
 
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernel {
+	readonly id = 'githubIssueKernel';
 	label: string = 'GitHub Issues Kernel';
 
 	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentEditEvent>();
@@ -96,6 +141,10 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
 	kernel: vscode.NotebookKernel;
+
+	private readonly _cellExecutions = new WeakMap<vscode.NotebookCell, NotebookCellExecution>();
+
+	private readonly _documentExecutions = new WeakMap<vscode.NotebookDocument, NotebookDocumentExecution>();
 
 	constructor(
 		readonly container: ProjectContainer,
@@ -203,20 +252,38 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	// --- kernel world
 
-	async executeAllCells(document: vscode.NotebookDocument, token: vscode.CancellationToken): Promise<void> {
-		// run them all
-		for (let cell of document.cells) {
-			if (cell.cellKind === vscode.CellKind.Code && cell.metadata.runnable) {
-				await this.executeCell(document, cell, token);
+	async executeAllCells(document: vscode.NotebookDocument): Promise<void> {
+		this.cancelAllCellsExecution(document);
+
+		const execution = new NotebookDocumentExecution(document);
+		this._documentExecutions.set(document, execution);
+
+		try {
+			let currentCell: vscode.NotebookCell;
+
+			execution.cts.token.onCancellationRequested(() => this.cancelCellExecution(document, currentCell));
+
+			for (let cell of document.cells) {
+				if (cell.cellKind === vscode.CellKind.Code && cell.metadata.runnable) {
+					currentCell = cell;
+					await this.executeCell(document, cell);
+
+					if (execution.cts.token.isCancellationRequested) {
+						break;
+					}
+				}
 			}
+		} finally {
+			execution.resolve();
+			execution.dispose();
 		}
-		return;
 	}
 
-	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell, tk: vscode.CancellationToken): Promise<void> {
+	async executeCell(document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
+		this.cancelCellExecution(document, cell);
 
 		const execution = new NotebookCellExecution(cell);
-		tk.onCancellationRequested(() => execution.cancel());
+		this._cellExecutions.set(cell, execution);
 
 		const d1 = vscode.notebook.onDidChangeNotebookCells(e => {
 			if (e.document !== document) {
@@ -239,8 +306,10 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		} finally {
 			d1.dispose();
 			d2.dispose();
+			execution.dispose();
 		}
 	}
+
 	private async _doExecuteCell(execution: NotebookCellExecution): Promise<void> {
 
 		const doc = await vscode.workspace.openTextDocument(execution.cell.uri);
@@ -344,6 +413,20 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				['x-application/github-issues']: allItems
 			}
 		}], `${count}${tooLarge ? '+' : ''} results`);
+	}
+
+	async cancelCellExecution(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
+		const execution = this._cellExecutions.get(cell);
+		if (execution) {
+			execution.cancel();
+		}
+	}
+
+	async cancelAllCellsExecution(document: vscode.NotebookDocument): Promise<void> {
+		const execution = this._documentExecutions.get(document);
+		if (execution) {
+			execution.cancel();
+		}
 	}
 }
 
