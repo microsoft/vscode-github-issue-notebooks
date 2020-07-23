@@ -140,7 +140,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
-	kernel: vscode.NotebookKernel;
+	// kernel: vscode.NotebookKernel;
 
 	private readonly _cellExecutions = new WeakMap<vscode.NotebookCell, NotebookCellExecution>();
 
@@ -160,7 +160,15 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			});
 		}));
 
-		this.kernel = this;
+		// this.kernel = this;
+
+		vscode.notebook.registerNotebookKernelProvider({
+			viewType: 'github-issues',
+		}, {
+			provideKernels: () => {
+				return [this];
+			}
+		});
 	}
 	async resolveNotebook(_document: vscode.NotebookDocument, _webview: { readonly onDidReceiveMessage: vscode.Event<any>; postMessage(message: any): Thenable<boolean>; asWebviewUri(localResource: vscode.Uri): vscode.Uri; }): Promise<void> {
 		// nothing

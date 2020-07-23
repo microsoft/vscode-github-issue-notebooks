@@ -102,7 +102,7 @@ declare module 'vscode' {
 		clearSessionPreference?: boolean;
 	}
 
-	export interface AuthenticationProviderAuthenticationSessionsChangeEvent extends AuthenticationSessionsChangeEvent {
+	export interface AuthenticationProviderAuthenticationSessionsChangeEvent {
 		/**
 		 * The [authenticationProvider](#AuthenticationProvider) that has had its sessions change.
 		 */
@@ -866,22 +866,6 @@ declare module 'vscode' {
 		 * @deprecated Use DebugAdapterDescriptorFactory.createDebugAdapterDescriptor instead
 		 */
 		debugAdapterExecutable?(folder: WorkspaceFolder | undefined, token?: CancellationToken): ProviderResult<DebugAdapterExecutable>;
-	}
-
-	export interface DebugSession {
-
-		/**
-		 * Terminates the session.
-		 */
-		terminate(): Thenable<void>;
-	}
-
-	export interface DebugSession {
-
-		/**
-		 * Terminates the session.
-		 */
-		terminate(): Thenable<void>;
 	}
 
 	export namespace debug {
@@ -1837,15 +1821,15 @@ declare module 'vscode' {
 	}
 
 	export interface NotebookKernel {
-		readonly id: string;
+		readonly id?: string;
 		label: string;
 		description?: string;
 		isPreferred?: boolean;
 		preloads?: Uri[];
 		executeCell(document: NotebookDocument, cell: NotebookCell): void;
-		cancelCellExecution?(document: NotebookDocument, cell: NotebookCell): void;
+		cancelCellExecution(document: NotebookDocument, cell: NotebookCell): void;
 		executeAllCells(document: NotebookDocument): void;
-		cancelAllCellsExecution?(document: NotebookDocument): void;
+		cancelAllCellsExecution(document: NotebookDocument): void;
 	}
 
 	export interface NotebookDocumentFilter {
