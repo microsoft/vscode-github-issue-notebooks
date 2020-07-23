@@ -118,17 +118,17 @@
 					"command": "github-issues.openAll",
 					"alt": "github-issues.openUrl",
 					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellHasOutputs",
-					"group": "inline@1"
+					"group": "inline/output@1"
 				},
 				{
 					"command": "github-issues.lockCell",
 					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellEditable",
-					"group": "inline@2"
+					"group": "inline/cell@2"
 				},
 				{
 					"command": "github-issues.unlockCell",
 					"when": "notebookViewType == github-issues && notebookCellType == code && !notebookCellEditable",
-					"group": "inline@2"
+					"group": "inline/cell@2"
 				}
 			]
 		}
