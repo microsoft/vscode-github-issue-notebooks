@@ -38,7 +38,7 @@ module.exports = {
               configFile: path.resolve(__dirname, './src/extension/tsconfig.json'),
               projectReferences: true,
               compilerOptions: {
-                noEmit: false,
+                module: 'esnext',
               },
             },
           },

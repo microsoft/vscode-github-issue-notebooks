@@ -5,9 +5,9 @@
 
 import AbortController from "abort-controller";
 import * as vscode from 'vscode';
+import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
 import { ProjectContainer } from './project';
-import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 
 interface RawNotebookCell {
 	language: string;
@@ -217,7 +217,11 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		const notebookData: vscode.NotebookData = {
 			languages: ['github-issues'],
-			metadata: { cellRunnable: false, cellHasExecutionOrder: false },
+			metadata: {
+				cellRunnable: false,
+				cellHasExecutionOrder: false,
+				displayOrder: ['x-application/github-issues', 'text/markdown']
+			},
 			cells: raw.map(item => ({
 				source: item.value,
 				language: item.language,

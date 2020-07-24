@@ -152,9 +152,9 @@
 		"watch:extension": "webpack --config webpack.extension.js --mode none --watch --info-verbosity verbose",
 		"watch:renderer": "webpack --config webpack.renderer.js --mode none --watch --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
-		"ts-compile": "npx tsc -p ./tsconfig.json",
-		"integration-test": "npm run ts-compile && node ./out/test-integration/runTest.js",
-		"unit-test": "npm run ts-compile && npx mocha ./out/test-unit",
+		"ts-compile": "tsc -b",
+		"integration-test": "npm run ts-compile && node ./out/extension/test-integration/runTest.js",
+		"unit-test": "npm run ts-compile && npx mocha ./out/extension/test-unit",
 		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
 		"deploy": "npx vsce publish --noVerify"
