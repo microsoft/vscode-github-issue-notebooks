@@ -1,19 +1,14 @@
 {
-	"compilerOptions": {
-		"module": "commonjs",
-		"target": "es6",
-		"outDir": "out",
-		"lib": [
-			"es6"
-		],
-		"sourceMap": true,
-		"rootDir": "src",
-		"strict": true,
-		"noUnusedParameters": true,
-		"forceConsistentCasingInFileNames": true
-	},
-	"exclude": [
-		"node_modules/**",
-		".vscode-test"
+	"files": [],
+	"references": [
+		{
+			"path": "./src/renderer"
+		},
+		{
+			"path": "./src/common"
+		},
+		{
+			"path": "./src/extension"
+		}
 	]
 }

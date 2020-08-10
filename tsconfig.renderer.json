@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "jsx": "react",
+    "jsxFactory": "h",
+		"module": "ES6",
+		"types": ["vscode-notebook-renderer"]
+  },
+  "include": ["./renderer"]
+}
