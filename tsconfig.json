@@ -1,14 +1,14 @@
 {
-  "files": [],
-  "references": [
-    {
-      "path": "./src/renderer"
-    },
-    {
-      "path": "./src/common"
-    },
-    {
-      "path": "./src/extension"
-    }
-  ]
+	"files": [],
+	"references": [
+		{
+			"path": "./src/renderer"
+		},
+		{
+			"path": "./src/common"
+		},
+		{
+			"path": "./src/extension"
+		}
+	]
 }
