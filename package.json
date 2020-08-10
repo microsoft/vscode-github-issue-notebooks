@@ -20,6 +20,12 @@
 		"onNotebookEditor:github-issues"
 	],
 	"main": "./dist/extension.js",
+	"browser": "./dist/extension-web.js",
+	"extensionKind": [
+		"web",
+		"ui",
+		"workspace"
+	],
 	"contributes": {
 		"languages": [
 			{
