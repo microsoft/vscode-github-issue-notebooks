@@ -1,0 +1,86 @@
+.item-row {
+	display: flex;
+	padding: 0.5em 0;
+	color: var(--vscode-foreground);
+}
+.item-row:hover {
+	background-color: var(--vscode-list-hoverBackground);
+}
+.title {
+	color: var(--vscode-foreground) !important;
+	font-size: 1em;
+	text-decoration: none;
+}
+.title:hover {
+	text-decoration: underline;
+}
+.title.repo {
+	opacity: 70%;
+	padding-right: 8px;
+}
+.label {
+	font-size: 0.8em;
+	margin: 0 2px;
+	padding: 2px;
+}
+.label a {
+	padding: 2px;
+}
+.status {
+	font-size: 0.8em;
+	opacity: 60%;
+	padding-top: 0.5em;
+}
+.assignee {
+	flex: shrink;
+}
+.user {
+	display: flex;
+}
+.user img {
+	padding: 0.1em;
+}
+.item-state {
+	flex: shrink;
+	padding: 0 0.3em;
+	opacity: 60%;
+}
+.item-state .octicon {
+	fill: var(--vscode-icon-foreground);
+}
+.stats {
+	text-align: center;
+	font-size: 0.7em;
+	opacity: 60%;
+	padding-top: 0.6em;
+}
+.collapse {
+	text-align: center;
+	font-size: 0.9em;
+	opacity: 60%;
+	display: none;
+	cursor: pointer;
+	padding: 0.3em 0;
+}
+.large > .collapse {
+	display: inherit;
+}
+.collapse > span {
+	color: var(--vscode-button-foreground);
+	background: var(--vscode-button-background);
+	padding: 3px;
+}
+.item-row .start-working {
+	display: none;
+}
+.item-row .start-working a {
+	color: var(--vscode-foreground) !important;
+	font-size: 0.9em;
+	text-decoration: none;
+}
+.item-row .start-working a:hover {
+	text-decoration: underline;
+}
+.item-row:hover .start-working {
+	display: inline;
+}

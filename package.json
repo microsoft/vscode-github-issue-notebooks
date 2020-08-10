@@ -39,6 +39,16 @@
 				"path": "./syntaxes/github-issues.tmGrammar.json"
 			}
 		],
+		"notebookOutputRenderer": [
+			{
+				"viewType": "github-issues",
+				"displayName": "Github Issues Notebook Renderer",
+				"entrypoint": "./dist/renderer.js",
+				"mimeTypes": [
+					"x-application/github-issues"
+				]
+			}
+		],
 		"notebookProvider": [
 			{
 				"viewType": "github-issues",
@@ -134,13 +144,17 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "webpack --mode none",
-		"compile": "webpack --mode none",
-		"watch": "webpack --mode none --watch --info-verbosity verbose",
+		"vscode:prepublish": "npm run compile",
+		"compile": "concurrently 'npm:compile:*'",
+		"compile:extension": "webpack --config webpack.extension.js --mode none",
+		"compile:renderer": "webpack --config webpack.renderer.js --mode production",
+		"watch": "concurrently 'npm:watch:*'",
+		"watch:extension": "webpack --config webpack.extension.js --mode none --watch --info-verbosity verbose",
+		"watch:renderer": "webpack --config webpack.renderer.js --mode none --watch --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
-		"ts-compile": "npx tsc -p ./tsconfig.json",
-		"integration-test": "npm run ts-compile && node ./out/test-integration/runTest.js",
-		"unit-test": "npm run ts-compile && npx mocha ./out/test-unit",
+		"ts-compile": "tsc -b",
+		"integration-test": "npm run ts-compile && node ./out/extension/test-integration/runTest.js",
+		"unit-test": "npm run ts-compile && npx mocha ./out/extension/test-unit",
 		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
 		"deploy": "npx vsce publish --noVerify"
@@ -151,10 +165,14 @@
 		"@types/node": "^12.11.7",
 		"@typescript-eslint/eslint-plugin": "^2.18.0",
 		"@typescript-eslint/parser": "^2.18.0",
+		"concurrently": "^5.2.0",
+		"css-loader": "^3.6.0",
 		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
 		"husky": "^4.2.3",
 		"mocha": "^8.0.1",
+		"preact": "^10.4.6",
+		"style-loader": "^1.2.1",
 		"ts-loader": "^6.2.2",
 		"typescript": "^3.8.3",
 		"vscode-test": "^1.3.0",
