@@ -32,7 +32,7 @@ module.exports = {
 							configFile: path.resolve(__dirname, './src/renderer/tsconfig.json'),
 							projectReferences: true,
 							compilerOptions: {
-                module: 'esnext',
+								module: 'esnext',
 							},
 						},
 					},
