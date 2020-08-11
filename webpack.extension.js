@@ -10,16 +10,9 @@
 const path = require('path');
 
 /**@type {import('webpack').Configuration}*/
-module.exports = {
-	target: 'node',
+const config = {
 	entry: './src/extension/extension.ts',
 	devtool: 'source-map',
-	output: {
-		path: path.resolve(__dirname, 'dist'),
-		filename: 'extension.js',
-		libraryTarget: 'commonjs2',
-		devtoolModuleFilenameTemplate: '../[resource-path]',
-	},
 	externals: {
 		vscode: 'commonjs vscode',
 	},
@@ -47,3 +40,30 @@ module.exports = {
 		],
 	},
 };
+
+const nodeConfig = {
+	...config,
+	...{
+		target: 'node',
+		output: { // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
+			path: path.resolve(__dirname, 'dist'),
+			filename: 'extension.js',
+			libraryTarget: "commonjs2",
+			devtoolModuleFilenameTemplate: "../[resource-path]",
+		}
+	}
+};
+const webConfig = {
+	...config,
+	...{
+		target: 'webworker',
+		output: { // the bundle is stored in the 'dist' folder (check package.json), 📖 -> https://webpack.js.org/configuration/output/
+			path: path.resolve(__dirname, 'dist'),
+			filename: 'extension-web.js',
+			libraryTarget: "commonjs2",
+			devtoolModuleFilenameTemplate: "../[resource-path]",
+		}
+	}
+};
+
+module.exports = [nodeConfig, webConfig];
