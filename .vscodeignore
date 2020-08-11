@@ -3,5 +3,6 @@
 src/
 out/
 tsconfig.json
+webpack.js
 *.vsix
 node_modules/

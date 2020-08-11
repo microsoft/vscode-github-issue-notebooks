@@ -19,7 +19,7 @@
 		"onLanguage:github-issues",
 		"onNotebookEditor:github-issues"
 	],
-	"main": "./dist/extension.js",
+	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
 	"extensionKind": [
 		"web",
@@ -151,12 +151,8 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "concurrently 'npm:compile:*'",
-		"compile:extension": "webpack --config webpack.extension.js --mode none",
-		"compile:renderer": "webpack --config webpack.renderer.js --mode production",
-		"watch": "concurrently 'npm:watch:*'",
-		"watch:extension": "webpack --config webpack.extension.js --mode none --watch --info-verbosity verbose",
-		"watch:renderer": "webpack --config webpack.renderer.js --mode none --watch --info-verbosity verbose",
+		"compile": "webpack --config webpack.js --mode none",
+		"watch": "webpack --config webpack.js --mode none --watch --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
 		"ts-compile": "tsc -b",
 		"integration-test": "npm run ts-compile && node ./out/extension/test-integration/runTest.js",
@@ -171,7 +167,6 @@
 		"@types/node": "^12.11.7",
 		"@typescript-eslint/eslint-plugin": "^2.18.0",
 		"@typescript-eslint/parser": "^2.18.0",
-		"concurrently": "^5.2.0",
 		"css-loader": "^3.6.0",
 		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
