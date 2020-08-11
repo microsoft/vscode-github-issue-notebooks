@@ -97,6 +97,6 @@ const rendererConfig = {
 			},
 		],
 	}
-}
+};
 
 module.exports = [nodeConfig, webConfig, rendererConfig];
