@@ -241,7 +241,7 @@ suite('Print Nodes', function () {
 
 	test('Show Error/Warning when the query is invalid #24', function () {
 		// https://github.com/microsoft/vscode-github-issue-notebooks/issues/24
-		assertPrinted('fooBar -assignee:@me sort:created-asc', ['fooBar -assignee:@me']);
+		assertPrinted('fooBar -assignee:@me sort:created-asc');
 		assertPrinted('fooBar sort asc by created -assignee:@me');
 	});
 });

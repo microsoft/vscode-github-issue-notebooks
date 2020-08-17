@@ -77,9 +77,18 @@ export class Project {
 		function fillInQuery(node: QueryNode) {
 			let sort: string | undefined;
 			let order: 'asc' | 'desc' | undefined;
-			const sortby = <QualifiedValueNode>node.nodes.filter(candidate => Utils.isSortExpression(candidate)).pop();
+			let sortby: Utils.PrintableNode | undefined;
+
+			for (let candidate of node.nodes) {
+				if (Utils.isSortExpression(candidate)) {
+					sortby = (<QualifiedValueNode>candidate).value;
+				} else if (candidate._type === NodeType.VariableName && variableAccess(candidate.value)?.match(/^sort:[\w-]+-(asc|desc)+$/)) {
+					sortby = candidate;
+				}
+			}
+
 			if (sortby) {
-				const value = Utils.print(sortby.value, entry.node.text, variableAccess);
+				const value = Utils.print(sortby, entry.node.text, variableAccess);
 				const idx = value.lastIndexOf('-');
 				if (idx >= 0) {
 					sort = value.substring(0, idx);
@@ -87,7 +96,7 @@ export class Project {
 				}
 			}
 			result.push({
-				q: Utils.print(node, entry.node.text, variableAccess),
+				q: Utils.print(node, entry.node.text, variableAccess, sortby && new Set([sortby])),
 				sort,
 				order,
 			});

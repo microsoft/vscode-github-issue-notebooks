@@ -189,10 +189,12 @@ export namespace Utils {
 
 	export type PrintableNode = Exclude<Node, OrExpressionNode | QueryDocumentNode | VariableDefinitionNode>;
 
-	export function print(node: PrintableNode, text: string, variableValue: (name: string) => string | undefined): string {
+	export function print(node: PrintableNode, text: string, variableValue: (name: string) => string | undefined, ignore: Set<PrintableNode> = new Set()): string {
 
 		function _print(node: PrintableNode): string {
-
+			if (ignore.has(node)) {
+				return '';
+			}
 			switch (node._type) {
 				case NodeType.Missing:
 					// no value for those
@@ -215,7 +217,7 @@ export namespace Utils {
 						: node.open ? `${_print(node.open)}..*` : `*..${_print(node.close!)}`;
 				case NodeType.QualifiedValue:
 					// aaa:bbb
-					return isSortExpression(node) ? '' : `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
+					return `${node.not ? '-' : ''}${node.qualifier.value}:${_print(node.value)}`;
 				case NodeType.Query:
 					// aaa bbb ccc
 					// note: ignores `sortby`-part
