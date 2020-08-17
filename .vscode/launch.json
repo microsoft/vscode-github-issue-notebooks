@@ -30,7 +30,7 @@
 		},
 		{
 			"name": "Unit Tests",
-			"port": 9229,
+			// "port": 9229,
 			"request": "launch",
 			"runtimeArgs": [
 				"run",
