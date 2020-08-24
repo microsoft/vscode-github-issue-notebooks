@@ -151,18 +151,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
 	) {
-		this._localDisposables.push(vscode.notebook.onDidChangeCellOutputs(e => {
-			e.cells.forEach(cell => {
-				if (cell.outputs.length === 0) {
-					cell.metadata.statusMessage = undefined;
-					cell.metadata.lastRunDuration = undefined;
-					cell.metadata.runState = vscode.NotebookCellRunState.Idle;
-				}
-			});
-		}));
-
-		// this.kernel = this;
-
 		vscode.notebook.registerNotebookKernelProvider({
 			viewType: 'github-issues',
 		}, {
