@@ -47,7 +47,7 @@
 		],
 		"notebookOutputRenderer": [
 			{
-				"viewType": "github-issues",
+				"id": "github-issues",
 				"displayName": "Github Issues Notebook Renderer",
 				"entrypoint": "./dist/renderer.js",
 				"mimeTypes": [
