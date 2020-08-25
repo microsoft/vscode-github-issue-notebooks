@@ -82,7 +82,7 @@ export class Project {
 			for (let candidate of node.nodes) {
 				if (Utils.isSortExpression(candidate)) {
 					sortby = (<QualifiedValueNode>candidate).value;
-				} else if (candidate._type === NodeType.VariableName && variableAccess(candidate.value)?.match(/^sort:[\w-]+-(asc|desc)+$/)) {
+				} else if (candidate._type === NodeType.VariableName && variableAccess(candidate.value)?.match(/^sort:[\w-+\d]+-(asc|desc)+$/)) {
 					sortby = candidate;
 				}
 			}
