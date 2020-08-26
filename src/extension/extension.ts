@@ -14,7 +14,18 @@ export function activate(context: vscode.ExtensionContext) {
 	const octokit = new OctokitProvider();
 	const projectContainer = new ProjectContainer();
 	const notebookProvider = new IssuesNotebookProvider(projectContainer, octokit);
-	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', notebookProvider));
+	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', notebookProvider, {
+		transientOutputs: true,
+		transientMetadata: {
+			inputCollapsed: true,
+			outputCollapsed: true,
+			runState: true,
+			runStartTime: true,
+			executionOrder: true,
+			lastRunDuration: true,
+			statusMessage: true
+		}
+	}));
 	context.subscriptions.push(registerLanguageProvider(projectContainer, octokit));
 	context.subscriptions.push(registerCommands(projectContainer, notebookProvider));
 }

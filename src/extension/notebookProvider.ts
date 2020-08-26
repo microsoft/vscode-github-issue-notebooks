@@ -172,10 +172,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	// -- utils
 
 	setCellLockState(cell: vscode.NotebookCell, locked: boolean) {
-		const redo = () => { cell.metadata = { ...cell.metadata, editable: !locked }; };
-		const undo = () => { cell.metadata = { ...cell.metadata, editable: locked }; };
-		redo();
-		this._onDidChangeNotebook.fire({ document: cell.notebook, undo, redo });
+		cell.metadata = { ...cell.metadata, editable: !locked };
 	}
 
 	setDocumentLockState(notebook: vscode.NotebookDocument, locked: boolean) {
