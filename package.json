@@ -4,7 +4,7 @@
 	"description": "GitHub Issue Notebooks for VS Code",
 	"publisher": "ms-vscode",
 	"preview": true,
-	"version": "0.0.44",
+	"version": "0.0.45",
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
