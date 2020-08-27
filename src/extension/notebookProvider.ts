@@ -141,16 +141,42 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
-	// kernel: vscode.NotebookKernel;
-
 	private readonly _cellExecutions = new WeakMap<vscode.NotebookCell, NotebookCellExecution>();
-
 	private readonly _documentExecutions = new WeakMap<vscode.NotebookDocument, NotebookDocumentExecution>();
+	private readonly _cellStatusBarItems = new WeakMap<vscode.NotebookCell, vscode.NotebookCellStatusBarItem>();
 
 	constructor(
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
 	) {
+		this._localDisposables.push(vscode.notebook.onDidChangeCellOutputs(e => {
+			e.cells.forEach(cell => {
+				if (cell.outputs.length) {
+					const output = <vscode.CellDisplayOutput>cell.outputs.filter(output => output.outputKind === vscode.CellOutputKind.Rich)[0];
+					if (!output) {
+						return;
+					}
+					const issues = <{ html_url: string; }[]>output.data['x-application/github-issues'];
+					if (!issues) {
+						return;
+					}
+
+					const item = this._cellStatusBarItems.get(cell) ?? vscode.notebook.createCellStatusBarItem(cell, vscode.NotebookCellStatusBarAlignment.Right);
+					this._cellStatusBarItems.set(cell, item);
+					item.command = 'github-issues.openAll';
+					item.text = `$(globe) Open ${issues.length} results`;
+					item.tooltip = `Open ${issues.length} results in browser`;
+					item.show();
+				} else {
+					const item = this._cellStatusBarItems.get(cell);
+					if (item) {
+						item.dispose();
+						this._cellStatusBarItems.delete(cell);
+					}
+				}
+			});
+		}));
+
 		vscode.notebook.registerNotebookKernelProvider({
 			viewType: 'github-issues',
 		}, {
@@ -387,7 +413,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				['x-application/github-issues']: allItems,
 				['text/markdown']: md,
 			}
-		}], `${seen.size}${tooLarge ? '+' : ''} results`);
+		}]);
 	}
 
 	async cancelCellExecution(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
