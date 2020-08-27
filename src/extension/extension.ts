@@ -17,6 +17,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', notebookProvider, {
 		transientOutputs: true,
 		transientMetadata: {
+			runnable: true,
 			inputCollapsed: true,
 			outputCollapsed: true,
 			runState: true,
