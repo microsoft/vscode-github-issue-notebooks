@@ -48,6 +48,7 @@ class NotebookCellExecution {
 		this._originalRunState = cell.metadata.runState;
 		cell.metadata.runState = vscode.NotebookCellRunState.Running;
 		cell.metadata.runStartTime = this._startTime;
+		cell.metadata.statusMessage = undefined;
 	}
 
 	private _isLatest(): boolean {
@@ -407,13 +408,17 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}
 
 		// status line
-		execution.resolve([{
-			outputKind: vscode.CellOutputKind.Rich,
-			data: {
-				['x-application/github-issues']: allItems,
-				['text/markdown']: md,
-			}
-		}]);
+		if (allItems.length) {
+			execution.resolve([{
+				outputKind: vscode.CellOutputKind.Rich,
+				data: {
+					['x-application/github-issues']: allItems,
+					['text/markdown']: md,
+				}
+			}]);
+		} else {
+			execution.resolve([], 'No results');
+		}
 	}
 
 	async cancelCellExecution(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
