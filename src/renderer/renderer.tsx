@@ -26,7 +26,7 @@ export const AllItems: FunctionComponent<{ items: ReadonlyArray<SearchIssuesAndP
 	const hasManyRepos = items.some(item => item.repository_url !== items[0].repository_url);
 	const renderItem = (item: SearchIssuesAndPullRequestsResponseItemsItem) => <Item key={item.id} item={item} showRepo={hasManyRepos} />;
 
-	if (items.length < defaultMaxCount) {
+	if (items.length <= defaultMaxCount) {
 		return <div>{items.map(renderItem)}</div>;
 	}
 
