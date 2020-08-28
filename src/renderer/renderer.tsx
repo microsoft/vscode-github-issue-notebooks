@@ -33,7 +33,7 @@ export const AllItems: FunctionComponent<{ items: ReadonlyArray<SearchIssuesAndP
 	const [collapsed, setCollapsed] = useState(true);
 	const di = collapsed ? items.slice(0, defaultMaxCount) : items;
 
-	return <div className='large collapsed'>
+	return <div className='large'>
 		{di.map(renderItem)}
 		<div className="collapse">
 			<CollapseButton n={items.length} setCollapsed={setCollapsed} collapsed={collapsed} />
@@ -45,7 +45,7 @@ export const AllItems: FunctionComponent<{ items: ReadonlyArray<SearchIssuesAndP
 const Item: FunctionComponent<{ item: SearchIssuesAndPullRequestsResponseItemsItem; showRepo: boolean; }> = ({ item, showRepo }) =>
 	<div className='item-row'>
 		<div className="item-state">{item.pull_request ? <PRIcon /> : item.closed_at ? <IssueClosedIcon /> : <IssueOpenIcon />}</div>
-		<div style={{ flex: 'auto' }}>
+		<div style={{ flex: 'auto', flexBasis: 0 }}>
 			{showRepo && <RepoLabel url={item.repository_url} />}
 			<a href={item.html_url} className="title">{item.title}</a>
 			{item.labels.map(label => <Label label={label} key={label.id} />)}

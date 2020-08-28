@@ -57,13 +57,13 @@
 .collapse {
 	text-align: center;
 	font-size: 0.9em;
-	opacity: 60%;
-	display: none;
+	opacity: 0.8;
 	cursor: pointer;
 	padding: 0.3em 0;
 }
-.large > .collapse {
-	display: inherit;
+.collapse:hover,
+.collapse:focus {
+	opacity: 1;
 }
 .collapse > span {
 	color: var(--vscode-button-foreground);

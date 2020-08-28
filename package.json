@@ -146,8 +146,8 @@
 	},
 	"scripts": {
 		"vscode:prepublish": "npm run compile",
-		"compile": "webpack --config webpack.js --mode none",
-		"watch": "webpack --config webpack.js --mode none --watch --info-verbosity verbose",
+		"compile": "webpack --mode production --info-verbosity verbose",
+		"watch": "webpack --mode development --watch  --info-verbosity verbose",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
 		"ts-compile": "tsc -b",
 		"integration-test": "npm run ts-compile && node ./out/extension/test-integration/runTest.js",
