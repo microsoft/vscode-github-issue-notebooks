@@ -8,7 +8,7 @@ import { GithubData } from './githubDataProvider';
 import { OctokitProvider } from './octokitProvider';
 import { Node, NodeType, QueryDocumentNode, Utils } from './parser/nodes';
 import { Scanner, Token, TokenType } from './parser/scanner';
-import { QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
+import { QualifiedValueNodeSchema, SymbolInfo, ValuePlaceholderType } from './parser/symbols';
 import { Code, validateQueryDocument, ValidationError } from './parser/validation';
 import { Project, ProjectContainer } from './project';
 import { getRepoInfos, RepoInfo } from './utils';
@@ -27,7 +27,23 @@ export class HoverProvider implements vscode.HoverProvider {
 		const node = Utils.nodeAt(query, offset, parents);
 
 		if (node?._type === NodeType.VariableName) {
-			const info = project.symbols.getFirst(node.value);
+
+			let info: SymbolInfo | undefined;
+			for (let candidate of project.symbols.getAll(node.value)) {
+				//
+				if (!info) {
+					info = candidate;
+					continue;
+				}
+				if (project.getLocation(info.def).uri.toString() === document.uri.toString()) {
+					if (project.getLocation(candidate.def).uri.toString() !== document.uri.toString()) {
+						break;
+					}
+				}
+				if (candidate.timestamp > info.timestamp) {
+					info = candidate;
+				}
+			}
 			return new vscode.Hover(`\`${info?.value}\`${info?.type ? ` (${info.type})` : ''}`, project.rangeOf(node));
 		}
 
@@ -104,8 +120,7 @@ export class DefinitionProvider implements vscode.DefinitionProvider {
 		}
 		const result: vscode.Location[] = [];
 		for (const symbol of project.symbols.getAll(node.value)) {
-			const uri = vscode.Uri.parse(symbol.root.id);
-			result.push(new vscode.Location(uri, project.rangeOf(symbol.def, uri)));
+			result.push(project.getLocation(symbol.def));
 		}
 		return result;
 	}

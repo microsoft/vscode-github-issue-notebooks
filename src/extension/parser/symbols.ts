@@ -22,6 +22,8 @@ export interface SymbolInfo {
 
 export class SymbolTable {
 
+	private readonly _clock = new class { private _value: number = 0; tick() { return this._value++; } };
+
 	private readonly _data = new Map<string, SymbolInfo[]>();
 
 	update(query: QueryDocumentNode) {
@@ -49,7 +51,7 @@ export class SymbolTable {
 				}
 				array.push({
 					root: query,
-					timestamp: Date.now(),
+					timestamp: this._clock.tick(),
 					name: node.name.value,
 					def: node,
 					type: getType(node),

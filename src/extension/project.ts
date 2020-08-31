@@ -69,6 +69,14 @@ export class Project {
 		return doc.getText(range);
 	}
 
+	getLocation(node: Node) {
+		const data = this._lookUp(node);
+		return new vscode.Location(
+			data.doc.uri,
+			new vscode.Range(data.doc.positionAt(node.start), data.doc.positionAt(node.end))
+		);
+	}
+
 	queryData(queryNode: QueryDocumentNode) {
 
 		const variableAccess = (name: string) => this.symbols.getFirst(name)?.value;
