@@ -62,7 +62,7 @@ export function registerCommands(projectContainer: ProjectContainer, notebookPro
 		if (!project) {
 			return;
 		}
-		const data = project.queryData(cell.document);
+		const data = project.queryData(project.getOrCreate(cell.document));
 		for (let d of data) {
 			let url = `https://github.com/issues?q=${d.q}`;
 			if (d.sort) {

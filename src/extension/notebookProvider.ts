@@ -8,6 +8,7 @@ import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
 import { ProjectContainer } from './project';
+import { isRunnable } from "./utils";
 
 interface RawNotebookCell {
 	language: string;
@@ -66,6 +67,7 @@ class NotebookCellExecution {
 
 	resolve(outputs: vscode.CellOutput[], message?: string): void {
 		if (this._isLatest()) {
+			this.cell.metadata.executionOrder = this._token;
 			this.cell.metadata.runState = vscode.NotebookCellRunState.Success;
 			this.cell.metadata.lastRunDuration = Date.now() - this._startTime;
 			this.cell.metadata.statusMessage = message;
@@ -76,6 +78,7 @@ class NotebookCellExecution {
 	reject(err: any): void {
 		if (this._isLatest()) {
 			// print as error
+			this.cell.metadata.executionOrder = this._token;
 			this.cell.metadata.statusMessage = 'Error';
 			this.cell.metadata.lastRunDuration = undefined;
 			this.cell.metadata.runState = vscode.NotebookCellRunState.Error;
@@ -230,8 +233,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		const notebookData: vscode.NotebookData = {
 			languages: ['github-issues'],
 			metadata: {
-				cellRunnable: false,
-				cellHasExecutionOrder: false,
+				cellRunnable: true,
+				cellHasExecutionOrder: true,
 				displayOrder: ['x-application/github-issues', 'text/markdown']
 			},
 			cells: raw.map(item => ({
@@ -289,7 +292,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			execution.cts.token.onCancellationRequested(() => this.cancelCellExecution(document, currentCell));
 
 			for (let cell of document.cells) {
-				if (cell.cellKind === vscode.CellKind.Code && cell.metadata.runnable) {
+				if (cell.cellKind === vscode.CellKind.Code) {
 					currentCell = cell;
 					await this.executeCell(document, cell);
 
@@ -339,13 +342,17 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		const doc = await vscode.workspace.openTextDocument(execution.cell.uri);
 		const project = this.container.lookupProject(doc.uri);
-		const allQueryData = project.queryData(doc);
-
-		// update all symbols defined in the cell so that
-		// more recent values win
 		const query = project.getOrCreate(doc);
+
+		// update query so that symbols defined here are marked as more recent
 		project.symbols.update(query);
 
+		if (!isRunnable(query)) {
+			execution.resolve([]);
+			return;
+		}
+
+		const allQueryData = project.queryData(query);
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 		let tooLarge = false;
 		// fetch

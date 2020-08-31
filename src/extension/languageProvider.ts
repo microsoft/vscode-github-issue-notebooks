@@ -11,7 +11,7 @@ import { Scanner, Token, TokenType } from './parser/scanner';
 import { QualifiedValueNodeSchema, ValuePlaceholderType } from './parser/symbols';
 import { Code, validateQueryDocument, ValidationError } from './parser/validation';
 import { Project, ProjectContainer } from './project';
-import { getRepoInfos, isRunnable, RepoInfo } from './utils';
+import { getRepoInfos, RepoInfo } from './utils';
 
 const selector = { language: 'github-issues' };
 
@@ -771,56 +771,6 @@ export class Validation {
 	}
 }
 
-export class RunnableState {
-
-	private _disposables: vscode.Disposable[] = [];
-
-	constructor(readonly container: ProjectContainer) {
-		const update = (cell: vscode.NotebookCell) => {
-			if (cell.cellKind === vscode.CellKind.Code && vscode.languages.match(selector, cell.document)) {
-				this._updateRunnableState(cell);
-			}
-		};
-		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(notebook => {
-			for (let cell of notebook.cells) {
-				update(cell);
-			}
-		}));
-		this._disposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
-			for (let change of e.changes) {
-				for (let cell of change.items) {
-					update(cell);
-				}
-			}
-		}));
-		this._disposables.push(vscode.workspace.onDidChangeTextDocument(e => {
-			if (!vscode.languages.match(selector, e.document)) {
-				return;
-			}
-			for (const notebook of vscode.notebook.notebookDocuments) {
-				const cell = notebook.cells.find(cell => cell.document === e.document);
-				if (cell) {
-					update(cell);
-					break;
-				}
-			}
-		}));
-	}
-
-	dispose(): void {
-		this._disposables.forEach(d => d.dispose());
-	}
-
-	private _updateRunnableState(cell: vscode.NotebookCell) {
-		const project = this.container.lookupProject(cell.document.uri, false);
-		if (!project) {
-			return;
-		}
-		const query = project.getOrCreate(cell.document);
-		cell.metadata.runnable = isRunnable(query);
-	}
-}
-
 export function registerLanguageProvider(container: ProjectContainer, octokit: OctokitProvider): vscode.Disposable {
 
 	const disposables: vscode.Disposable[] = [];
@@ -850,8 +800,6 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 		new LanguageValidation(),
 		new GithubValidation(githubData)
 	]));
-
-	disposables.push(new RunnableState(container));
 
 	return vscode.Disposable.from(...disposables);
 }

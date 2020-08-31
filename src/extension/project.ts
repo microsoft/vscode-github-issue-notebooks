@@ -69,8 +69,7 @@ export class Project {
 		return doc.getText(range);
 	}
 
-	queryData(doc: vscode.TextDocument) {
-		const entry = this._lookUp(undefined, doc.uri);
+	queryData(queryNode: QueryDocumentNode) {
 
 		const variableAccess = (name: string) => this.symbols.getFirst(name)?.value;
 
@@ -88,7 +87,7 @@ export class Project {
 			}
 
 			if (sortby) {
-				const value = Utils.print(sortby, entry.node.text, variableAccess);
+				const value = Utils.print(sortby, queryNode.text, variableAccess);
 				const idx = value.lastIndexOf('-');
 				if (idx >= 0) {
 					sort = value.substring(0, idx);
@@ -96,7 +95,7 @@ export class Project {
 				}
 			}
 			result.push({
-				q: Utils.print(node, entry.node.text, variableAccess, sortby && new Set([sortby])),
+				q: Utils.print(node, queryNode.text, variableAccess, sortby && new Set([sortby])),
 				sort,
 				order,
 			});
@@ -115,7 +114,7 @@ export class Project {
 		}
 
 		const result: { q: string; sort?: string; order?: 'asc' | 'desc'; }[] = [];
-		entry.node.nodes.forEach(fillInQueryData);
+		queryNode.nodes.forEach(fillInQueryData);
 		return result;
 	}
 }

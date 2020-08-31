@@ -15,8 +15,8 @@ suite('Project', () => {
 		async function assertQueryData(content: string, expected: { q: string; sort?: string; order?: string; }[] = [{ q: content }]) {
 			const doc = await vscode.workspace.openTextDocument({ language: 'github-issues', content });
 			const project = new Project();
-			project.getOrCreate(doc);
-			const data = project.queryData(doc);
+			const query = project.getOrCreate(doc);
+			const data = project.queryData(query);
 			for (let actualItem of data) {
 				const expectedItem = expected.shift();
 				assert.equal(actualItem.q, expectedItem?.q);
