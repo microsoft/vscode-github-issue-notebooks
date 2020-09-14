@@ -17,8 +17,7 @@
 	],
 	"activationEvents": [
 		"onLanguage:github-issues",
-		"onNotebook:github-issues",
-		"onNotebookEditor:github-issues"
+		"onNotebook:github-issues"
 	],
 	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
