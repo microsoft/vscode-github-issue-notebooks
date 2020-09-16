@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
+import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
 import { Parser } from './parser/parser';
 import { SymbolTable } from './parser/symbols';
 
@@ -84,26 +84,19 @@ export class Project {
 		function fillInQuery(node: QueryNode) {
 			let sort: string | undefined;
 			let order: 'asc' | 'desc' | undefined;
-			let sortby: Utils.PrintableNode | undefined;
 
-			for (let candidate of node.nodes) {
-				if (Utils.isSortExpression(candidate)) {
-					sortby = (<QualifiedValueNode>candidate).value;
-				} else if (candidate._type === NodeType.VariableName && variableAccess(candidate.value)?.match(/^sort:[\w-+\d]+-(asc|desc)+$/)) {
-					sortby = candidate;
-				}
-			}
+			// TODO@jrieken
+			// this is hacky, but it works. We first print the node *with* sortby-statements
+			// and then use a regex to remove and capture the sortby-information
+			const textWithSortBy = Utils.print(node, queryNode.text, variableAccess);
+			const query = textWithSortBy.replace(/sort:([\w-+\d]+)-(asc|desc)/g, function (_m, g1, g2) {
+				sort = g1 ?? undefined;
+				order = g2 ?? undefined;
+				return '';
+			}).trim();
 
-			if (sortby) {
-				const value = Utils.print(sortby, queryNode.text, variableAccess);
-				const idx = value.lastIndexOf('-');
-				if (idx >= 0) {
-					sort = value.substring(0, idx);
-					order = value.substring(idx + 1) as any;
-				}
-			}
 			result.push({
-				q: Utils.print(node, queryNode.text, variableAccess, sortby && new Set([sortby])),
+				q: query,
 				sort,
 				order,
 			});

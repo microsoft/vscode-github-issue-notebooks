@@ -181,20 +181,12 @@ export namespace Utils {
 		return node.start <= offset && offset <= node.end;
 	}
 
-	export function isSortExpression(node: Node): boolean {
-		return node._type === NodeType.QualifiedValue
-			&& node.qualifier.value === 'sort'
-			&& node.value._type !== NodeType.Missing;
-	}
 
 	export type PrintableNode = Exclude<Node, OrExpressionNode | QueryDocumentNode | VariableDefinitionNode>;
 
-	export function print(node: PrintableNode, text: string, variableValue: (name: string) => string | undefined, ignore: Set<PrintableNode> = new Set()): string {
+	export function print(node: PrintableNode, text: string, variableValue: (name: string) => string | undefined): string {
 
 		function _print(node: PrintableNode): string {
-			if (ignore.has(node)) {
-				return '';
-			}
 			switch (node._type) {
 				case NodeType.Missing:
 					// no value for those

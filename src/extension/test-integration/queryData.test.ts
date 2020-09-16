@@ -10,21 +10,21 @@ import { Project } from '../project';
 
 suite('Project', () => {
 
-	test('asQueryData', async function () {
-
-		async function assertQueryData(content: string, expected: { q: string; sort?: string; order?: string; }[] = [{ q: content }]) {
-			const doc = await vscode.workspace.openTextDocument({ language: 'github-issues', content });
-			const project = new Project();
-			const query = project.getOrCreate(doc);
-			const data = project.queryData(query);
-			for (let actualItem of data) {
-				const expectedItem = expected.shift();
-				assert.equal(actualItem.q, expectedItem?.q);
-				assert.ok(!expectedItem?.order || expectedItem.order === actualItem.order);
-				assert.ok(!expectedItem?.sort || expectedItem.sort === actualItem.sort);
-			}
-			assert.equal(expected.length, 0, expected.toString());
+	async function assertQueryData(content: string, expected: { q: string; sort?: string; order?: string; }[] = [{ q: content }]) {
+		const doc = await vscode.workspace.openTextDocument({ language: 'github-issues', content });
+		const project = new Project();
+		const query = project.getOrCreate(doc);
+		const data = project.queryData(query);
+		for (let actualItem of data) {
+			const expectedItem = expected.shift();
+			assert.equal(actualItem.q, expectedItem?.q, 'q');
+			assert.equal(actualItem.order, expectedItem?.order, 'order');
+			assert.equal(actualItem.sort, expectedItem?.sort, 'sort');
 		}
+		assert.equal(expected.length, 0, expected.toString());
+	}
+
+	test('asQueryData', async function () {
 
 		await assertQueryData('foo repo:bar');
 		await assertQueryData('foo repo:bar sort:comments-asc', [{ q: 'foo repo:bar', order: 'asc', sort: 'comments' }]);
@@ -36,4 +36,19 @@ suite('Project', () => {
 		await assertQueryData('repo:microsoft/vscode label:notebook is:open -milestone:"April 2020" -milestone:"Backlog"');
 	});
 
+	test('"sort" affects the number of results returned #68', async function () {
+		await assertQueryData('repo:microsoft/vscode-js-debug bug sort:updated-asc', [{
+			q: 'repo:microsoft/vscode-js-debug bug',
+			sort: 'updated',
+			order: 'asc'
+		}]);
+	});
+
+	test('sort via variable', async function () {
+		await assertQueryData('$o=sort:updated-asc\nrepo:microsoft/vscode-js-debug bug $o', [{
+			q: 'repo:microsoft/vscode-js-debug bug',
+			sort: 'updated',
+			order: 'asc'
+		}]);
+	});
 });
