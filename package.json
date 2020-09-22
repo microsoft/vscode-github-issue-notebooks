@@ -131,6 +131,12 @@
 			],
 			"notebook/cell/title": [
 				{
+					"command": "github-issues.openAll",
+					"alt": "github-issues.openUrl",
+					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellHasOutputs",
+					"group": "inline/output@1"
+				},
+				{
 					"command": "github-issues.lockCell",
 					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellEditable",
 					"group": "inline/cell@2"
