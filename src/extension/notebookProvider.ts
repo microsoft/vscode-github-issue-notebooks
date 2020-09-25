@@ -17,21 +17,6 @@ interface RawNotebookCell {
 	editable?: boolean;
 }
 
-const entityMap: Record<string, string> = {
-	'&': '&amp;',
-	'<': '&lt;',
-	'>': '&gt;',
-	'"': '&quot;',
-	"'": '&#39;',
-	'/': '&#x2F;',
-	'`': '&#x60;',
-	'=': '&#x3D;'
-};
-
-function escapeHtml(string: string) {
-	return string.replace(/[&<>"'`=\/]/g, s => entityMap[s]);
-}
-
 class NotebookCellExecution {
 
 	private static _tokenPool = 0;
@@ -407,9 +392,9 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			seen.add(item.url);
 
 			// markdown
-			md += `- [#${item.number}](${item.html_url} "${escapeHtml(item.title)}") ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
+			md += `- [#${item.number}](${item.html_url} "${item.title}") ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
 			if (item.assignee) {
-				md += `- [@${item.assignee.login}](${item.assignee.html_url} "Issue ${item.number} is assigned to ${escapeHtml(item.assignee.login)}")\n`;
+				md += `- [@${item.assignee.login}](${item.assignee.html_url} "Issue ${item.number} is assigned to ${item.assignee.login}")\n`;
 			}
 			md += '\n';
 		}
