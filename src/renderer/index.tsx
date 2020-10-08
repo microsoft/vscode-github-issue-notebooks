@@ -9,5 +9,6 @@ import './style.css';
 const api = acquireNotebookRendererApi('github-issues');
 
 api.onDidCreateOutput(event => {
-	render(<AllItems items={event.output.data[event.mimeType]} />, event.element);
+	const data = event.output.data[event.mimeType];
+	render(<AllItems items={Array.isArray(data) ? data : data.items} />, event.element);
 });
