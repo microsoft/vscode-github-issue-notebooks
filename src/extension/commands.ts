@@ -21,14 +21,14 @@ export function registerCommands(projectContainer: ProjectContainer, notebookPro
 	}));
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.unlockDocument', () => {
-		if (vscode.notebook.activeNotebookEditor) {
-			notebookProvider.setDocumentLockState(vscode.notebook.activeNotebookEditor.document, false);
+		if (vscode.window.activeNotebookEditor) {
+			notebookProvider.setDocumentLockState(vscode.window.activeNotebookEditor.document, false);
 		}
 	}));
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.lockDocument', () => {
-		if (vscode.notebook.activeNotebookEditor) {
-			notebookProvider.setDocumentLockState(vscode.notebook.activeNotebookEditor.document, true);
+		if (vscode.window.activeNotebookEditor) {
+			notebookProvider.setDocumentLockState(vscode.window.activeNotebookEditor.document, true);
 		}
 	}));
 
