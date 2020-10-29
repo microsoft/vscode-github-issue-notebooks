@@ -48,6 +48,9 @@
 .item-state .octicon {
 	fill: var(--vscode-icon-foreground);
 }
+.item-state .octicon.open {
+	fill: var(--vscode-editorWarning-foreground);
+}
 .stats {
 	text-align: center;
 	font-size: 0.7em;
