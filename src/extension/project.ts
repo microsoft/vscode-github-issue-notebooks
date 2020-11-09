@@ -147,7 +147,11 @@ export class ProjectContainer {
 			this._associations.set(notebook, project);
 
 			try {
-				notebook.cells.forEach(cell => project?.getOrCreate(cell.document));
+				for (const cell of notebook.cells) {
+					if (cell.cellKind === vscode.CellKind.Code) {
+						project.getOrCreate(cell.document);
+					}
+				}
 			} catch (err) {
 				console.error('FAILED to eagerly feed notebook cell document into project');
 				console.error(err);
