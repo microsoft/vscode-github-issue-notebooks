@@ -408,9 +408,9 @@ export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 		}
 
 		if (info?.placeholderType === ValuePlaceholderType.Repository) {
-			type RepoInfo = { full_name: string; };
+			type RepoInfo = { full_name: string; html_url: string; description: string; };
 			const response = await octokit.repos.listForAuthenticatedUser({ per_page: 100, sort: 'pushed', affiliation: 'owner,collaborator' });
-			return (<RepoInfo[]>response.data).map(value => ({ label: value.full_name, range }));
+			return (<RepoInfo[]>response.data).map(value => ({ label: value.full_name, range, documentation: new vscode.MarkdownString().appendMarkdown(`${value.description ?? value.full_name}\n\n${value.html_url}`) }));
 		}
 	}
 }
@@ -461,7 +461,7 @@ export class GithubRepoSearchCompletions implements vscode.CompletionItemProvide
 		const items = repos.data.items.map(item => {
 			return <vscode.CompletionItem>{
 				label: item.full_name,
-				description: item.description,
+				description: new vscode.MarkdownString().appendMarkdown(`${item.description ?? item.full_name}\n\n${item.html_url}`),
 				range,
 			};
 		});
