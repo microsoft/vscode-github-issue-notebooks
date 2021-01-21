@@ -4,6 +4,7 @@
 
 import { FunctionComponent, h } from 'preact';
 import { useMemo, useState } from 'preact/hooks';
+import { withEmoji } from '../common/emoji';
 import { SearchIssuesAndPullRequestsResponseItemsItem, SearchIssuesAndPullRequestsResponseItemsItemLabelsItem, SearchIssuesAndPullRequestsResponseItemsItemUser } from '../common/types';
 import { IssueClosedIcon, IssueOpenIcon, PRIcon } from './icons';
 
@@ -67,7 +68,7 @@ const RepoLabel: FunctionComponent<{ url: string; }> = ({ url }) => {
 
 const Label: FunctionComponent<{ label: SearchIssuesAndPullRequestsResponseItemsItemLabelsItem; }> = ({ label }) =>
 	<span className="label" key={label.id} style={{ backgroundColor: `#${label.color}` }}>
-		<a style={{ color: getContrastColor(label.color) }}>{label.name}</a>
+		<a style={{ color: getContrastColor(label.color) }}>{withEmoji(label.name)}</a>
 	</span>;
 
 

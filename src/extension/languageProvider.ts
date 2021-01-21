@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
+import { withEmoji } from '../common/emoji';
 import { GithubData } from './githubDataProvider';
 import { OctokitProvider } from './octokitProvider';
 import { Node, NodeType, QueryDocumentNode, Utils } from './parser/nodes';
@@ -527,7 +528,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 					existing.sortText = String.fromCharCode(0) + existing.label;
 				} else {
 					result.set(label.name, {
-						label: label.name,
+						label: withEmoji(label.name),
 						range,
 						detail: label.description,
 						kind: vscode.CompletionItemKind.Color,
