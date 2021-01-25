@@ -19,8 +19,8 @@
 		"onLanguage:github-issues",
 		"onNotebook:github-issues"
 	],
-	"main": "./dist/extension-node.js",
-	"browser": "./dist/extension-web.js",
+	"main": "./dist/extension.js",
+	"browser": "./dist/extension.js",
 	"extensionKind": [
 		"web",
 		"ui",
@@ -150,16 +150,17 @@
 		}
 	},
 	"scripts": {
-		"vscode:prepublish": "npm run compile",
-		"compile": "webpack --mode none",
-		"watch": "webpack --mode none --watch  --info-verbosity verbose",
+		"vscode:prepublish": "npm run bundle-all",
 		"lint": "eslint --config .eslintrc.json ./src/**/*.ts",
 		"ts-compile": "tsc -b",
 		"integration-test": "npm run ts-compile && node ./out/extension/test-integration/runTest.js",
 		"unit-test": "npm run ts-compile && npx mocha ./out/extension/test-unit",
 		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
-		"deploy": "npx vsce publish --web --noVerify"
+		"deploy": "npx vsce publish --web --noVerify",
+		"bundle-ext": "esbuild src/extension/extension.ts --bundle --tsconfig=src/extension/tsconfig.json --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
+		"bundle-renderer": "esbuild src/renderer/index.tsx --bundle --tsconfig=src/renderer/tsconfig.json --outfile=dist/renderer.js --format=iife --minify --sourcemap",
+		"bundle-all": "npm run bundle-renderer && npm run bundle-ext"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
@@ -167,18 +168,14 @@
 		"@types/node": "^12.11.7",
 		"@typescript-eslint/eslint-plugin": "^2.18.0",
 		"@typescript-eslint/parser": "^2.18.0",
-		"css-loader": "^3.6.0",
+		"esbuild": "^0.8.34",
 		"eslint": "^6.8.0",
 		"glob": "^7.1.6",
 		"husky": "^4.2.3",
 		"mocha": "^8.1.1",
 		"preact": "^10.4.6",
-		"style-loader": "^1.2.1",
-		"ts-loader": "^6.2.2",
 		"typescript": "^3.8.3",
-		"vscode-test": "^1.3.0",
-		"webpack": "^4.42.1",
-		"webpack-cli": "^3.3.11"
+		"vscode-test": "^1.3.0"
 	},
 	"dependencies": {
 		"abort-controller": "^3.0.0",

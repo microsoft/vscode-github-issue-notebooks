@@ -5,7 +5,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "watch",
+			"script": "bundle-all",
 			"presentation": {
 				"echo": true,
 				"reveal": "never",
@@ -14,13 +14,12 @@
 				"showReuseMessage": true,
 				"clear": false
 			},
-			"problemMatcher": [
-				"$ts-webpack-watch"
-			],
 			"runOptions": {
 				"runOn": "folderOpen"
 			},
 			"isBackground": true,
+			"problemMatcher": [],
+			"label": "npm: bundle-all"
 		},
 		{
 			"type": "npm",
@@ -33,7 +32,7 @@
 				"panel": "shared",
 				"showReuseMessage": true,
 				"clear": false
-			},
+			}
 		}
 	]
 }
