@@ -1,0 +1,26 @@
+[
+  {
+    "kind": 1,
+    "language": "github-issues",
+    "value": "### Issue Notebook for the Isses Notebook Repo",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "$repo=repo:microsoft/vscode-github-issue-notebooks",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "$repo is:open no:assignee",
+    "editable": true
+  },
+  {
+    "kind": 2,
+    "language": "github-issues",
+    "value": "$repo is:open",
+    "editable": true
+  }
+]
