@@ -17,7 +17,7 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			// "preLaunchTask": "npm: bundle-all"
+			"preLaunchTask": "npm: bundle-all"
 		},
 		{
 			"name": "Attach to Extension Host",

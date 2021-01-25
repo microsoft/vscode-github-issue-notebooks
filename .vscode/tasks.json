@@ -18,7 +18,7 @@
 				"runOn": "folderOpen"
 			},
 			"isBackground": true,
-			"problemMatcher": [],
+			"problemMatcher": "$tsc",
 			"label": "npm: bundle-all"
 		},
 		{
