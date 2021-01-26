@@ -15,6 +15,10 @@ interface RawNotebookCell {
 	value: string;
 	kind: vscode.CellKind;
 	editable?: boolean;
+	output?: {
+		['x-application/github-issues']: SearchIssuesAndPullRequestsResponseItemsItem[];
+		['text/markdown']: string;
+	};
 }
 
 class NotebookCellExecution {
@@ -226,7 +230,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				source: item.value,
 				language: item.language,
 				cellKind: item.kind,
-				outputs: [],
+				outputs: item.output ? [{ outputKind: vscode.CellOutputKind.Rich, data: item.output }] : [],
 				metadata: { editable: item.editable ?? true, runnable: true }
 			}))
 		};
@@ -253,11 +257,17 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri): Promise<void> {
 		let contents: RawNotebookCell[] = [];
 		for (let cell of document.cells) {
+			const [first] = cell.outputs;
+			let output: any;
+			if (first?.outputKind === vscode.CellOutputKind.Rich) {
+				output = first.data;
+			}
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
 				value: cell.document.getText(),
-				editable: cell.metadata.editable
+				editable: cell.metadata.editable,
+				output
 			});
 		}
 		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents, undefined, 2)));
