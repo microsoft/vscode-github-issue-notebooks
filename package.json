@@ -156,9 +156,7 @@
 		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
 		"deploy": "npx vsce publish --web --noVerify",
-		"bundle-ext": "esbuild src/extension/extension.ts --bundle --tsconfig=src/extension/tsconfig.json --outfile=dist/extension.js --external:vscode --format=cjs --platform=node --sourcemap",
-		"bundle-renderer": "esbuild src/renderer/index.tsx --bundle --tsconfig=src/renderer/tsconfig.json --outfile=dist/renderer.js --format=iife --minify --sourcemap",
-		"bundle-all": "npm run bundle-renderer && npm run bundle-ext"
+		"bundle-all": "node esbuild.js"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
