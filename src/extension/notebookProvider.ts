@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import AbortController from "abort-controller";
+import { Buffer } from 'buffer';
 import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
