@@ -5,9 +5,9 @@
 
 import * as assert from 'assert';
 import { suite, test } from 'mocha';
-import { Parser } from '../parser/parser';
-import { SymbolTable } from '../parser/symbols';
-import { Code, validateQueryDocument } from '../parser/validation';
+import { Parser } from '../../src/extension/parser/parser';
+import { SymbolTable } from '../../src/extension/parser/symbols';
+import { Code, validateQueryDocument } from '../../src/extension/parser/validation';
 
 suite('Validation', function () {
 

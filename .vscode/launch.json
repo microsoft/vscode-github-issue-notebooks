@@ -52,7 +52,7 @@
 			"runtimeExecutable": "${execPath}",
 			"args": [
 				"--extensionDevelopmentPath=${workspaceFolder}",
-				"--extensionTestsPath=${workspaceFolder}/out/test-integration/index"
+				"--extensionTestsPath=${workspaceFolder}/out/test/test-integration/index"
 			],
 			"outFiles": [
 				"${workspaceFolder}/out/test-integration/**/*.js"

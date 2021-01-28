@@ -1,12 +1,11 @@
 {
 	"extends": "../../tsconfig.base.json",
 	"compilerOptions": {
-		"composite": true,
-		"outDir": "../../out/src/extension",
+		"outDir": "../../out/test/test-unit",
 	},
 	"references": [
 		{
-			"path": "../common"
+			"path": "../../src/extension/tsconfig.json",
 		}
 	]
 }

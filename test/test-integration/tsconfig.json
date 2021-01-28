@@ -1,0 +1,15 @@
+{
+	"extends": "../../tsconfig.base.json",
+	"compilerOptions": {
+		"outDir": "../../out/test/test-integration",
+	},
+	"include": [
+		"./**.ts",
+		"../../src/extension/vscode*.d.ts",
+	],
+	"references": [
+		{
+			"path": "../../src/extension/tsconfig.json",
+		}
+	]
+}

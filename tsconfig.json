@@ -9,6 +9,12 @@
 		},
 		{
 			"path": "./src/extension"
+		},
+		{
+			"path": "./test/test-unit"
+		},
+		{
+			"path": "./test/test-integration"
 		}
 	]
 }

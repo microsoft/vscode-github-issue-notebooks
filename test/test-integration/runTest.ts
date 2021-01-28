@@ -18,7 +18,16 @@ async function main() {
 		const extensionTestsPath = path.resolve(__dirname, './index');
 
 		// Download VS Code, unzip it and run the integration test
-		await runTests({ extensionDevelopmentPath, extensionTestsPath, /* version: 'insiders'  */ });
+		await runTests({
+			extensionDevelopmentPath,
+			extensionTestsPath,
+			launchArgs: [
+				'--enable-proposed-api=ms-vscode.vscode-github-issue-notebooks',
+				'--disable-extensions'
+			],
+			// version: 'insiders' 
+
+		});
 	} catch (err) {
 		console.error('Failed to run tests');
 		process.exit(1);

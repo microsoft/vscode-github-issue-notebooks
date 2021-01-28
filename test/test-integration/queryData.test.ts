@@ -3,10 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-
 import * as assert from 'assert';
 import * as vscode from 'vscode';
-import { Project } from '../project';
+import { Project } from '../../src/extension/project';
 
 suite('Project', () => {
 
