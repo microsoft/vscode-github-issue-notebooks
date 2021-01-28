@@ -16,7 +16,7 @@ esbuild.build({
 	platform: 'node',
 	sourcemap: true,
 	minify: false // AbortSignal-module has issues...
-}).catch(err => console.err(err)).finally('[done] build extension');
+});
 
 // renderer
 esbuild.build({
@@ -28,4 +28,4 @@ esbuild.build({
 	platform: 'browser',
 	sourcemap: true,
 	minify: true,
-}).catch(err => console.err(err)).finally('[done] build renderer');
+});
