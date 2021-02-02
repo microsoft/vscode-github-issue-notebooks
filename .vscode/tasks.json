@@ -18,7 +18,6 @@
 				"runOn": "folderOpen"
 			},
 			"isBackground": true,
-			"problemMatcher": "$tsc-watch",
 			"label": "npm: bundle-watch"
 		},
 		{
