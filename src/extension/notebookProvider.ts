@@ -33,9 +33,13 @@ class NotebookCellExecution {
 	constructor(readonly cell: vscode.NotebookCell) {
 		NotebookCellExecution._tokens.set(this.cell, this._token);
 		this._originalRunState = cell.metadata.runState;
-		cell.metadata.runState = vscode.NotebookCellRunState.Running;
-		cell.metadata.runStartTime = this._startTime;
-		cell.metadata.statusMessage = undefined;
+		const edit = new vscode.WorkspaceEdit();
+		edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, {
+			runState: vscode.NotebookCellRunState.Running,
+			runStartTime: this._startTime,
+			statusMessage: undefined,
+		});
+		vscode.workspace.applyEdit(edit);
 	}
 
 	private _isLatest(): boolean {
@@ -51,29 +55,37 @@ class NotebookCellExecution {
 		}
 	}
 
-	resolve(outputs: vscode.CellOutput[], message?: string): void {
+	resolve(outputs: vscode.NotebookCellOutput[], message?: string): void {
 		if (this._isLatest()) {
-			this.cell.metadata.executionOrder = this._token;
-			this.cell.metadata.runState = vscode.NotebookCellRunState.Success;
-			this.cell.metadata.lastRunDuration = Date.now() - this._startTime;
-			this.cell.metadata.statusMessage = message;
-			this.cell.outputs = outputs;
+			const edit = new vscode.WorkspaceEdit();
+			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, {
+				executionOrder: this._token,
+				runState: vscode.NotebookCellRunState.Success,
+				lastRunDuration: Date.now() - this._startTime,
+				statusMessage: message,
+			});
+			edit.replaceNotebookCellOutput(this.cell.notebook.uri, this.cell.index, outputs);
+			vscode.workspace.applyEdit(edit);
 		}
 	}
 
 	reject(err: any): void {
 		if (this._isLatest()) {
 			// print as error
-			this.cell.metadata.executionOrder = this._token;
-			this.cell.metadata.statusMessage = 'Error';
-			this.cell.metadata.lastRunDuration = undefined;
-			this.cell.metadata.runState = vscode.NotebookCellRunState.Error;
-			this.cell.outputs = [{
+			const edit = new vscode.WorkspaceEdit();
+			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, {
+				executionOrder: this._token,
+				statusMessage: 'Error',
+				lastRunDuration: undefined,
+				runState: vscode.NotebookCellRunState.Error,
+			});
+			edit.replaceNotebookCellOutput(this.cell.notebook.uri, this.cell.index, [{
 				outputKind: vscode.CellOutputKind.Error,
 				ename: err instanceof Error && err.name || 'error',
 				evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
 				traceback: []
-			}];
+			}]);
+			vscode.workspace.applyEdit(edit);
 		}
 	}
 
@@ -402,13 +414,10 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		// status line
 		if (allItems.length) {
-			execution.resolve([{
-				outputKind: vscode.CellOutputKind.Rich,
-				data: {
-					['x-application/github-issues']: allItems,
-					['text/markdown']: md,
-				}
-			}]);
+			execution.resolve([new vscode.NotebookCellOutput([
+				new vscode.NotebookCellOutputItem('text/markdown', md),
+				new vscode.NotebookCellOutputItem('x-application/github-issues', allItems),
+			])]);
 		} else {
 			execution.resolve([], 'No results');
 		}
