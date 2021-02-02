@@ -156,7 +156,8 @@
 		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
 		"deploy": "npx vsce publish --web --noVerify",
-		"bundle-all": "node esbuild.js"
+		"bundle-all": "node esbuild.js",
+		"bundle-watch": "node esbuild.js --watch"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",

@@ -5,7 +5,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "bundle-all",
+			"script": "bundle-watch",
 			"presentation": {
 				"echo": true,
 				"reveal": "never",
@@ -17,9 +17,9 @@
 			"runOptions": {
 				"runOn": "folderOpen"
 			},
-			// "isBackground": true,
-			"problemMatcher": "$tsc",
-			"label": "npm: bundle-all"
+			"isBackground": true,
+			"problemMatcher": "$tsc-watch",
+			"label": "npm: bundle-watch"
 		},
 		{
 			"type": "npm",
