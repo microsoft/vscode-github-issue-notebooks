@@ -79,12 +79,13 @@ class NotebookCellExecution {
 				lastRunDuration: undefined,
 				runState: vscode.NotebookCellRunState.Error,
 			});
-			edit.replaceNotebookCellOutput(this.cell.notebook.uri, this.cell.index, [{
-				outputKind: vscode.CellOutputKind.Error,
-				ename: err instanceof Error && err.name || 'error',
-				evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
-				traceback: []
-			}]);
+			edit.replaceNotebookCellOutput(this.cell.notebook.uri, this.cell.index, [new vscode.NotebookCellOutput([
+				new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', {
+					ename: err instanceof Error && err.name || 'error',
+					evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
+					traceback: []
+				})
+			])]);
 			vscode.workspace.applyEdit(edit);
 		}
 	}
