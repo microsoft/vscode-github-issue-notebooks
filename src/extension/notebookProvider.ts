@@ -4,7 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import AbortController from "abort-controller";
-import { Buffer } from 'buffer';
+import { TextDecoder, TextEncoder } from "util";
 import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
@@ -386,7 +386,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		let actualUri = context.backupId ? vscode.Uri.parse(context.backupId) : uri;
 		let contents = '';
 		try {
-			contents = Buffer.from(await vscode.workspace.fs.readFile(actualUri)).toString('utf8');
+			contents = new TextDecoder().decode(await vscode.workspace.fs.readFile(actualUri));
 		} catch {
 		}
 
@@ -443,7 +443,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				editable: cell.metadata.editable
 			});
 		}
-		await vscode.workspace.fs.writeFile(targetResource, Buffer.from(JSON.stringify(contents, undefined, 2)));
+		await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(JSON.stringify(contents, undefined, 2)));
 	}
 }
 

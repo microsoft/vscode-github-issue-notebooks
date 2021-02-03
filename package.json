@@ -176,7 +176,6 @@
 	},
 	"dependencies": {
 		"@octokit/rest": "^17.1.0",
-		"abort-controller": "^3.0.0",
-		"buffer": "^6.0.3"
+		"abort-controller": "^3.0.0"
 	}
 }
