@@ -25,7 +25,8 @@ export function activate(context: vscode.ExtensionContext) {
 			runStartTime: true,
 			executionOrder: true,
 			lastRunDuration: true,
-			statusMessage: true
+			statusMessage: true,
+			editable: false,
 		}
 	}));
 	context.subscriptions.push(registerLanguageProvider(projectContainer, octokit));

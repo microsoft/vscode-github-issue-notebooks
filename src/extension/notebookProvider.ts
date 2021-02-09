@@ -50,8 +50,10 @@ class NotebookCellExecution {
 	cancel(): void {
 		if (this._isLatest()) {
 			this.cts.cancel();
-			this.cell.metadata.runState = this._originalRunState;
 			NotebookCellExecution._tokens.delete(this.cell);
+			const edit = new vscode.WorkspaceEdit();
+			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, { runState: this._originalRunState });
+			vscode.workspace.applyEdit(edit);
 		}
 	}
 
@@ -109,7 +111,9 @@ class NotebookDocumentExecution {
 	constructor(readonly document: vscode.NotebookDocument) {
 		NotebookDocumentExecution._tokens.set(this.document, this._token);
 		this._originalRunState = document.metadata.runState;
-		document.metadata.runState = vscode.NotebookRunState.Running;
+		const edit = new vscode.WorkspaceEdit();
+		edit.replaceNotebookMetadata(document.uri, { runState: vscode.NotebookRunState.Running, });
+		vscode.workspace.applyEdit(edit);
 	}
 
 	private _isLatest(): boolean {
@@ -120,14 +124,18 @@ class NotebookDocumentExecution {
 	cancel(): void {
 		if (this._isLatest()) {
 			this.cts.cancel();
-			this.document.metadata.runState = this._originalRunState;
+			const edit = new vscode.WorkspaceEdit();
+			edit.replaceNotebookMetadata(this.document.uri, { runState: this._originalRunState });
+			vscode.workspace.applyEdit(edit);
 			NotebookDocumentExecution._tokens.delete(this.document);
 		}
 	}
 
 	resolve(): void {
 		if (this._isLatest()) {
-			this.document.metadata.runState = vscode.NotebookRunState.Idle;
+			const edit = new vscode.WorkspaceEdit();
+			edit.replaceNotebookMetadata(this.document.uri, { runState: vscode.NotebookRunState.Idle });
+			vscode.workspace.applyEdit(edit);
 		}
 	}
 
@@ -371,14 +379,15 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	// -- utils
 
 	setCellLockState(cell: vscode.NotebookCell, locked: boolean) {
-		cell.metadata = { ...cell.metadata, editable: !locked };
+		const edit = new vscode.WorkspaceEdit();
+		edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, { ...cell.metadata, editable: !locked });
+		return vscode.workspace.applyEdit(edit);
 	}
 
 	setDocumentLockState(notebook: vscode.NotebookDocument, locked: boolean) {
-		const redo = () => { notebook.metadata = { ...notebook.metadata, editable: !locked, cellEditable: !locked }; };
-		const undo = () => { notebook.metadata = { ...notebook.metadata, editable: !locked, cellEditable: !locked }; };
-		redo();
-		this._onDidChangeNotebook.fire({ document: notebook, undo, redo });
+		const edit = new vscode.WorkspaceEdit();
+		edit.replaceNotebookMetadata(notebook.uri, { ...notebook.metadata, editable: !locked, cellEditable: !locked });
+		return vscode.workspace.applyEdit(edit);
 	}
 
 	// -- IO
