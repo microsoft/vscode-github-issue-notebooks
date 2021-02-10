@@ -14,13 +14,11 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "$repo is:open no:assignee",
-    "editable": true
+    "value": "$repo is:open no:assignee"
   },
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "$repo is:open",
-    "editable": true
+    "value": "$repo is:open"
   }
 ]
