@@ -43,8 +43,8 @@ const incremental = process.argv.includes('--watch');
 
 	if (incremental) {
 		fs.watch(path.join(__dirname, 'src'), { recursive: true }, async function () {
-			await buildExtension.rebuild();
-			await buildRenderer.rebuild();
+			await buildExtension.rebuild().catch(err => console.error(err));
+			await buildRenderer.rebuild().catch(err => console.error(err));
 		});
 	}
 })();
