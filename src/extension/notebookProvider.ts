@@ -300,7 +300,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		if (allItems.length) {
 			execution.resolve([new vscode.NotebookCellOutput([
 				new vscode.NotebookCellOutputItem('text/markdown', md),
-				new vscode.NotebookCellOutputItem('x-application/github-issues', allItems),
+				new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems),
 			])]);
 		} else {
 			execution.resolve([], 'No results');
@@ -324,9 +324,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernelProvider {
 
-
-	private readonly _onDidChangeNotebook = new vscode.EventEmitter<vscode.NotebookDocumentEditEvent>();
-	readonly onDidChangeNotebook: vscode.Event<vscode.NotebookDocumentEditEvent> = this._onDidChangeNotebook.event;
+	static mimeGithubIssues = 'x-application/github-issues';
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
 	private readonly _cellStatusBarItems = new WeakMap<vscode.NotebookCell, vscode.NotebookCellStatusBarItem>();
@@ -336,23 +334,29 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		readonly octokit: OctokitProvider
 	) {
 		this._localDisposables.push(vscode.notebook.onDidChangeCellOutputs(e => {
-			e.cells.forEach(cell => {
-				if (cell.outputs.length) {
-					const output = <vscode.CellDisplayOutput>cell.outputs.filter(output => output.outputKind === vscode.CellOutputKind.Rich)[0];
-					if (!output) {
-						return;
-					}
-					const issues = <{ html_url: string; }[]>output.data['x-application/github-issues'];
-					if (!issues) {
-						return;
+
+			for (let cell of e.cells) {
+				if (cell.outputs.length > 0) {
+
+					let issues: { html_url: string; }[] | undefined;
+					out: for (let output of cell.outputs) {
+						for (let item of output.outputs) {
+							if (item.mime === IssuesNotebookProvider.mimeGithubIssues) {
+								issues = item.value as { html_url: string; }[];
+								break out;
+							}
+						}
 					}
 
-					const item = this._cellStatusBarItems.get(cell) ?? vscode.notebook.createCellStatusBarItem(cell, vscode.NotebookCellStatusBarAlignment.Right);
-					this._cellStatusBarItems.set(cell, item);
-					item.command = 'github-issues.openAll';
-					item.text = `$(globe) Open ${issues.length} results`;
-					item.tooltip = `Open ${issues.length} results in browser`;
-					item.show();
+					if (issues) {
+						const item = this._cellStatusBarItems.get(cell) ?? vscode.notebook.createCellStatusBarItem(cell, vscode.NotebookCellStatusBarAlignment.Right);
+						this._cellStatusBarItems.set(cell, item);
+						item.command = 'github-issues.openAll';
+						item.text = `$(globe) Open ${issues.length} results`;
+						item.tooltip = `Open ${issues.length} results in browser`;
+						item.show();
+					}
+
 				} else {
 					const item = this._cellStatusBarItems.get(cell);
 					if (item) {
@@ -360,7 +364,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 						this._cellStatusBarItems.delete(cell);
 					}
 				}
-			});
+			}
 		}));
 	}
 
@@ -413,7 +417,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			metadata: {
 				cellRunnable: true,
 				cellHasExecutionOrder: true,
-				displayOrder: ['x-application/github-issues', 'text/markdown']
+				displayOrder: [IssuesNotebookProvider.mimeGithubIssues, 'text/markdown']
 			},
 			cells: raw.map(item => ({
 				source: item.value,

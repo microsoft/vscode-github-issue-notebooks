@@ -34,14 +34,19 @@ export function registerCommands(projectContainer: ProjectContainer, notebookPro
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.openAll', async (cell: vscode.NotebookCell) => {
 
-		const output = <vscode.CellDisplayOutput>cell.outputs.filter(output => output.outputKind === vscode.CellOutputKind.Rich)[0];
-		if (!output) {
-			return;
+		let items: { html_url: string; }[] | undefined;
+		out: for (let output of cell.outputs) {
+			for (let item of output.outputs) {
+				if (item.mime === IssuesNotebookProvider.mimeGithubIssues) {
+					items = item.value as { html_url: string; }[];
+					break out;
+				}
+			}
 		}
-		const items = <{ html_url: string; }[]>output.data['x-application/github-issues'];
 		if (!items) {
 			return;
 		}
+
 		if (items.length > 10) {
 			const option = await vscode.window.showInformationMessage(
 				`This will open ${items.length} browser tabs. Do you want to continue?`,
