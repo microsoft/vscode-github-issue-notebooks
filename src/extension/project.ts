@@ -148,7 +148,7 @@ export class ProjectContainer {
 
 			try {
 				for (const cell of notebook.cells) {
-					if (cell.cellKind === vscode.CellKind.Code) {
+					if (cell.cellKind === vscode.NotebookCellKind.Code) {
 						project.getOrCreate(cell.document);
 					}
 				}

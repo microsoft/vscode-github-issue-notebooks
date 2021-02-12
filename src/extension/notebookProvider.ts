@@ -14,7 +14,7 @@ import { isRunnable } from './utils';
 interface RawNotebookCell {
 	language: string;
 	value: string;
-	kind: vscode.CellKind;
+	kind: vscode.NotebookCellKind;
 	editable?: boolean;
 }
 
@@ -148,6 +148,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 	readonly id = 'githubIssueKernel';
 	readonly label: string = 'GitHub Issues Kernel';
+	readonly supportedLanguages: string[] = ['github-issues'];
 
 	// description?: string | undefined;
 	// detail?: string | undefined;
@@ -174,7 +175,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			execution.cts.token.onCancellationRequested(() => this.cancelCellExecution(document, currentCell));
 
 			for (let cell of document.cells) {
-				if (cell.cellKind === vscode.CellKind.Code) {
+				if (cell.cellKind === vscode.NotebookCellKind.Code) {
 					currentCell = cell;
 					await this.executeCell(document, cell);
 
@@ -413,7 +414,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}
 
 		const notebookData: vscode.NotebookData = {
-			languages: ['github-issues'],
 			metadata: {
 				cellRunnable: true,
 				cellHasExecutionOrder: true,
