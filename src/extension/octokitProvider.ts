@@ -13,7 +13,7 @@ export class OctokitProvider {
 
 	async lib() {
 		try {
-			const session = await vscode.authentication.getSession('github', ['repo'], { createIfNone: true });
+			const session = await vscode.authentication.getSession('github', ['repo'], { createIfNone: false });
 			if (!session) {
 				console.warn('NO SESSION');
 				return this._octokit;
@@ -22,6 +22,7 @@ export class OctokitProvider {
 			this._isAuthenticated = true;
 
 		} catch (err) {
+			this._isAuthenticated = false;
 			// no token
 			console.warn('FAILED TO AUTHENTICATE');
 			console.warn(err);

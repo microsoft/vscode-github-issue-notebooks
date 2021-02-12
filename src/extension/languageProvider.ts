@@ -653,7 +653,7 @@ export class LanguageValidation extends IProjectValidation {
 
 export class GithubValidation extends IProjectValidation {
 
-	constructor(readonly githubData: GithubData) {
+	constructor(readonly githubData: GithubData, readonly octokit: OctokitProvider) {
 		super();
 	}
 
@@ -702,6 +702,14 @@ export class GithubValidation extends IProjectValidation {
 							newDiagnostics.push(diag);
 						}
 					}));
+
+				} else if (info?.placeholderType === ValuePlaceholderType.Username) {
+					if (value === '@me') {
+						await this.octokit.lib();
+						if (!this.octokit.isAuthenticated) {
+							newDiagnostics.push(new vscode.Diagnostic(project.rangeOf(node.value), `@me is ignored because you are not logged in`, vscode.DiagnosticSeverity.Warning));
+						}
+					}
 				}
 			});
 
@@ -772,6 +780,11 @@ export class Validation {
 				validateAllSoon(500);
 			}
 		}));
+		this._disposables.push(vscode.authentication.onDidChangeSessions(e => {
+			if (e.provider.id === 'github') {
+				validateAllSoon();
+			}
+		}));
 		this._disposables.push(container.onDidChange(() => {
 			validateAllSoon();
 		}));
@@ -814,7 +827,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 
 	disposables.push(new Validation(container, [
 		new LanguageValidation(),
-		new GithubValidation(githubData)
+		new GithubValidation(githubData, octokit)
 	]));
 
 	return vscode.Disposable.from(...disposables);
