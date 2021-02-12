@@ -9,13 +9,19 @@ import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
 import { ProjectContainer } from './project';
-import { isRunnable } from './utils';
+import { isRunnable, isUsingAtMe } from './utils';
+
+interface RawCellOutput {
+	mime: string;
+	value: any;
+}
 
 interface RawNotebookCell {
 	language: string;
 	value: string;
 	kind: vscode.NotebookCellKind;
 	editable?: boolean;
+	outputs: RawCellOutput[];
 }
 
 class NotebookCellExecution {
@@ -144,6 +150,8 @@ class NotebookDocumentExecution {
 	}
 }
 
+type OutputMetadataShape = Partial<{ startTime: number, isPersonal: boolean; }>;
+
 class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 	readonly id = 'githubIssueKernel';
@@ -235,6 +243,11 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			return;
 		}
 
+		const metadata: OutputMetadataShape = {
+			isPersonal: isUsingAtMe(query),
+			startTime: Date.now()
+		};
+
 		const allQueryData = project.queryData(query);
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
 		let tooLarge = false;
@@ -300,8 +313,8 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		// status line
 		if (allItems.length) {
 			execution.resolve([new vscode.NotebookCellOutput([
-				new vscode.NotebookCellOutputItem('text/markdown', md),
-				new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems),
+				new vscode.NotebookCellOutputItem('text/markdown', md, metadata),
+				new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems, metadata),
 			])]);
 		} else {
 			execution.resolve([], 'No results');
@@ -423,8 +436,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				source: item.value,
 				language: item.language,
 				cellKind: item.kind,
-				outputs: [],
-				metadata: { editable: item.editable ?? true, runnable: true }
+				outputs: item.outputs ? [new vscode.NotebookCellOutput(item.outputs.map(raw => new vscode.NotebookCellOutputItem(raw.mime, raw.value)))] : [],
+				metadata: { editable: item.editable ?? true, runnable: true },
 			}))
 		};
 
@@ -448,13 +461,29 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 	}
 
 	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri): Promise<void> {
+
+		function asRawOutput(cell: vscode.NotebookCell): RawCellOutput[] {
+			let result: RawCellOutput[] = [];
+			for (let output of cell.outputs) {
+				for (let item of output.outputs) {
+					if ((<OutputMetadataShape>item.metadata)?.isPersonal) {
+						// don't store output that uses @me
+						continue;
+					}
+					result.push({ mime: item.mime, value: item.value });
+				}
+			}
+			return result;
+		}
+
 		let contents: RawNotebookCell[] = [];
 		for (let cell of document.cells) {
 			contents.push({
 				kind: cell.cellKind,
 				language: cell.language,
 				value: cell.document.getText(),
-				editable: cell.metadata.editable
+				editable: cell.metadata.editable,
+				outputs: asRawOutput(cell)
 			});
 		}
 		await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(JSON.stringify(contents, undefined, 2)));

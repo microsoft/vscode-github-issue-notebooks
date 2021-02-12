@@ -16,7 +16,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const notebookProvider = new IssuesNotebookProvider(projectContainer, octokit);
 	context.subscriptions.push(vscode.notebook.registerNotebookKernelProvider({ viewType: 'github-issues' }, notebookProvider));
 	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', notebookProvider, {
-		transientOutputs: true,
+		transientOutputs: false,
 		transientMetadata: {
 			runnable: true,
 			inputCollapsed: true,

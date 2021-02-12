@@ -4,6 +4,7 @@
  *--------------------------------------------------------------------------------------------*/
 
 import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from "./parser/nodes";
+import { QualifiedValueNodeSchema, ValuePlaceholderType } from "./parser/symbols";
 import { Project } from "./project";
 
 export interface RepoInfo {
@@ -57,7 +58,19 @@ export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: Qu
 	}
 }
 
-
 export function isRunnable(query: QueryDocumentNode): boolean {
 	return query.nodes.some(node => node._type === NodeType.Query || node._type === NodeType.OrExpression);
+}
+
+export function isUsingAtMe(query: QueryDocumentNode): boolean {
+	let result = false;
+	Utils.walk(query, node => {
+		if (node._type === NodeType.QualifiedValue && node.value._type === NodeType.Literal && node.value.value === '@me') {
+			const info = QualifiedValueNodeSchema.get(node.qualifier.value);
+			if (info?.placeholderType === ValuePlaceholderType.Username) {
+				result = true;
+			}
+		}
+	});
+	return result;
 }
