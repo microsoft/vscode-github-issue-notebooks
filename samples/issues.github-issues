@@ -8,14 +8,12 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "$repo=repo:microsoft/vscode-github-issue-notebooks",
-    "editable": true
+    "value": "$repo=repo:microsoft/vscode-github-issue-notebooks"
   },
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "$repo is:open no:assignee",
-    "editable": true
+    "value": "$repo is:open no:assignee"
   },
   {
     "kind": 2,

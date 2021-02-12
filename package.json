@@ -129,8 +129,8 @@
 			],
 			"notebook/cell/title": [
 				{
-					"command": "github-issues.openAll",
-					"alt": "github-issues.openUrl",
+					"command": "github-issues.openUrl",
+					"alt": "github-issues.openAll",
 					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellHasOutputs",
 					"group": "inline/output@1"
 				},
