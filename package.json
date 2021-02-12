@@ -153,7 +153,7 @@
 		"ts-compile": "tsc -b",
 		"integration-test": "npm run ts-compile && node ./out/test/test-integration/runTest.js",
 		"unit-test": "npm run ts-compile && npx mocha ./out/test/test-unit",
-		"compile-lint-test": "npm run compile && npm run lint && npm run unit-test",
+		"compile-lint-test": "npm run ts-compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
 		"deploy": "npx vsce publish --web --noVerify",
 		"bundle-all": "node esbuild.js",
