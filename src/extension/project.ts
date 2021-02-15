@@ -177,8 +177,10 @@ export class ProjectContainer {
 				for (let cell of change.deletedItems) {
 					project.delete(cell.document);
 				}
-				for (let cell of change.items) {
-					project.getOrCreate(cell.document);
+				for (const cell of change.items) {
+					if (cell.cellKind === vscode.NotebookCellKind.Code) {
+						project.getOrCreate(cell.document);
+					}
 				}
 			}
 			this._onDidChange.fire(project);
