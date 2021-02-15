@@ -15,7 +15,7 @@
 	"categories": [
 		"Other"
 	],
-	"icon": "./icon.png",
+	"icon": "icon.png",
 	"activationEvents": [
 		"onLanguage:github-issues",
 		"onNotebook:github-issues"
