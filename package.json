@@ -15,7 +15,7 @@
 	"categories": [
 		"Other"
 	],
-	"icon": "https://github.com/microsoft/vscode-github-issue-notebooks/raw/master/icon.png",
+	"icon": "https://github.com/microsoft/vscode-github-issue-notebooks/raw/71ef8dcb1370c10633ea5fc431b70fa243ef0a2d/icon.png",
 	"activationEvents": [
 		"onLanguage:github-issues",
 		"onNotebook:github-issues"
