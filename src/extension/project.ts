@@ -38,15 +38,16 @@ export class Project {
 
 	delete(doc: vscode.TextDocument): void {
 		this._cached.delete(doc.uri.toString());
+		this.symbols.delete(doc.uri.toString());
 	}
 
 	all() {
 		return this._cached.values();
 	}
 
-	private _lookUp(node?: Node, uri?: vscode.Uri) {
+	private _lookUp(node: Node, uri?: vscode.Uri) {
 		if (!uri) {
-			uri = this._nodeToUri.get(node!);
+			uri = this._nodeToUri.get(node);
 		}
 		if (!uri) {
 			throw new Error('unknown node');

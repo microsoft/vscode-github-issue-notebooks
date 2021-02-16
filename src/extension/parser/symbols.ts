@@ -26,6 +26,10 @@ export class SymbolTable {
 
 	private readonly _data = new Map<string, SymbolInfo[]>();
 
+	delete(id: string) {
+		this._data.delete(id);
+	}
+
 	update(query: QueryDocumentNode) {
 
 		// remove old
