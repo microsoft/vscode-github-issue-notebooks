@@ -118,7 +118,7 @@ class NotebookDocumentExecution {
 		NotebookDocumentExecution._tokens.set(this.document, this._token);
 		this._originalRunState = document.metadata.runState;
 		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookMetadata(document.uri, { runState: vscode.NotebookRunState.Running, });
+		edit.replaceNotebookMetadata(document.uri, { ...document.metadata, runState: vscode.NotebookRunState.Running, });
 		vscode.workspace.applyEdit(edit);
 	}
 
@@ -131,7 +131,7 @@ class NotebookDocumentExecution {
 		if (this._isLatest()) {
 			this.cts.cancel();
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookMetadata(this.document.uri, { runState: this._originalRunState });
+			edit.replaceNotebookMetadata(this.document.uri, { ...this.document.metadata, runState: this._originalRunState });
 			vscode.workspace.applyEdit(edit);
 			NotebookDocumentExecution._tokens.delete(this.document);
 		}
@@ -140,7 +140,7 @@ class NotebookDocumentExecution {
 	resolve(): void {
 		if (this._isLatest()) {
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookMetadata(this.document.uri, { runState: vscode.NotebookRunState.Idle });
+			edit.replaceNotebookMetadata(this.document.uri, { ...this.document.metadata, runState: vscode.NotebookRunState.Idle });
 			vscode.workspace.applyEdit(edit);
 		}
 	}
