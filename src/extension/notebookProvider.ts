@@ -313,9 +313,9 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		// status line
 		if (allItems.length) {
 			execution.resolve([new vscode.NotebookCellOutput([
-				new vscode.NotebookCellOutputItem('text/markdown', md, metadata),
-				new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems, metadata),
-			])]);
+				new vscode.NotebookCellOutputItem('text/markdown', md),
+				new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems),
+			], metadata)]);
 		} else {
 			execution.resolve([], 'No results');
 		}
@@ -465,11 +465,11 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		function asRawOutput(cell: vscode.NotebookCell): RawCellOutput[] {
 			let result: RawCellOutput[] = [];
 			for (let output of cell.outputs) {
+				if ((<OutputMetadataShape>output.metadata)?.isPersonal) {
+					// don't store output that uses @me
+					continue;
+				}
 				for (let item of output.outputs) {
-					if ((<OutputMetadataShape>item.metadata)?.isPersonal) {
-						// don't store output that uses @me
-						continue;
-					}
 					result.push({ mime: item.mime, value: item.value });
 				}
 			}
