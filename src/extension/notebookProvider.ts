@@ -40,11 +40,11 @@ class NotebookCellExecution {
 		NotebookCellExecution._tokens.set(this.cell, this._token);
 		this._originalRunState = cell.metadata.runState;
 		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, {
+		edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, cell.metadata.with({
 			runState: vscode.NotebookCellRunState.Running,
 			runStartTime: this._startTime,
 			statusMessage: undefined,
-		});
+		}));
 		vscode.workspace.applyEdit(edit);
 	}
 
@@ -58,7 +58,7 @@ class NotebookCellExecution {
 			this.cts.cancel();
 			NotebookCellExecution._tokens.delete(this.cell);
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, { runState: this._originalRunState });
+			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, this.cell.metadata.with({ runState: this._originalRunState }));
 			vscode.workspace.applyEdit(edit);
 		}
 	}
@@ -66,12 +66,12 @@ class NotebookCellExecution {
 	resolve(outputs: vscode.NotebookCellOutput[], message?: string): void {
 		if (this._isLatest()) {
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, {
+			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, this.cell.metadata.with({
 				executionOrder: this._token,
 				runState: vscode.NotebookCellRunState.Success,
 				lastRunDuration: Date.now() - this._startTime,
 				statusMessage: message,
-			});
+			}));
 			edit.replaceNotebookCellOutput(this.cell.notebook.uri, this.cell.index, outputs);
 			vscode.workspace.applyEdit(edit);
 		}
@@ -81,12 +81,12 @@ class NotebookCellExecution {
 		if (this._isLatest()) {
 			// print as error
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, {
+			edit.replaceNotebookCellMetadata(this.cell.notebook.uri, this.cell.index, this.cell.metadata.with({
 				executionOrder: this._token,
 				statusMessage: 'Error',
 				lastRunDuration: undefined,
 				runState: vscode.NotebookCellRunState.Error,
-			});
+			}));
 			edit.replaceNotebookCellOutput(this.cell.notebook.uri, this.cell.index, [new vscode.NotebookCellOutput([
 				new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', {
 					ename: err instanceof Error && err.name || 'error',
@@ -118,7 +118,7 @@ class NotebookDocumentExecution {
 		NotebookDocumentExecution._tokens.set(this.document, this._token);
 		this._originalRunState = document.metadata.runState;
 		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookMetadata(document.uri, { ...document.metadata, runState: vscode.NotebookRunState.Running, });
+		edit.replaceNotebookMetadata(document.uri, document.metadata.with({ runState: vscode.NotebookRunState.Running, }));
 		vscode.workspace.applyEdit(edit);
 	}
 
@@ -131,7 +131,7 @@ class NotebookDocumentExecution {
 		if (this._isLatest()) {
 			this.cts.cancel();
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookMetadata(this.document.uri, { ...this.document.metadata, runState: this._originalRunState });
+			edit.replaceNotebookMetadata(this.document.uri, this.document.metadata.with({ runState: this._originalRunState }));
 			vscode.workspace.applyEdit(edit);
 			NotebookDocumentExecution._tokens.delete(this.document);
 		}
@@ -140,7 +140,7 @@ class NotebookDocumentExecution {
 	resolve(): void {
 		if (this._isLatest()) {
 			const edit = new vscode.WorkspaceEdit();
-			edit.replaceNotebookMetadata(this.document.uri, { ...this.document.metadata, runState: vscode.NotebookRunState.Idle });
+			edit.replaceNotebookMetadata(this.document.uri, this.document.metadata.with({ runState: vscode.NotebookRunState.Idle }));
 			vscode.workspace.applyEdit(edit);
 		}
 	}
@@ -398,13 +398,13 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	setCellLockState(cell: vscode.NotebookCell, locked: boolean) {
 		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, { ...cell.metadata, editable: !locked });
+		edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({ editable: !locked }));
 		return vscode.workspace.applyEdit(edit);
 	}
 
 	setDocumentLockState(notebook: vscode.NotebookDocument, locked: boolean) {
 		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookMetadata(notebook.uri, { ...notebook.metadata, editable: !locked, cellEditable: !locked });
+		edit.replaceNotebookMetadata(notebook.uri, notebook.metadata.with({ editable: !locked, cellEditable: !locked }));
 		return vscode.workspace.applyEdit(edit);
 	}
 
@@ -427,17 +427,17 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		}
 
 		const notebookData: vscode.NotebookData = {
-			metadata: {
+			metadata: new vscode.NotebookDocumentMetadata().with({
 				cellRunnable: true,
 				cellHasExecutionOrder: true,
 				displayOrder: [IssuesNotebookProvider.mimeGithubIssues, 'text/markdown']
-			},
+			}),
 			cells: raw.map(item => ({
 				source: item.value,
 				language: item.language,
 				cellKind: item.kind,
 				outputs: item.outputs ? [new vscode.NotebookCellOutput(item.outputs.map(raw => new vscode.NotebookCellOutputItem(raw.mime, raw.value)))] : [],
-				metadata: { editable: item.editable ?? true, runnable: true },
+				metadata: new vscode.NotebookCellMetadata().with({ editable: item.editable ?? true, runnable: true }),
 			}))
 		};
 
