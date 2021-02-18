@@ -10,74 +10,22 @@
     "kind": 2,
     "language": "github-issues",
     "value": "$repo=repo:microsoft/vscode-github-issue-notebooks",
+    "editable": true,
     "outputs": []
   },
   {
     "kind": 2,
     "language": "github-issues",
     "value": "$repo is:open no:assignee",
+    "editable": true,
     "outputs": [
       {
         "mime": "text/markdown",
-        "value": "- [#82](https://github.com/microsoft/vscode-github-issue-notebooks/pull/82 \"Icon fairy again : this time with transparency\") Icon fairy again : this time with transparency []\n- [#79](https://github.com/microsoft/vscode-github-issue-notebooks/issues/79 \"Low color contrast for outputs on light themes\") Low color contrast for outputs on light themes []\n- [#72](https://github.com/microsoft/vscode-github-issue-notebooks/issues/72 \"Support relative dates\") Support relative dates [feature-request]\n- [#63](https://github.com/microsoft/vscode-github-issue-notebooks/issues/63 \"Feature request: parentheses to avoid duplicating and-clauses\") Feature request: parentheses to avoid duplicating and-clauses [feature-request]\n- [#61](https://github.com/microsoft/vscode-github-issue-notebooks/issues/61 \"Github Enterprise\") Github Enterprise [feature-request]\n- [#56](https://github.com/microsoft/vscode-github-issue-notebooks/issues/56 \"Have a way to control the number of issues shown above the fold\") Have a way to control the number of issues shown above the fold [feature-request, help wanted]\n- [#55](https://github.com/microsoft/vscode-github-issue-notebooks/issues/55 \"Provide a way to display reactions\") Provide a way to display reactions [feature-request]\n- [#47](https://github.com/microsoft/vscode-github-issue-notebooks/issues/47 \"Support for Jira\") Support for Jira [feature-request]\n"
+        "value": "- [#79](https://github.com/microsoft/vscode-github-issue-notebooks/issues/79 \"Low color contrast for outputs on light themes\") Low color contrast for outputs on light themes []\n- [#72](https://github.com/microsoft/vscode-github-issue-notebooks/issues/72 \"Support relative dates\") Support relative dates [feature-request]\n- [#63](https://github.com/microsoft/vscode-github-issue-notebooks/issues/63 \"Feature request: parentheses to avoid duplicating and-clauses\") Feature request: parentheses to avoid duplicating and-clauses [feature-request]\n- [#61](https://github.com/microsoft/vscode-github-issue-notebooks/issues/61 \"Github Enterprise\") Github Enterprise [feature-request]\n- [#56](https://github.com/microsoft/vscode-github-issue-notebooks/issues/56 \"Have a way to control the number of issues shown above the fold\") Have a way to control the number of issues shown above the fold [feature-request, help wanted]\n- [#55](https://github.com/microsoft/vscode-github-issue-notebooks/issues/55 \"Provide a way to display reactions\") Provide a way to display reactions [feature-request]\n- [#47](https://github.com/microsoft/vscode-github-issue-notebooks/issues/47 \"Support for Jira\") Support for Jira [feature-request]\n"
       },
       {
         "mime": "x-application/github-issues",
         "value": [
-          {
-            "url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82",
-            "repository_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks",
-            "labels_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82/labels{/name}",
-            "comments_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82/comments",
-            "events_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82/events",
-            "html_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82",
-            "id": 807339584,
-            "node_id": "MDExOlB1bGxSZXF1ZXN0NTcyNjA1ODM1",
-            "number": 82,
-            "title": "Icon fairy again : this time with transparency",
-            "user": {
-              "login": "burkeholland",
-              "id": 686963,
-              "node_id": "MDQ6VXNlcjY4Njk2Mw==",
-              "avatar_url": "https://avatars.githubusercontent.com/u/686963?v=4",
-              "gravatar_id": "",
-              "url": "https://api.github.com/users/burkeholland",
-              "html_url": "https://github.com/burkeholland",
-              "followers_url": "https://api.github.com/users/burkeholland/followers",
-              "following_url": "https://api.github.com/users/burkeholland/following{/other_user}",
-              "gists_url": "https://api.github.com/users/burkeholland/gists{/gist_id}",
-              "starred_url": "https://api.github.com/users/burkeholland/starred{/owner}{/repo}",
-              "subscriptions_url": "https://api.github.com/users/burkeholland/subscriptions",
-              "organizations_url": "https://api.github.com/users/burkeholland/orgs",
-              "repos_url": "https://api.github.com/users/burkeholland/repos",
-              "events_url": "https://api.github.com/users/burkeholland/events{/privacy}",
-              "received_events_url": "https://api.github.com/users/burkeholland/received_events",
-              "type": "User",
-              "site_admin": false
-            },
-            "labels": [],
-            "state": "open",
-            "locked": false,
-            "assignee": null,
-            "assignees": [],
-            "milestone": null,
-            "comments": 0,
-            "created_at": "2021-02-12T15:47:56Z",
-            "updated_at": "2021-02-12T15:47:56Z",
-            "closed_at": null,
-            "author_association": "MEMBER",
-            "active_lock_reason": null,
-            "draft": false,
-            "pull_request": {
-              "url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/pulls/82",
-              "html_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82",
-              "diff_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82.diff",
-              "patch_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82.patch"
-            },
-            "body": "",
-            "performed_via_github_app": null,
-            "score": 1
-          },
           {
             "url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/79",
             "repository_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks",
@@ -484,68 +432,15 @@
     "kind": 2,
     "language": "github-issues",
     "value": "$repo is:open",
+    "editable": true,
     "outputs": [
       {
         "mime": "text/markdown",
-        "value": "- [#82](https://github.com/microsoft/vscode-github-issue-notebooks/pull/82 \"Icon fairy again : this time with transparency\") Icon fairy again : this time with transparency []\n- [#79](https://github.com/microsoft/vscode-github-issue-notebooks/issues/79 \"Low color contrast for outputs on light themes\") Low color contrast for outputs on light themes []\n- [#76](https://github.com/microsoft/vscode-github-issue-notebooks/issues/76 \"Locking a notebook issues\") Locking a notebook issues [bug]- [@jrieken](https://github.com/jrieken \"Issue 76 is assigned to jrieken\")\n\n- [#73](https://github.com/microsoft/vscode-github-issue-notebooks/issues/73 \"Legacy status bar item not disposed\") Legacy status bar item not disposed [bug]- [@roblourens](https://github.com/roblourens \"Issue 73 is assigned to roblourens\")\n\n- [#72](https://github.com/microsoft/vscode-github-issue-notebooks/issues/72 \"Support relative dates\") Support relative dates [feature-request]\n- [#63](https://github.com/microsoft/vscode-github-issue-notebooks/issues/63 \"Feature request: parentheses to avoid duplicating and-clauses\") Feature request: parentheses to avoid duplicating and-clauses [feature-request]\n- [#61](https://github.com/microsoft/vscode-github-issue-notebooks/issues/61 \"Github Enterprise\") Github Enterprise [feature-request]\n- [#56](https://github.com/microsoft/vscode-github-issue-notebooks/issues/56 \"Have a way to control the number of issues shown above the fold\") Have a way to control the number of issues shown above the fold [feature-request, help wanted]\n- [#55](https://github.com/microsoft/vscode-github-issue-notebooks/issues/55 \"Provide a way to display reactions\") Provide a way to display reactions [feature-request]\n- [#50](https://github.com/microsoft/vscode-github-issue-notebooks/issues/50 \"GitHub Issues Notebook: \"Current or Selected Milestone\" variable\") GitHub Issues Notebook: \"Current or Selected Milestone\" variable [feature-request]\n- [#47](https://github.com/microsoft/vscode-github-issue-notebooks/issues/47 \"Support for Jira\") Support for Jira [feature-request]\n- [#39](https://github.com/microsoft/vscode-github-issue-notebooks/issues/39 \"Repo IntelliSense weirdness\") Repo IntelliSense weirdness [under-discussion]- [@jrieken](https://github.com/jrieken \"Issue 39 is assigned to jrieken\")\n\n- [#52](https://github.com/microsoft/vscode-github-issue-notebooks/issues/52 \"Locked cells and undo/redo\") Locked cells and undo/redo []\n- [#19](https://github.com/microsoft/vscode-github-issue-notebooks/issues/19 \"Better way to express repos\") Better way to express repos [feature-request]- [@jrieken](https://github.com/jrieken \"Issue 19 is assigned to jrieken\")\n\n- [#18](https://github.com/microsoft/vscode-github-issue-notebooks/issues/18 \"Support queries using GraphQL\") Support queries using GraphQL [feature-request]- [@jrieken](https://github.com/jrieken \"Issue 18 is assigned to jrieken\")\n\n"
+        "value": "- [#79](https://github.com/microsoft/vscode-github-issue-notebooks/issues/79 \"Low color contrast for outputs on light themes\") Low color contrast for outputs on light themes []\n- [#76](https://github.com/microsoft/vscode-github-issue-notebooks/issues/76 \"Locking a notebook issues\") Locking a notebook issues [bug]- [@jrieken](https://github.com/jrieken \"Issue 76 is assigned to jrieken\")\n\n- [#73](https://github.com/microsoft/vscode-github-issue-notebooks/issues/73 \"Legacy status bar item not disposed\") Legacy status bar item not disposed [bug]- [@roblourens](https://github.com/roblourens \"Issue 73 is assigned to roblourens\")\n\n- [#72](https://github.com/microsoft/vscode-github-issue-notebooks/issues/72 \"Support relative dates\") Support relative dates [feature-request]\n- [#63](https://github.com/microsoft/vscode-github-issue-notebooks/issues/63 \"Feature request: parentheses to avoid duplicating and-clauses\") Feature request: parentheses to avoid duplicating and-clauses [feature-request]\n- [#61](https://github.com/microsoft/vscode-github-issue-notebooks/issues/61 \"Github Enterprise\") Github Enterprise [feature-request]\n- [#56](https://github.com/microsoft/vscode-github-issue-notebooks/issues/56 \"Have a way to control the number of issues shown above the fold\") Have a way to control the number of issues shown above the fold [feature-request, help wanted]\n- [#55](https://github.com/microsoft/vscode-github-issue-notebooks/issues/55 \"Provide a way to display reactions\") Provide a way to display reactions [feature-request]\n- [#50](https://github.com/microsoft/vscode-github-issue-notebooks/issues/50 \"GitHub Issues Notebook: \"Current or Selected Milestone\" variable\") GitHub Issues Notebook: \"Current or Selected Milestone\" variable [feature-request]\n- [#47](https://github.com/microsoft/vscode-github-issue-notebooks/issues/47 \"Support for Jira\") Support for Jira [feature-request]\n- [#39](https://github.com/microsoft/vscode-github-issue-notebooks/issues/39 \"Repo IntelliSense weirdness\") Repo IntelliSense weirdness [under-discussion]- [@jrieken](https://github.com/jrieken \"Issue 39 is assigned to jrieken\")\n\n- [#52](https://github.com/microsoft/vscode-github-issue-notebooks/issues/52 \"Locked cells and undo/redo\") Locked cells and undo/redo []\n- [#19](https://github.com/microsoft/vscode-github-issue-notebooks/issues/19 \"Better way to express repos\") Better way to express repos [feature-request]- [@jrieken](https://github.com/jrieken \"Issue 19 is assigned to jrieken\")\n\n- [#18](https://github.com/microsoft/vscode-github-issue-notebooks/issues/18 \"Support queries using GraphQL\") Support queries using GraphQL [feature-request]- [@jrieken](https://github.com/jrieken \"Issue 18 is assigned to jrieken\")\n\n"
       },
       {
         "mime": "x-application/github-issues",
         "value": [
-          {
-            "url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82",
-            "repository_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks",
-            "labels_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82/labels{/name}",
-            "comments_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82/comments",
-            "events_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/82/events",
-            "html_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82",
-            "id": 807339584,
-            "node_id": "MDExOlB1bGxSZXF1ZXN0NTcyNjA1ODM1",
-            "number": 82,
-            "title": "Icon fairy again : this time with transparency",
-            "user": {
-              "login": "burkeholland",
-              "id": 686963,
-              "node_id": "MDQ6VXNlcjY4Njk2Mw==",
-              "avatar_url": "https://avatars.githubusercontent.com/u/686963?v=4",
-              "gravatar_id": "",
-              "url": "https://api.github.com/users/burkeholland",
-              "html_url": "https://github.com/burkeholland",
-              "followers_url": "https://api.github.com/users/burkeholland/followers",
-              "following_url": "https://api.github.com/users/burkeholland/following{/other_user}",
-              "gists_url": "https://api.github.com/users/burkeholland/gists{/gist_id}",
-              "starred_url": "https://api.github.com/users/burkeholland/starred{/owner}{/repo}",
-              "subscriptions_url": "https://api.github.com/users/burkeholland/subscriptions",
-              "organizations_url": "https://api.github.com/users/burkeholland/orgs",
-              "repos_url": "https://api.github.com/users/burkeholland/repos",
-              "events_url": "https://api.github.com/users/burkeholland/events{/privacy}",
-              "received_events_url": "https://api.github.com/users/burkeholland/received_events",
-              "type": "User",
-              "site_admin": false
-            },
-            "labels": [],
-            "state": "open",
-            "locked": false,
-            "assignee": null,
-            "assignees": [],
-            "milestone": null,
-            "comments": 0,
-            "created_at": "2021-02-12T15:47:56Z",
-            "updated_at": "2021-02-12T15:47:56Z",
-            "closed_at": null,
-            "author_association": "MEMBER",
-            "active_lock_reason": null,
-            "draft": false,
-            "pull_request": {
-              "url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/pulls/82",
-              "html_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82",
-              "diff_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82.diff",
-              "patch_url": "https://github.com/microsoft/vscode-github-issue-notebooks/pull/82.patch"
-            },
-            "body": "",
-            "performed_via_github_app": null,
-            "score": 1
-          },
           {
             "url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks/issues/79",
             "repository_url": "https://api.github.com/repos/microsoft/vscode-github-issue-notebooks",
