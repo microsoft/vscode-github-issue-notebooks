@@ -23,6 +23,7 @@ const incremental = process.argv.includes('--watch');
 		external: ['vscode'],
 		format: 'cjs',
 		platform: 'node',
+		target: ['node12.18'],
 		sourcemap: true,
 		minify: false // AbortSignal-module has issues...
 	});
