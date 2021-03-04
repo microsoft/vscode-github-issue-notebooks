@@ -8,6 +8,7 @@ import { TextDecoder, TextEncoder } from "util";
 import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
+import { NodeType, Utils } from "./parser/nodes";
 import { ProjectContainer } from './project';
 import { isRunnable, isUsingAtMe } from './utils';
 
@@ -141,21 +142,27 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 	) { }
 
 	async executeAllCells(document: vscode.NotebookDocument): Promise<void> {
-		for (let cell of document.cells) {
-			let token: vscode.CancellationToken | undefined;
-			if (cell.cellKind === vscode.NotebookCellKind.Code) {
-				let exec = api.createNotebookCellExecution(cell, token);
-				if (!token) {
-					token = exec.token;
-				}
-				await this._doExecuteCell(exec);
-			}
-		}
+		return this._executeCells(document.cells.filter(cell => cell.cellKind === vscode.NotebookCellKind.Code));
 	}
 
 	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
-		const execution = api.createNotebookCellExecution(cell);
-		await this._doExecuteCell(execution);
+		return this._executeCells([cell]);
+	}
+
+	private async _executeCells(cells: vscode.NotebookCell[]): Promise<void> {
+
+		const all = new Set<vscode.NotebookCell>();
+
+		for (const cell of cells) {
+			this._collectDependentCells(cell, all);
+		}
+
+		let token: vscode.CancellationToken | undefined;
+		for (const cell of all) {
+			const execution = api.createNotebookCellExecution(cell, token);
+			token = token ?? execution.token;
+			await this._doExecuteCell(execution);
+		}
 	}
 
 	private async _doExecuteCell(execution: INotebookCellExecution): Promise<void> {
@@ -167,12 +174,14 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		// update query so that symbols defined here are marked as more recent
 		project.symbols.update(query);
 
+		execution.start({ executionOrder: ++this._executionOrder });
+
+		// await new Promise(resolve => setTimeout(resolve, 3000));
+
 		if (!isRunnable(query)) {
 			execution.resolve({ success: true });
 			return;
 		}
-
-		execution.start({ executionOrder: ++this._executionOrder });
 
 		const metadata: OutputMetadataShape = {
 			isPersonal: isUsingAtMe(query),
@@ -253,8 +262,8 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			new vscode.NotebookCellOutputItem('text/markdown', md),
 			new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems),
 		], metadata)]);
-		execution.resolve({ success: true });
 
+		execution.resolve({ success: true });
 	}
 
 	async cancelCellExecution(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
@@ -263,6 +272,41 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 	async cancelAllCellsExecution(document: vscode.NotebookDocument): Promise<void> {
 		api.$cancel(document);
+	}
+
+	private async _collectDependentCells(cell: vscode.NotebookCell, bucket: Set<vscode.NotebookCell>): Promise<void> {
+
+		const project = this.container.lookupProject(cell.notebook.uri);
+		const query = project.getOrCreate(cell.document);
+
+		const seen = new Set<string>();
+		const stack = [query];
+
+		while (true) {
+			const query = stack.pop();
+			if (!query) {
+				break;
+			}
+			if (seen.has(query.id)) {
+				continue;
+			}
+			seen.add(query.id);
+
+			Utils.walk(query, node => {
+				if (node._type === NodeType.VariableName) {
+					const symbol = project.symbols.getFirst(node.value);
+					if (symbol) {
+						stack.push(symbol.root);
+					}
+				}
+			});
+		}
+
+		for (const candidate of cell.notebook.cells) {
+			if (seen.has(candidate.uri.toString())) {
+				bucket.add(candidate);
+			}
+		}
 	}
 }
 
