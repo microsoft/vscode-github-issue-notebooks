@@ -400,22 +400,21 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			raw = [];
 		}
 
-		const notebookData: vscode.NotebookData = {
-			metadata: new vscode.NotebookDocumentMetadata().with({
+		const cells = raw.map(item => new vscode.NotebookCellData(
+			item.kind,
+			item.value,
+			item.language,
+			item.outputs ? [new vscode.NotebookCellOutput(item.outputs.map(raw => new vscode.NotebookCellOutputItem(raw.mime, raw.value)))] : [],
+			new vscode.NotebookCellMetadata().with({ editable: item.editable ?? true, runnable: true })
+		));
+
+		return new vscode.NotebookData(
+			cells,
+			new vscode.NotebookDocumentMetadata().with({
 				cellRunnable: true,
 				cellHasExecutionOrder: true,
-				displayOrder: [IssuesNotebookProvider.mimeGithubIssues, 'text/markdown']
-			}),
-			cells: raw.map(item => ({
-				source: item.value,
-				language: item.language,
-				cellKind: item.kind,
-				outputs: item.outputs ? [new vscode.NotebookCellOutput(item.outputs.map(raw => new vscode.NotebookCellOutputItem(raw.mime, raw.value)))] : [],
-				metadata: new vscode.NotebookCellMetadata().with({ editable: item.editable ?? true, runnable: true }),
-			}))
-		};
-
-		return notebookData;
+			})
+		);
 	}
 
 	saveNotebook(document: vscode.NotebookDocument, _cancellation: vscode.CancellationToken): Promise<void> {
