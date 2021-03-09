@@ -259,8 +259,8 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 		// status line
 		execution.replaceOutput([new vscode.NotebookCellOutput([
-			new vscode.NotebookCellOutputItem('text/markdown', md),
 			new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems),
+			new vscode.NotebookCellOutputItem('text/markdown', md),
 		], metadata)]);
 
 		execution.resolve({ success: true });
