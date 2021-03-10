@@ -16,6 +16,5 @@ document.head.appendChild(link);
 const api = acquireNotebookRendererApi('github-issues');
 
 api.onDidCreateOutput(event => {
-	const data = event.output.data[event.mimeType];
-	render(<AllItems items={Array.isArray(data) ? data : data.items} />, event.element);
+	render(<AllItems items={Array.isArray(event.value) ? event.value : (event.value as any).items} />, event.element);
 });
