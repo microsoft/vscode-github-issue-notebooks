@@ -142,7 +142,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 	) { }
 
 	async executeAllCells(document: vscode.NotebookDocument): Promise<void> {
-		return this._executeCells(document.cells.filter(cell => cell.cellKind === vscode.NotebookCellKind.Code));
+		return this._executeCells(document.cells.filter(cell => cell.kind === vscode.NotebookCellKind.Code));
 	}
 
 	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
@@ -167,7 +167,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 	private async _doExecuteCell(execution: INotebookCellExecution): Promise<void> {
 
-		const doc = await vscode.workspace.openTextDocument(execution.cell.uri);
+		const doc = await vscode.workspace.openTextDocument(execution.cell.document.uri);
 		const project = this.container.lookupProject(doc.uri);
 		const query = project.getOrCreate(doc);
 
@@ -303,7 +303,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		}
 
 		for (const candidate of cell.notebook.cells) {
-			if (seen.has(candidate.uri.toString())) {
+			if (seen.has(candidate.document.uri.toString())) {
 				bucket.add(candidate);
 			}
 		}
@@ -449,8 +449,8 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 		let contents: RawNotebookCell[] = [];
 		for (let cell of document.cells) {
 			contents.push({
-				kind: cell.cellKind,
-				language: cell.language,
+				kind: cell.kind,
+				language: cell.document.languageId,
 				value: cell.document.getText(),
 				editable: cell.metadata.editable,
 				outputs: asRawOutput(cell)

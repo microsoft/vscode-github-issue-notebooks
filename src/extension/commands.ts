@@ -63,7 +63,7 @@ export function registerCommands(projectContainer: ProjectContainer, notebookPro
 	}));
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.openUrl', async (cell: vscode.NotebookCell) => {
-		const project = projectContainer.lookupProject(cell.uri, false);
+		const project = projectContainer.lookupProject(cell.document.uri, false);
 		if (!project) {
 			return;
 		}

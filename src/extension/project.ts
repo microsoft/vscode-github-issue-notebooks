@@ -149,7 +149,7 @@ export class ProjectContainer {
 
 			try {
 				for (const cell of notebook.cells) {
-					if (cell.cellKind === vscode.NotebookCellKind.Code) {
+					if (cell.kind === vscode.NotebookCellKind.Code) {
 						project.getOrCreate(cell.document);
 					}
 				}
@@ -179,7 +179,7 @@ export class ProjectContainer {
 					project.delete(cell.document);
 				}
 				for (const cell of change.items) {
-					if (cell.cellKind === vscode.NotebookCellKind.Code) {
+					if (cell.kind === vscode.NotebookCellKind.Code) {
 						project.getOrCreate(cell.document);
 					}
 				}
@@ -198,7 +198,7 @@ export class ProjectContainer {
 				return project;
 			}
 			for (let cell of notebook.cells) {
-				if (cell.uri.toString() === uri.toString()) {
+				if (cell.document.uri.toString() === uri.toString()) {
 					// a cell uri
 					return project;
 				}

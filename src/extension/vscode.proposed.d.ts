@@ -1074,6 +1074,20 @@ declare module 'vscode' {
 
 	//#endregion
 
+	//#region Provide a way for custom editors to process untitled files without relying on textDocument https://github.com/microsoft/vscode/issues/115631
+	/**
+	 * Additional information about the opening custom document.
+	 */
+	interface CustomDocumentOpenContext {
+		/**
+		 * If the URI is an untitled file, this will be populated with the byte data of that file
+		 *
+		 * If this is provided, your extension should utilize this byte data rather than executing fs APIs on the URI passed in
+		 */
+		readonly untitledDocumentData?: Uint8Array;
+	}
+	//#endregion
+
 	//#region https://github.com/microsoft/vscode/issues/106744, Notebooks (misc)
 
 	export enum NotebookCellKind {
@@ -1126,7 +1140,7 @@ declare module 'vscode' {
 		readonly runStartTime?: number;
 		readonly lastRunDuration?: number;
 
-		constructor(editable?: boolean, breakpointMargin?: boolean, hasExecutionOrder?: boolean, executionOrder?: number, runState?: NotebookCellRunState, runStartTime?: number, statusMessage?: string, lastRunDuration?: number, inputCollapsed?: boolean, outputCollapsed?: boolean, custom?: Record<string, any>)
+		constructor(editable?: boolean, breakpointMargin?: boolean, hasExecutionOrder?: boolean, executionOrder?: number, runState?: NotebookCellRunState, runStartTime?: number, statusMessage?: string, lastRunDuration?: number, inputCollapsed?: boolean, outputCollapsed?: boolean, custom?: Record<string, any>);
 
 		with(change: { editable?: boolean | null, breakpointMargin?: boolean | null, hasExecutionOrder?: boolean | null, executionOrder?: number | null, runState?: NotebookCellRunState | null, runStartTime?: number | null, statusMessage?: string | null, lastRunDuration?: number | null, inputCollapsed?: boolean | null, outputCollapsed?: boolean | null, custom?: Record<string, any> | null, }): NotebookCellMetadata;
 	}
@@ -1135,14 +1149,10 @@ declare module 'vscode' {
 	export interface NotebookCell {
 		readonly index: number;
 		readonly notebook: NotebookDocument;
-		readonly cellKind: NotebookCellKind;
-		// todo@API duplicates #document.uri
-		readonly uri: Uri;
-		// todo@API duplicates #document.languageId
-		readonly language: string;
+		readonly kind: NotebookCellKind;
 		readonly document: TextDocument;
+		readonly metadata: NotebookCellMetadata;
 		readonly outputs: ReadonlyArray<NotebookCellOutput>;
-		readonly metadata: NotebookCellMetadata
 	}
 
 	export class NotebookDocumentMetadata {
@@ -1175,7 +1185,7 @@ declare module 'vscode' {
 
 		constructor(editable?: boolean, cellEditable?: boolean, cellHasExecutionOrder?: boolean, custom?: { [key: string]: any; }, runState?: NotebookRunState, trusted?: boolean);
 
-		with(change: { editable?: boolean | null, cellEditable?: boolean | null, cellHasExecutionOrder?: boolean | null, custom?: { [key: string]: any; } | null, runState?: NotebookRunState | null, trusted?: boolean | null, }): NotebookDocumentMetadata
+		with(change: { editable?: boolean | null, cellEditable?: boolean | null, cellHasExecutionOrder?: boolean | null, custom?: { [key: string]: any; } | null, runState?: NotebookRunState | null, trusted?: boolean | null, }): NotebookDocumentMetadata;
 	}
 
 	export interface NotebookDocumentContentOptions {
@@ -1341,7 +1351,7 @@ declare module 'vscode' {
 
 	export interface NotebookEditorSelectionChangeEvent {
 		readonly notebookEditor: NotebookEditor;
-		readonly selections: ReadonlyArray<NotebookCellRange>
+		readonly selections: ReadonlyArray<NotebookCellRange>;
 	}
 
 	export interface NotebookEditorVisibleRangesChangeEvent {
@@ -1358,7 +1368,7 @@ declare module 'vscode' {
 		language: string;
 		outputs?: NotebookCellOutput[];
 		metadata?: NotebookCellMetadata;
-		constructor(kind: NotebookCellKind, source: string, language: string, outputs?: NotebookCellOutput[], metadata?: NotebookCellMetadata)
+		constructor(kind: NotebookCellKind, source: string, language: string, outputs?: NotebookCellOutput[], metadata?: NotebookCellMetadata);
 	}
 
 	export class NotebookData {
@@ -1414,9 +1424,8 @@ declare module 'vscode' {
 
 	export namespace notebook {
 
-		// todo@API should we really support to pass the viewType? We do NOT support
-		// to open the same file with different viewTypes at the same time
-		export function openNotebookDocument(uri: Uri, viewType?: string): Thenable<NotebookDocument>;
+		export function openNotebookDocument(uri: Uri): Thenable<NotebookDocument>;
+
 		export const onDidOpenNotebookDocument: Event<NotebookDocument>;
 		export const onDidCloseNotebookDocument: Event<NotebookDocument>;
 
@@ -1548,6 +1557,7 @@ declare module 'vscode' {
 
 	interface NotebookDocumentOpenContext {
 		readonly backupId?: string;
+		readonly untitledDocumentData?: Uint8Array;
 	}
 
 	// todo@API use openNotebookDOCUMENT to align with openCustomDocument etc?
@@ -2669,7 +2679,7 @@ declare module 'vscode' {
 		 *
 		 * Currently only `http` and `https` are supported.
 		 */
-		readonly schemes: readonly string[]
+		readonly schemes: readonly string[];
 
 		/**
 		 * Text displayed to the user that explains what the opener does.
@@ -2840,7 +2850,7 @@ declare module 'vscode' {
 
 	export interface PortAttributes {
 		port: number;
-		autoForwardAction: PortAutoForwardAction
+		autoForwardAction: PortAutoForwardAction;
 	}
 
 	export interface PortAttributesProvider {
@@ -2858,7 +2868,7 @@ declare module 'vscode' {
 		 * know the range of ports or the pid of your process.
 		 * @param provider The PortAttributesProvider
 		 */
-		export function registerPortAttributesProvider(portSelector: { pid?: number, portRange?: [number, number] }, provider: PortAttributesProvider): Disposable;
+		export function registerPortAttributesProvider(portSelector: { pid?: number, portRange?: [number, number]; }, provider: PortAttributesProvider): Disposable;
 	}
 	//#endregion
 }
