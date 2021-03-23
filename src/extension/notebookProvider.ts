@@ -35,84 +35,6 @@ export interface INotebookCellExecution {
 	replaceOutputItems(outputId: string, items: vscode.NotebookCellOutputItem[]): void;
 }
 
-namespace api {
-
-
-
-	export function createNotebookCellExecution(cell: vscode.NotebookCell, token?: vscode.CancellationToken): INotebookCellExecution {
-
-		if (!token) {
-			const cts = new vscode.CancellationTokenSource();
-			cancellations.set(cell, cts);
-			token = cts.token;
-		}
-
-		// todo
-		// send some kind of update that this cell is being scheduled for running
-
-		let runStartTime: number | undefined;
-
-		return new class implements INotebookCellExecution {
-
-
-			cell = cell;
-			token: vscode.CancellationToken = token!;
-			start(context?: { executionOrder?: number | undefined; } | undefined): void {
-				const edit = new vscode.WorkspaceEdit();
-				runStartTime = Date.now();
-				edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({
-					runState: vscode.NotebookCellRunState.Running,
-					runStartTime: runStartTime,
-					executionOrder: context?.executionOrder
-				}));
-				vscode.workspace.applyEdit(edit);
-			}
-			resolve(result: NotebookCellExecutionSummary): void {
-				cancellations.delete(cell);
-				const edit = new vscode.WorkspaceEdit();
-				edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({
-					runState: !result.success ? vscode.NotebookCellRunState.Error : vscode.NotebookCellRunState.Success,
-					lastRunDuration: runStartTime ? Date.now() - runStartTime : 0,
-					executionOrder: result.executionOrder,
-					statusMessage: result.message
-				}));
-				vscode.workspace.applyEdit(edit);
-			}
-			clearOutput(): void {
-				this.replaceOutput([]);
-			}
-			replaceOutput(out: vscode.NotebookCellOutput[]): void {
-				const edit = new vscode.WorkspaceEdit();
-				edit.replaceNotebookCellOutput(cell.notebook.uri, cell.index, out);
-				vscode.workspace.applyEdit(edit);
-			}
-			appendOutput(out: vscode.NotebookCellOutput[]): void {
-				const edit = new vscode.WorkspaceEdit();
-				edit.appendNotebookCellOutput(cell.notebook.uri, cell.index, out);
-				vscode.workspace.applyEdit(edit);
-			}
-			replaceOutputItems(outputId: string, items: vscode.NotebookCellOutputItem[]): void {
-				const edit = new vscode.WorkspaceEdit();
-				edit.replaceNotebookCellOutputItems(cell.notebook.uri, cell.index, outputId, items);
-				vscode.workspace.applyEdit(edit);
-			}
-			appendOutputItems(outputId: string, items: vscode.NotebookCellOutputItem[]): void {
-				const edit = new vscode.WorkspaceEdit();
-				edit.appendNotebookCellOutputItems(cell.notebook.uri, cell.index, outputId, items);
-				vscode.workspace.applyEdit(edit);
-			}
-		};
-	}
-
-
-	const cancellations = new Map<vscode.NotebookCell | vscode.NotebookDocument, vscode.CancellationTokenSource>();
-
-	export function $cancel(target: vscode.NotebookCell | vscode.NotebookDocument) {
-		cancellations.get(target)?.cancel();
-		cancellations.delete(target);
-	}
-}
-
 interface RawCellOutput {
 	mime: string;
 	value: any;
@@ -141,12 +63,14 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		readonly octokit: OctokitProvider
 	) { }
 
-	async executeAllCells(document: vscode.NotebookDocument): Promise<void> {
-		return this._executeCells(document.cells.filter(cell => cell.kind === vscode.NotebookCellKind.Code));
-	}
-
-	async executeCell(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
-		return this._executeCells([cell]);
+	async executeCellsRequest(document: vscode.NotebookDocument, ranges: vscode.NotebookCellRange[]) {
+		const cells: vscode.NotebookCell[] = [];
+		for (let range of ranges) {
+			for (let i = range.start; i < range.end; i++) {
+				cells.push(document.cells[i]);
+			}
+		}
+		this._executeCells(cells);
 	}
 
 	private async _executeCells(cells: vscode.NotebookCell[]): Promise<void> {
@@ -157,15 +81,13 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			this._collectDependentCells(cell, all);
 		}
 
-		let token: vscode.CancellationToken | undefined;
 		for (const cell of all) {
-			const execution = api.createNotebookCellExecution(cell, token);
-			token = token ?? execution.token;
+			const execution = vscode.notebook.createNotebookCellExecutionTask(cell.notebook.uri, cell.index, this.id)!;
 			await this._doExecuteCell(execution);
 		}
 	}
 
-	private async _doExecuteCell(execution: INotebookCellExecution): Promise<void> {
+	private async _doExecuteCell(execution: vscode.NotebookCellExecutionTask): Promise<void> {
 
 		const doc = await vscode.workspace.openTextDocument(execution.cell.document.uri);
 		const project = this.container.lookupProject(doc.uri);
@@ -174,12 +96,13 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 		// update query so that symbols defined here are marked as more recent
 		project.symbols.update(query);
 
-		execution.start({ executionOrder: ++this._executionOrder });
+		execution.executionOrder = ++this._executionOrder;
+		execution.start({ startTime: Date.now() });
 
 		// await new Promise(resolve => setTimeout(resolve, 3000));
 
 		if (!isRunnable(query)) {
-			execution.resolve({ success: true });
+			execution.end({ success: true });
 			return;
 		}
 
@@ -229,7 +152,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 					traceback: []
 				})
 			])]);
-			execution.resolve({ success: false });
+			execution.end({ success: false });
 			return;
 		}
 
@@ -263,16 +186,9 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			new vscode.NotebookCellOutputItem('text/markdown', md),
 		], metadata)]);
 
-		execution.resolve({ success: true });
+		execution.end({ success: true });
 	}
 
-	async cancelCellExecution(_document: vscode.NotebookDocument, cell: vscode.NotebookCell): Promise<void> {
-		api.$cancel(cell);
-	}
-
-	async cancelAllCellsExecution(document: vscode.NotebookDocument): Promise<void> {
-		api.$cancel(document);
-	}
 
 	private async _collectDependentCells(cell: vscode.NotebookCell, bucket: Set<vscode.NotebookCell>): Promise<void> {
 
