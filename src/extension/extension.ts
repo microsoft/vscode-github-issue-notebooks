@@ -20,10 +20,6 @@ export function activate(context: vscode.ExtensionContext) {
 		transientMetadata: {
 			inputCollapsed: true,
 			outputCollapsed: true,
-			runState: true,
-			runStartTime: true,
-			executionOrder: true,
-			lastRunDuration: true,
 			statusMessage: true,
 			editable: false,
 		}
