@@ -81,9 +81,9 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			this._collectDependentCells(cell, all);
 		}
 
-		for (const cell of all) {
-			const execution = vscode.notebook.createNotebookCellExecutionTask(cell.notebook.uri, cell.index, this.id)!;
-			await this._doExecuteCell(execution);
+		const tasks = Array.from(all).map(cell => vscode.notebook.createNotebookCellExecutionTask(cell.notebook.uri, cell.index, this.id)!);
+		for (const task of tasks) {
+			await this._doExecuteCell(task);
 		}
 	}
 
