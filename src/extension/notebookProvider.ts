@@ -45,7 +45,6 @@ interface RawNotebookCell {
 	value: string;
 	kind: vscode.NotebookCellKind;
 	editable?: boolean;
-	outputs: RawCellOutput[];
 }
 
 type OutputMetadataShape = Partial<{ startTime: number, isPersonal: boolean; }>;
@@ -320,7 +319,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 			item.kind,
 			item.value,
 			item.language,
-			item.outputs ? [new vscode.NotebookCellOutput(item.outputs.map(raw => new vscode.NotebookCellOutputItem(raw.mime, raw.value)))] : [],
+			undefined,
 			new vscode.NotebookCellMetadata().with({ editable: item.editable ?? true })
 		));
 
@@ -348,19 +347,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri): Promise<void> {
 
-		function asRawOutput(cell: vscode.NotebookCell): RawCellOutput[] {
-			let result: RawCellOutput[] = [];
-			for (let output of cell.outputs) {
-				if ((<OutputMetadataShape>output.metadata)?.isPersonal) {
-					// don't store output that uses @me
-					continue;
-				}
-				for (let item of output.outputs) {
-					result.push({ mime: item.mime, value: item.value });
-				}
-			}
-			return result;
-		}
 
 		let contents: RawNotebookCell[] = [];
 		for (let cell of document.cells) {
@@ -368,8 +354,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 				kind: cell.kind,
 				language: cell.document.languageId,
 				value: cell.document.getText(),
-				editable: cell.metadata.editable,
-				outputs: asRawOutput(cell)
+				editable: cell.metadata.editable
 			});
 		}
 		await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(JSON.stringify(contents, undefined, 2)));
