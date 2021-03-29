@@ -3,18 +3,22 @@
  *--------------------------------------------------------*/
 
 import { FunctionComponent, h } from 'preact';
-import { useMemo, useState } from 'preact/hooks';
+import { useEffect, useMemo, useState } from 'preact/hooks';
 import { withEmoji } from '../common/emoji';
 import { SearchIssuesAndPullRequestsResponseItemsItem, SearchIssuesAndPullRequestsResponseItemsItemLabelsItem, SearchIssuesAndPullRequestsResponseItemsItemUser } from '../common/types';
 import { IssueClosedIcon, IssueOpenIcon, PRIcon } from './icons';
 
 const defaultMaxCount = 13;
 
-
 export const AllItems: FunctionComponent<{ items: ReadonlyArray<SearchIssuesAndPullRequestsResponseItemsItem>; }> = ({ items: rawItems }) => {
+	const [hidden, setHidden] = useState<number[]>([]);
 	const items = useMemo(() => {
 		const seen = new Set<string>();
 		return rawItems.filter(item => {
+			if (hidden.includes(item.id)) {
+				return false;
+			}
+
 			if (seen.has(item.url)) {
 				return false;
 			}
@@ -22,10 +26,14 @@ export const AllItems: FunctionComponent<{ items: ReadonlyArray<SearchIssuesAndP
 			seen.add(item.url);
 			return true;
 		});
-	}, [rawItems]);
+	}, [rawItems, hidden]);
+
+	// reset hidden items running a new or different query
+	useEffect(() => setHidden([]), [rawItems]);
 
 	const hasManyRepos = items.some(item => item.repository_url !== items[0].repository_url);
-	const renderItem = (item: SearchIssuesAndPullRequestsResponseItemsItem) => <Item key={item.id} item={item} showRepo={hasManyRepos} />;
+	const renderItem = (item: SearchIssuesAndPullRequestsResponseItemsItem) =>
+		<Item key={item.id} item={item} hide={() => setHidden([...hidden, item.id])} showRepo={hasManyRepos} />;
 
 	if (items.length <= defaultMaxCount) {
 		return <div>{items.map(renderItem)}</div>;
@@ -43,21 +51,33 @@ export const AllItems: FunctionComponent<{ items: ReadonlyArray<SearchIssuesAndP
 };
 
 
-const Item: FunctionComponent<{ item: SearchIssuesAndPullRequestsResponseItemsItem; showRepo: boolean; }> = ({ item, showRepo }) =>
-	<div className='item-row'>
-		<div className="item-state">{item.pull_request ? <PRIcon /> : item.closed_at ? <IssueClosedIcon /> : <IssueOpenIcon />}</div>
-		<div style={{ flex: 'auto', flexBasis: 0 }}>
-			{showRepo && <RepoLabel url={item.repository_url} />}
-			<a href={item.html_url} className="title">{item.title}</a>
-			{item.labels.map(label => <Label label={label} key={label.id} />)}
+const Item: FunctionComponent<{
+	item: SearchIssuesAndPullRequestsResponseItemsItem;
+	hide(): void;
+	showRepo: boolean;
+}> = ({ item, showRepo, hide }) =>
+		<div className='item-row'>
+			<div className='item-main'>
+				<div className="item-state">{item.pull_request ? <PRIcon /> : item.closed_at ? <IssueClosedIcon /> : <IssueOpenIcon />}</div>
+				<div style={{ flex: 'auto', flexBasis: 0 }}>
+					{showRepo && <RepoLabel url={item.repository_url} />}
+					<a href={item.html_url} className="title">{item.title}</a>
+					{item.labels.map(label => <Label label={label} key={label.id} />)}
+				</div>
+				<div className="user">
+					{item.assignees?.map(user => <Avatar user={user} key={user.id} />)}
+				</div>
+
+			</div>
+
 			<div className="status">
 				<span>#{item.number} opened {new Date(item.created_at).toLocaleDateString()} by {item.user.login}</span>
+				<span style={{ flex: 1 }} />
+				<ul className='actions'>
+					<li><a role='button' onClick={hide}>Hide</a></li>
+				</ul>
 			</div>
-		</div>
-		<div className="user">
-			{item.assignees?.map(user => <Avatar user={user} key={user.id} />)}
-		</div>
-	</div>;
+		</div>;
 
 
 const RepoLabel: FunctionComponent<{ url: string; }> = ({ url }) => {
