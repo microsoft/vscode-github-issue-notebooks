@@ -65,9 +65,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 	async executeCellsRequest(document: vscode.NotebookDocument, ranges: vscode.NotebookCellRange[]) {
 		const cells: vscode.NotebookCell[] = [];
 		for (let range of ranges) {
-			for (let i = range.start; i < range.end; i++) {
-				cells.push(document.cells[i]);
-			}
+			cells.push(...document.getCells(range));
 		}
 		this._executeCells(cells);
 	}
@@ -217,7 +215,7 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 			});
 		}
 
-		for (const candidate of cell.notebook.cells) {
+		for (const candidate of cell.notebook.getCells()) {
 			if (seen.has(candidate.document.uri.toString())) {
 				bucket.add(candidate);
 			}
@@ -349,7 +347,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 
 		let contents: RawNotebookCell[] = [];
-		for (let cell of document.cells) {
+		for (let cell of document.getCells()) {
 			contents.push({
 				kind: cell.kind,
 				language: cell.document.languageId,
