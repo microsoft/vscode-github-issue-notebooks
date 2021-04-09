@@ -4,6 +4,9 @@
 	"description": "GitHub Issue Notebooks for VS Code",
 	"publisher": "ms-vscode",
 	"preview": true,
+	"workspaceTrust": {
+		"request": "never"
+	},
 	"version": "0.0.76",
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
