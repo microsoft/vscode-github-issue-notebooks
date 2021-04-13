@@ -728,10 +728,15 @@ declare module 'vscode' {
 	export interface SourceControlInputBox {
 
 		/**
+		 * Shows a transient contextual message on the input.
+		 */
+		showValidationMessage(message: string, type: SourceControlInputBoxValidationType): void;
+
+		/**
 		 * A validation function for the input box. It's possible to change
 		 * the validation provider simply by setting this property to a different function.
 		 */
-		validateInput?(value: string, cursorPosition: number): ProviderResult<SourceControlInputBoxValidation | undefined | null>;
+		validateInput?(value: string, cursorPosition: number): ProviderResult<SourceControlInputBoxValidation>;
 	}
 
 	//#endregion
@@ -816,11 +821,11 @@ declare module 'vscode' {
 
 	export interface TerminalOptions {
 		/**
-		 * Initial text to write to the terminal, note that this is not sent to the process but
-		 * rather written directly to the terminal. This supports escape sequences such a setting
-		 * text style.
+		 * A message to write to the terminal on first launch, note that this is not sent to the
+		 * process but, rather written directly to the terminal. This supports escape sequences such
+		 * a setting text style.
 		 */
-		readonly initialText?: string;
+		readonly message?: string;
 	}
 
 	//#endregion
@@ -999,12 +1004,9 @@ declare module 'vscode' {
 		// todo@API duplicates status bar API
 		readonly statusMessage?: string;
 
-		// run related API, will be removed
-		readonly hasExecutionOrder?: boolean;
+		constructor(editable?: boolean, breakpointMargin?: boolean, statusMessage?: string, lastRunDuration?: number, inputCollapsed?: boolean, outputCollapsed?: boolean, custom?: Record<string, any>)
 
-		constructor(editable?: boolean, breakpointMargin?: boolean, hasExecutionOrder?: boolean, statusMessage?: string, lastRunDuration?: number, inputCollapsed?: boolean, outputCollapsed?: boolean, custom?: Record<string, any>);
-
-		with(change: { editable?: boolean | null, breakpointMargin?: boolean | null, hasExecutionOrder?: boolean | null, statusMessage?: string | null, lastRunDuration?: number | null, inputCollapsed?: boolean | null, outputCollapsed?: boolean | null, custom?: Record<string, any> | null, }): NotebookCellMetadata;
+		with(change: { editable?: boolean | null, breakpointMargin?: boolean | null, statusMessage?: string | null, lastRunDuration?: number | null, inputCollapsed?: boolean | null, outputCollapsed?: boolean | null, custom?: Record<string, any> | null, }): NotebookCellMetadata;
 	}
 
 	export interface NotebookCellExecutionSummary {
@@ -1019,7 +1021,7 @@ declare module 'vscode' {
 		readonly notebook: NotebookDocument;
 		readonly kind: NotebookCellKind;
 		readonly document: TextDocument;
-		readonly metadata: NotebookCellMetadata;
+		readonly metadata: NotebookCellMetadata
 		readonly outputs: ReadonlyArray<NotebookCellOutput>;
 		readonly latestExecutionSummary: NotebookCellExecutionSummary | undefined;
 	}
@@ -1046,12 +1048,9 @@ declare module 'vscode' {
 		 */
 		readonly trusted: boolean;
 
-		// todo@API is this a kernel property?
-		readonly cellHasExecutionOrder: boolean;
+		constructor(editable?: boolean, cellEditable?: boolean, custom?: { [key: string]: any; }, trusted?: boolean);
 
-		constructor(editable?: boolean, cellEditable?: boolean, cellHasExecutionOrder?: boolean, custom?: { [key: string]: any; }, trusted?: boolean);
-
-		with(change: { editable?: boolean | null, cellEditable?: boolean | null, cellHasExecutionOrder?: boolean | null, custom?: { [key: string]: any; } | null, trusted?: boolean | null, }): NotebookDocumentMetadata;
+		with(change: { editable?: boolean | null, cellEditable?: boolean | null, custom?: { [key: string]: any; } | null, trusted?: boolean | null, }): NotebookDocumentMetadata
 	}
 
 	export interface NotebookDocumentContentOptions {
@@ -1090,10 +1089,6 @@ declare module 'vscode' {
 		// todo@API should we really expose this?
 		readonly viewType: string;
 
-		// todo@API cellsAt(range)? getCell(index>)?
-		/** @deprecated Use `getCells(<...>) instead */
-		readonly cells: ReadonlyArray<NotebookCell>;
-
 		/**
 		 * The number of cells in the notebook document.
 		 */
@@ -1114,7 +1109,7 @@ declare module 'vscode' {
 		 * @param range A notebook range.
 		 * @returns The cells contained by the range or all cells.
 		 */
-		getCells(range?: NotebookCellRange): ReadonlyArray<NotebookCell>;
+		getCells(range?: NotebookCellRange): NotebookCell[];
 
 		/**
 		 * Save the document. The saving will be handled by the corresponding content provider
@@ -1139,7 +1134,7 @@ declare module 'vscode' {
 
 		constructor(start: number, end: number);
 
-		with(change: { start?: number, end?: number; }): NotebookCellRange;
+		with(change: { start?: number, end?: number }): NotebookCellRange;
 	}
 
 	export enum NotebookEditorRevealType {
@@ -1194,16 +1189,7 @@ declare module 'vscode' {
 		/**
 		 * The column in which this editor shows.
 		 */
-		// @jrieken
-		// this is not implemented...
 		readonly viewColumn?: ViewColumn;
-
-		/**
-		 * @deprecated
-		 */
-		// @rebornix REMOVE/REplace NotebookCommunication
-		// todo@API fishy? notebooks are public objects, there should be a "global" events for this
-		readonly onDidDispose: Event<void>;
 	}
 
 	export interface NotebookDocumentMetadataChangeEvent {
@@ -1212,8 +1198,11 @@ declare module 'vscode' {
 
 	export interface NotebookCellsChangeData {
 		readonly start: number;
+		// todo@API end? Use NotebookCellRange instead?
 		readonly deletedCount: number;
+		// todo@API removedCells, deletedCells?
 		readonly deletedItems: NotebookCell[];
+		// todo@API addedCells, insertedCells, newCells?
 		readonly items: NotebookCell[];
 	}
 
@@ -1235,16 +1224,6 @@ declare module 'vscode' {
 		readonly cells: NotebookCell[];
 	}
 
-	export interface NotebookCellLanguageChangeEvent {
-
-		/**
-		 * The affected document.
-		 */
-		readonly document: NotebookDocument;
-		readonly cell: NotebookCell;
-		readonly language: string;
-	}
-
 	export interface NotebookCellMetadataChangeEvent {
 		readonly document: NotebookDocument;
 		readonly cell: NotebookCell;
@@ -1252,7 +1231,7 @@ declare module 'vscode' {
 
 	export interface NotebookEditorSelectionChangeEvent {
 		readonly notebookEditor: NotebookEditor;
-		readonly selections: ReadonlyArray<NotebookCellRange>;
+		readonly selections: ReadonlyArray<NotebookCellRange>
 	}
 
 	export interface NotebookEditorVisibleRangesChangeEvent {
@@ -1458,6 +1437,84 @@ declare module 'vscode' {
 
 	//#endregion
 
+	//#region https://github.com/microsoft/vscode/issues/119949
+
+
+	export interface NotebookFilter {
+		readonly viewType?: string;
+		readonly scheme?: string;
+		readonly pattern?: GlobPattern;
+	}
+
+	export type NotebookSelector = NotebookFilter | string | ReadonlyArray<NotebookFilter | string>;
+
+	export interface NotebookKernel2 {
+
+		readonly id: string;
+
+		// select notebook of a type and/or by file-pattern
+		readonly selector: NotebookSelector;
+
+		// selection is tricky/bogous because a kernel can be selected for
+		// different notebook documents. A handler-approach might be the better
+		// fit here, e.g:
+		// selectionHandler?: (notebook: NotebookDocument, selected: boolean) => void;
+
+		// // is this kernel selected
+		// readonly selected: boolean;
+		// // fired when kernel is selected/unselected
+		// readonly onDidChangeSelection: Event<boolean>;
+
+		// kernels can establish IPC channels to (visible) notebook editors
+		// createNotebookCommunication(editor: vscode.NotebookEditor): vscode.NotebookCommunication;
+
+
+		// UI properties (get/set)
+		label: string;
+		description: string;
+		supportedLanguages: string[];
+		hasExecutionOrder: boolean;
+
+		/**
+		 * The execute handler is invoked when the run gestures in the UI are selected, e.g Run Cell, Run All,
+		 * Run Selection etc.
+		 */
+		readonly executeHandler: (executions: NotebookCellExecutionTask[]) => void;
+
+		// optional kernel interrupt command
+		interruptHandler?: (notebook: NotebookDocument) => void
+
+		// remove kernel
+		dispose(): void;
+
+		/**
+		 * Manually create an execution task. This should only be used when cell execution
+		 * has started before creating the kernel instance or when execution can be triggered
+		 * from another source.
+		 *
+		 * @param cell The notebook cell for which to create the execution
+		 * @returns A notebook cell execution.
+		 */
+		createNotebookCellExecutionTask(cell: NotebookCell): NotebookCellExecutionTask;
+	}
+
+	export interface NotebookKernelOptions {
+		id: string;
+		label: string;
+		description?: string;
+		selector: NotebookSelector;
+		supportedLanguages: string[];
+		hasExecutionOrder?: boolean;
+		executeHandler: (executions: NotebookCellExecutionTask[]) => void;
+		interruptHandler?: (notebook: NotebookDocument) => void
+	}
+
+	export namespace notebook {
+		export function createNotebookKernel(options: NotebookKernelOptions): NotebookKernel2;
+	}
+
+	//#endregion
+
 	//#region https://github.com/microsoft/vscode/issues/106744, NotebookContentProvider
 
 
@@ -1643,14 +1700,6 @@ declare module 'vscode' {
 		filenamePattern?: NotebookFilenamePattern;
 	}
 
-	// export interface NotebookFilter {
-	// 	readonly viewType?: string;
-	// 	readonly scheme?: string;
-	// 	readonly pattern?: GlobPattern;
-	// }
-
-	// export type NotebookSelector = NotebookFilter | string | ReadonlyArray<NotebookFilter | string>;
-
 	// todo@API very unclear, provider MUST not return alive object but only data object
 	// todo@API unclear how the flow goes
 	export interface NotebookKernelProvider<T extends NotebookKernel = NotebookKernel> {
@@ -1660,17 +1709,17 @@ declare module 'vscode' {
 	}
 
 	export interface NotebookEditor {
-		/**
-		 * Active kernel used in the editor
-		 */
+
 		// todo@API unsure about that
 		// kernel, kernel selection, kernel provider
+		/** @deprecated kernels are private object*/
 		readonly kernel?: NotebookKernel;
 	}
 
 	export namespace notebook {
+		/** @deprecated */
 		export const onDidChangeActiveNotebookKernel: Event<{ document: NotebookDocument, kernel: NotebookKernel | undefined; }>;
-
+		/** @deprecated use createNotebookKernel */
 		export function registerNotebookKernelProvider(selector: NotebookDocumentFilter, provider: NotebookKernelProvider): Disposable;
 	}
 
@@ -2324,6 +2373,9 @@ declare module 'vscode' {
 		 * Appends raw output from the test runner. On the user's request, the
 		 * output will be displayed in a terminal. ANSI escape sequences,
 		 * such as colors and text styles, are supported.
+		 *
+		 * @param output Output text to append
+		 * @param associateTo Optionally, associate the given segment of output
 		 */
 		appendOutput(output: string): void;
 	}
@@ -2457,7 +2509,7 @@ declare module 'vscode' {
 		 * requested if the test changes before the previous call completes.
 		 * @returns a provider result of child test items
 		 */
-		discoverChildren(progress: Progress<{ busy: boolean; }>, token: CancellationToken): void;
+		discoverChildren(progress: Progress<{ busy: boolean }>, token: CancellationToken): void;
 	}
 
 	/**
@@ -2551,6 +2603,11 @@ declare module 'vscode' {
 		 * Unix milliseconds timestamp at which the test run was completed.
 		 */
 		completedAt: number;
+
+		/**
+		 * Optional raw output from the test run.
+		 */
+		output?: string;
 
 		/**
 		 * List of test results. The items in this array are the items that
@@ -2728,7 +2785,7 @@ declare module 'vscode' {
 		 *
 		 * Currently only `http` and `https` are supported.
 		 */
-		readonly schemes: readonly string[];
+		readonly schemes: readonly string[]
 
 		/**
 		 * Text displayed to the user that explains what the opener does.
@@ -2889,16 +2946,16 @@ declare module 'vscode' {
 
 	export interface PortAttributes {
 		port: number;
-		autoForwardAction: PortAutoForwardAction;
+		autoForwardAction: PortAutoForwardAction
 	}
 
 	export interface PortAttributesProvider {
 		/**
-		 * Provides attributes for the given ports. For ports that your extension doesn't know about, simply don't include
-		 * them in the returned array. For example, if `providePortAttributes` is called with ports [3000, 4000] but your
-		 * extension doesn't know anything about those ports you can return an empty array.
+		 * Provides attributes for the given port. For ports that your extension doesn't know about, simply
+		 * return undefined. For example, if `providePortAttributes` is called with ports 3000 but your
+		 * extension doesn't know anything about 3000 you should return undefined.
 		 */
-		providePortAttributes(ports: number[], pid: number | undefined, commandLine: string | undefined, token: CancellationToken): ProviderResult<PortAttributes[]>;
+		providePortAttributes(port: number, pid: number | undefined, commandLine: string | undefined, token: CancellationToken): ProviderResult<PortAttributes>;
 	}
 
 	export namespace workspace {
@@ -2909,11 +2966,24 @@ declare module 'vscode' {
 		 * ignored, since they don't need to be user facing.
 		 *
 		 * @param portSelector If registerPortAttributesProvider is called after you start your process then you may already
-		 * know the range of ports or the pid of your process.
+		 * know the range of ports or the pid of your process. All properties of a the portSelector must be true for your
+		 * provider to get called.
 		 * The `portRange` is start inclusive and end exclusive.
 		 * @param provider The PortAttributesProvider
 		 */
-		export function registerPortAttributesProvider(portSelector: { pid?: number, portRange?: [number, number]; }, provider: PortAttributesProvider): Disposable;
+		export function registerPortAttributesProvider(portSelector: { pid?: number, portRange?: [number, number], commandMatcher?: RegExp }, provider: PortAttributesProvider): Disposable;
 	}
+	//#endregion
+
+	// region https://github.com/microsoft/vscode/issues/119904 @eamodio
+
+	export interface SourceControlInputBox {
+
+		/**
+		 * Sets focus to the input.
+		 */
+		focus(): void;
+	}
+
 	//#endregion
 }

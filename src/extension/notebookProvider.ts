@@ -325,7 +325,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 		return new vscode.NotebookData(
 			cells,
-			new vscode.NotebookDocumentMetadata().with({ cellHasExecutionOrder: true, })
+			new vscode.NotebookDocumentMetadata()
 		);
 	}
 
