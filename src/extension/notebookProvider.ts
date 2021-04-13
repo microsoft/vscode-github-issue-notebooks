@@ -52,7 +52,9 @@ type OutputMetadataShape = Partial<{ startTime: number, isPersonal: boolean; }>;
 class IssuesNotebookKernel implements vscode.NotebookKernel {
 
 	readonly id = 'githubIssueKernel';
-	readonly label: string = 'GitHub Issues Kernel';
+	readonly label: string = 'GitHub';
+	readonly description: string = 'github.com';
+
 	readonly supportedLanguages: string[] = ['github-issues'];
 
 	private _executionOrder = 0;
