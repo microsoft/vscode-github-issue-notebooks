@@ -49,40 +49,47 @@ interface RawNotebookCell {
 
 type OutputMetadataShape = Partial<{ startTime: number, isPersonal: boolean; }>;
 
-class IssuesNotebookKernel implements vscode.NotebookKernel {
+export class IssuesNotebookKernel {
 
-	readonly id = 'githubIssueKernel';
-	readonly label: string = 'GitHub';
-	readonly description: string = 'github.com';
-
-	readonly supportedLanguages: string[] = ['github-issues'];
-
+	private readonly _controller: vscode.NotebookController;
 	private _executionOrder = 0;
 
 	constructor(
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
-	) { }
+	) {
 
-	async executeCellsRequest(document: vscode.NotebookDocument, ranges: vscode.NotebookCellRange[]) {
-		const cells: vscode.NotebookCell[] = [];
-		for (let range of ranges) {
-			cells.push(...document.getCells(range));
-		}
-		this._executeCells(cells);
+		this._controller = vscode.notebook.createNotebookController({
+			id: 'githubIssueKernel',
+			label: 'GitHub',
+			description: 'github.com',
+			supportedLanguages: ['github-issues'],
+			selector: { viewType: 'github-issues' },
+			hasExecutionOrder: true,
+			executeHandler: this._executeAll.bind(this)
+		});
 	}
 
-	private async _executeCells(cells: vscode.NotebookCell[]): Promise<void> {
+	dispose(): void {
+		this._controller.dispose();
+	}
 
-		const all = new Set<vscode.NotebookCell>();
-
-		for (const cell of cells) {
-			this._collectDependentCells(cell, all);
+	private _executeAll(executions: vscode.NotebookCellExecutionTask[]): void {
+		let map = new Map<vscode.NotebookCell, vscode.NotebookCellExecutionTask>();
+		for (let exec of executions) {
+			map.set(exec.cell, exec);
 		}
-
-		const tasks = Array.from(all).map(cell => vscode.notebook.createNotebookCellExecutionTask(cell.notebook.uri, cell.index, this.id)!);
-		for (const task of tasks) {
-			await this._doExecuteCell(task);
+		// const all = new Set<vscode.NotebookCell>();
+		// for (const cell of map.keys()) {
+		// 	this._collectDependentCells(cell, all);
+		// }
+		// for (let cell of all) {
+		// 	if (!map.has(cell)) {
+		// 		map.set(cell, this._controller.createNotebookCellExecutionTask(cell));
+		// 	}
+		// }
+		for (let exec of map.values()) {
+			this._doExecuteCell(exec);
 		}
 	}
 
@@ -251,7 +258,7 @@ export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItem
 	}
 }
 
-export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernelProvider {
+export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 
 	static mimeGithubIssues = 'x-application/github-issues';
 
@@ -264,10 +271,6 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider, v
 
 	dispose() {
 		this._localDisposables.forEach(d => d.dispose());
-	}
-
-	provideKernels() {
-		return [new IssuesNotebookKernel(this.container, this.octokit)];
 	}
 
 	async resolveNotebook(_document: vscode.NotebookDocument, _webview: { readonly onDidReceiveMessage: vscode.Event<any>; postMessage(message: any): Thenable<boolean>; asWebviewUri(localResource: vscode.Uri): vscode.Uri; }): Promise<void> {
