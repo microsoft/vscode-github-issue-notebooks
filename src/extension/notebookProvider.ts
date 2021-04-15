@@ -225,51 +225,42 @@ class IssuesNotebookKernel implements vscode.NotebookKernel {
 	}
 }
 
+export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItemProvider {
+
+	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem[] | undefined {
+		let issues: { html_url: string; }[] | undefined;
+		out: for (let output of cell.outputs) {
+			for (let item of output.outputs) {
+				if (item.mime === IssuesNotebookProvider.mimeGithubIssues) {
+					issues = item.value as { html_url: string; }[];
+					break out;
+				}
+			}
+		}
+
+		if (!issues) {
+			return;
+		}
+
+		return [new vscode.NotebookCellStatusBarItem(
+			`$(globe) Open ${issues.length} results`,
+			vscode.NotebookCellStatusBarAlignment.Right,
+			'github-issues.openAll',
+			`Open ${issues.length} results in browser`
+		)];
+	}
+}
+
 export class IssuesNotebookProvider implements vscode.NotebookContentProvider, vscode.NotebookKernelProvider {
 
 	static mimeGithubIssues = 'x-application/github-issues';
 
 	private readonly _localDisposables: vscode.Disposable[] = [];
-	private readonly _cellStatusBarItems = new WeakMap<vscode.NotebookCell, vscode.NotebookCellStatusBarItem>();
 
 	constructor(
 		readonly container: ProjectContainer,
 		readonly octokit: OctokitProvider
-	) {
-		this._localDisposables.push(vscode.notebook.onDidChangeCellOutputs(e => {
-
-			for (let cell of e.cells) {
-				if (cell.outputs.length > 0) {
-
-					let issues: { html_url: string; }[] | undefined;
-					out: for (let output of cell.outputs) {
-						for (let item of output.outputs) {
-							if (item.mime === IssuesNotebookProvider.mimeGithubIssues) {
-								issues = item.value as { html_url: string; }[];
-								break out;
-							}
-						}
-					}
-
-					if (issues) {
-						const item = this._cellStatusBarItems.get(cell) ?? vscode.notebook.createCellStatusBarItem(cell, vscode.NotebookCellStatusBarAlignment.Right);
-						this._cellStatusBarItems.set(cell, item);
-						item.command = 'github-issues.openAll';
-						item.text = `$(globe) Open ${issues.length} results`;
-						item.tooltip = `Open ${issues.length} results in browser`;
-						item.show();
-					}
-
-				} else {
-					const item = this._cellStatusBarItems.get(cell);
-					if (item) {
-						item.dispose();
-						this._cellStatusBarItems.delete(cell);
-					}
-				}
-			}
-		}));
-	}
+	) { }
 
 	dispose() {
 		this._localDisposables.forEach(d => d.dispose());

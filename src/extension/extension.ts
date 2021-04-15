@@ -6,7 +6,7 @@
 import * as vscode from 'vscode';
 import { registerCommands } from './commands';
 import { registerLanguageProvider } from './languageProvider';
-import { IssuesNotebookProvider } from './notebookProvider';
+import { IssuesNotebookProvider, IssuesStatusBarProvider } from './notebookProvider';
 import { OctokitProvider } from './octokitProvider';
 import { ProjectContainer } from './project';
 
@@ -14,6 +14,7 @@ export function activate(context: vscode.ExtensionContext) {
 	const octokit = new OctokitProvider();
 	const projectContainer = new ProjectContainer();
 	const notebookProvider = new IssuesNotebookProvider(projectContainer, octokit);
+	context.subscriptions.push(vscode.notebook.registerNotebookCellStatusBarItemProvider({ viewType: 'github-issues' }, new IssuesStatusBarProvider()));
 	context.subscriptions.push(vscode.notebook.registerNotebookKernelProvider({ viewType: 'github-issues' }, notebookProvider));
 	context.subscriptions.push(vscode.notebook.registerNotebookContentProvider('github-issues', notebookProvider, {
 		transientOutputs: true,
