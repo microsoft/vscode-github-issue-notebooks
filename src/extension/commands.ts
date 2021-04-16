@@ -4,40 +4,20 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { IssuesNotebookProvider } from './notebookProvider';
+import { mimeGithubIssues } from './notebookProvider';
 import { ProjectContainer } from './project';
 
-export function registerCommands(projectContainer: ProjectContainer, notebookProvider: IssuesNotebookProvider): vscode.Disposable {
+export function registerCommands(projectContainer: ProjectContainer): vscode.Disposable {
 
 	const subscriptions: vscode.Disposable[] = [];
 
-	// commands
-	subscriptions.push(vscode.commands.registerCommand('github-issues.lockCell', (cell: vscode.NotebookCell) => {
-		notebookProvider.setCellLockState(cell, true);
-	}));
-
-	subscriptions.push(vscode.commands.registerCommand('github-issues.unlockCell', (cell: vscode.NotebookCell) => {
-		notebookProvider.setCellLockState(cell, false);
-	}));
-
-	subscriptions.push(vscode.commands.registerCommand('github-issues.unlockDocument', () => {
-		if (vscode.window.activeNotebookEditor) {
-			notebookProvider.setDocumentLockState(vscode.window.activeNotebookEditor.document, false);
-		}
-	}));
-
-	subscriptions.push(vscode.commands.registerCommand('github-issues.lockDocument', () => {
-		if (vscode.window.activeNotebookEditor) {
-			notebookProvider.setDocumentLockState(vscode.window.activeNotebookEditor.document, true);
-		}
-	}));
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.openAll', async (cell: vscode.NotebookCell) => {
 
 		let items: { html_url: string; }[] | undefined;
 		out: for (let output of cell.outputs) {
 			for (let item of output.outputs) {
-				if (item.mime === IssuesNotebookProvider.mimeGithubIssues) {
+				if (item.mime === mimeGithubIssues) {
 					items = item.value as { html_url: string; }[];
 					break out;
 				}

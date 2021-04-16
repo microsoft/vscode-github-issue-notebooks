@@ -10,44 +10,12 @@ import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
 import { NodeType, Utils } from "./parser/nodes";
 import { ProjectContainer } from './project';
-import { isRunnable, isUsingAtMe } from './utils';
+import { isRunnable } from './utils';
 
 
-export interface NotebookCellExecutionSummary {
-	success?: boolean;
-	duration?: number;
-	executionOrder?: number;
-	message?: string;
-}
+export const mimeGithubIssues = 'x-application/github-issues';
 
-export interface INotebookCellExecution {
-
-	readonly cell: vscode.NotebookCell;
-	readonly token: vscode.CancellationToken;
-
-	start(context?: { executionOrder?: number; }): void;
-	resolve(result: NotebookCellExecutionSummary): void;
-
-	clearOutput(): void;
-	appendOutput(out: vscode.NotebookCellOutput[]): void;
-	replaceOutput(out: vscode.NotebookCellOutput[]): void;
-	appendOutputItems(outputId: string, items: vscode.NotebookCellOutputItem[]): void;
-	replaceOutputItems(outputId: string, items: vscode.NotebookCellOutputItem[]): void;
-}
-
-interface RawCellOutput {
-	mime: string;
-	value: any;
-}
-
-interface RawNotebookCell {
-	language: string;
-	value: string;
-	kind: vscode.NotebookCellKind;
-	editable?: boolean;
-}
-
-type OutputMetadataShape = Partial<{ startTime: number, isPersonal: boolean; }>;
+// --- running queries
 
 export class IssuesNotebookKernel {
 
@@ -74,48 +42,34 @@ export class IssuesNotebookKernel {
 		this._controller.dispose();
 	}
 
-	private _executeAll(executions: vscode.NotebookCellExecutionTask[]): void {
-		let map = new Map<vscode.NotebookCell, vscode.NotebookCellExecutionTask>();
-		for (let exec of executions) {
-			map.set(exec.cell, exec);
+	private _executeAll(cells: vscode.NotebookCell[]): void {
+		const all = new Set<vscode.NotebookCell>();
+		for (const cell of cells) {
+			this._collectDependentCells(cell, all);
 		}
-		// const all = new Set<vscode.NotebookCell>();
-		// for (const cell of map.keys()) {
-		// 	this._collectDependentCells(cell, all);
-		// }
-		// for (let cell of all) {
-		// 	if (!map.has(cell)) {
-		// 		map.set(cell, this._controller.createNotebookCellExecutionTask(cell));
-		// 	}
-		// }
-		for (let exec of map.values()) {
-			this._doExecuteCell(exec);
+		for (const cell of all.values()) {
+			this._doExecuteCell(cell);
 		}
 	}
 
-	private async _doExecuteCell(execution: vscode.NotebookCellExecutionTask): Promise<void> {
+	private async _doExecuteCell(cell: vscode.NotebookCell): Promise<void> {
 
-		const doc = await vscode.workspace.openTextDocument(execution.cell.document.uri);
+		const doc = await vscode.workspace.openTextDocument(cell.document.uri);
 		const project = this.container.lookupProject(doc.uri);
 		const query = project.getOrCreate(doc);
 
 		// update query so that symbols defined here are marked as more recent
 		project.symbols.update(query);
 
-		execution.executionOrder = ++this._executionOrder;
-		execution.start({ startTime: Date.now() });
+		const exec = this._controller.createNotebookCellExecutionTask(cell);
+		exec.executionOrder = ++this._executionOrder;
+		exec.start({ startTime: Date.now() });
 
-		// await new Promise(resolve => setTimeout(resolve, 3000));
 
 		if (!isRunnable(query)) {
-			execution.end({ success: true });
+			exec.end({ success: true });
 			return;
 		}
-
-		const metadata: OutputMetadataShape = {
-			isPersonal: isUsingAtMe(query),
-			startTime: Date.now()
-		};
 
 		const allQueryData = project.queryData(query);
 		let allItems: SearchIssuesAndPullRequestsResponseItemsItem[] = [];
@@ -123,14 +77,14 @@ export class IssuesNotebookKernel {
 		// fetch
 		try {
 			const abortCtl = new AbortController();
-			execution.token.onCancellationRequested(_ => abortCtl.abort());
+			exec.token.onCancellationRequested(_ => abortCtl.abort());
 
 			for (let queryData of allQueryData) {
 				const octokit = await this.octokit.lib();
 
 				let page = 1;
 				let count = 0;
-				while (!execution.token.isCancellationRequested) {
+				while (!exec.token.isCancellationRequested) {
 
 					const response = await octokit.search.issuesAndPullRequests({
 						q: queryData.q,
@@ -151,14 +105,14 @@ export class IssuesNotebookKernel {
 			}
 		} catch (err) {
 			// print as error
-			execution.replaceOutput([new vscode.NotebookCellOutput([
+			exec.replaceOutput([new vscode.NotebookCellOutput([
 				new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', {
 					ename: err instanceof Error && err.name || 'error',
 					evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
 					traceback: []
 				})
 			])]);
-			execution.end({ success: false });
+			exec.end({ success: false });
 			return;
 		}
 
@@ -187,12 +141,12 @@ export class IssuesNotebookKernel {
 		}
 
 		// status line
-		execution.replaceOutput([new vscode.NotebookCellOutput([
-			new vscode.NotebookCellOutputItem(IssuesNotebookProvider.mimeGithubIssues, allItems),
+		exec.replaceOutput([new vscode.NotebookCellOutput([
+			new vscode.NotebookCellOutputItem(mimeGithubIssues, allItems),
 			new vscode.NotebookCellOutputItem('text/markdown', md),
-		], metadata)]);
+		])]);
 
-		execution.end({ success: true });
+		exec.end({ success: true });
 	}
 
 
@@ -232,13 +186,15 @@ export class IssuesNotebookKernel {
 	}
 }
 
+// --- status bar
+
 export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItemProvider {
 
 	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem[] | undefined {
 		let issues: { html_url: string; }[] | undefined;
 		out: for (let output of cell.outputs) {
 			for (let item of output.outputs) {
-				if (item.mime === IssuesNotebookProvider.mimeGithubIssues) {
+				if (item.mime === mimeGithubIssues) {
 					issues = item.value as { html_url: string; }[];
 					break out;
 				}
@@ -258,46 +214,25 @@ export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItem
 	}
 }
 
-export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 
-	static mimeGithubIssues = 'x-application/github-issues';
+// --- serializer
 
-	private readonly _localDisposables: vscode.Disposable[] = [];
+interface RawNotebookCell {
+	language: string;
+	value: string;
+	kind: vscode.NotebookCellKind;
+	editable?: boolean;
+}
 
-	constructor(
-		readonly container: ProjectContainer,
-		readonly octokit: OctokitProvider
-	) { }
+export class IssuesNotebookSerializer implements vscode.NotebookSerializer {
 
-	dispose() {
-		this._localDisposables.forEach(d => d.dispose());
-	}
+	private readonly _decoder = new TextDecoder();
+	private readonly _encoder = new TextEncoder();
 
-	async resolveNotebook(_document: vscode.NotebookDocument, _webview: { readonly onDidReceiveMessage: vscode.Event<any>; postMessage(message: any): Thenable<boolean>; asWebviewUri(localResource: vscode.Uri): vscode.Uri; }): Promise<void> {
-		// nothing
-	}
-
-	// -- utils
-
-	setCellLockState(cell: vscode.NotebookCell, locked: boolean) {
-		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookCellMetadata(cell.notebook.uri, cell.index, cell.metadata.with({ editable: !locked }));
-		return vscode.workspace.applyEdit(edit);
-	}
-
-	setDocumentLockState(notebook: vscode.NotebookDocument, locked: boolean) {
-		const edit = new vscode.WorkspaceEdit();
-		edit.replaceNotebookMetadata(notebook.uri, notebook.metadata.with({ editable: !locked, cellEditable: !locked }));
-		return vscode.workspace.applyEdit(edit);
-	}
-
-	// -- IO
-
-	async openNotebook(uri: vscode.Uri, context: vscode.NotebookDocumentOpenContext): Promise<vscode.NotebookData> {
-		let actualUri = context.backupId ? vscode.Uri.parse(context.backupId) : uri;
+	deserializeNotebook(data: Uint8Array): vscode.NotebookData {
 		let contents = '';
 		try {
-			contents = new TextDecoder().decode(await vscode.workspace.fs.readFile(actualUri));
+			contents = this._decoder.decode(data);
 		} catch {
 		}
 
@@ -312,9 +247,7 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 		const cells = raw.map(item => new vscode.NotebookCellData(
 			item.kind,
 			item.value,
-			item.language,
-			undefined,
-			new vscode.NotebookCellMetadata().with({ editable: item.editable ?? true })
+			item.language
 		));
 
 		return new vscode.NotebookData(
@@ -323,35 +256,16 @@ export class IssuesNotebookProvider implements vscode.NotebookContentProvider {
 		);
 	}
 
-	saveNotebook(document: vscode.NotebookDocument, _cancellation: vscode.CancellationToken): Promise<void> {
-		return this._save(document, document.uri);
-	}
-
-	saveNotebookAs(targetResource: vscode.Uri, document: vscode.NotebookDocument, _cancellation: vscode.CancellationToken): Promise<void> {
-		return this._save(document, targetResource);
-	}
-
-	async backupNotebook(document: vscode.NotebookDocument, context: vscode.NotebookDocumentBackupContext, _cancellation: vscode.CancellationToken): Promise<vscode.NotebookDocumentBackup> {
-		await this._save(document, context.destination);
-		return {
-			id: context.destination.toString(),
-			delete: () => vscode.workspace.fs.delete(context.destination)
-		};
-	}
-
-	async _save(document: vscode.NotebookDocument, targetResource: vscode.Uri): Promise<void> {
-
-
+	serializeNotebook(data: vscode.NotebookData): Uint8Array {
 		let contents: RawNotebookCell[] = [];
-		for (let cell of document.getCells()) {
+		for (let cell of data.cells) {
 			contents.push({
 				kind: cell.kind,
-				language: cell.document.languageId,
-				value: cell.document.getText(),
-				editable: cell.metadata.editable
+				language: cell.language,
+				value: cell.source
 			});
 		}
-		await vscode.workspace.fs.writeFile(targetResource, new TextEncoder().encode(JSON.stringify(contents, undefined, 2)));
+		return this._encoder.encode(JSON.stringify(contents, undefined, 2));
 	}
 }
 

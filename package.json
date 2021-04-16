@@ -70,26 +70,6 @@
 		],
 		"commands": [
 			{
-				"title": "Lock GitHub Query",
-				"command": "github-issues.lockCell",
-				"icon": "$(unlock)"
-			},
-			{
-				"title": "Unlock GitHub Query",
-				"command": "github-issues.unlockCell",
-				"icon": "$(lock)"
-			},
-			{
-				"title": "Unlock GitHub Document",
-				"command": "github-issues.unlockDocument",
-				"icon": "$(lock)"
-			},
-			{
-				"title": "Lock GitHub Document",
-				"command": "github-issues.lockDocument",
-				"icon": "$(unlock)"
-			},
-			{
 				"title": "Open All In Browser",
 				"command": "github-issues.openAll",
 				"icon": "$(globe)"
@@ -103,14 +83,6 @@
 		"menus": {
 			"commandPalette": [
 				{
-					"command": "github-issues.lockCell",
-					"when": "false"
-				},
-				{
-					"command": "github-issues.unlockCell",
-					"when": "false"
-				},
-				{
 					"command": "github-issues.openAll",
 					"when": "false"
 				},
@@ -119,34 +91,12 @@
 					"when": "false"
 				}
 			],
-			"editor/title": [
-				{
-					"command": "github-issues.unlockDocument",
-					"when": "notebookViewType == github-issues && !notebookEditable",
-					"group": "navigation@1"
-				},
-				{
-					"command": "github-issues.lockDocument",
-					"when": "notebookViewType == github-issues && notebookEditable",
-					"group": "navigation@2"
-				}
-			],
 			"notebook/cell/title": [
 				{
 					"command": "github-issues.openUrl",
 					"alt": "github-issues.openAll",
 					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellHasOutputs",
 					"group": "inline/output@1"
-				},
-				{
-					"command": "github-issues.lockCell",
-					"when": "notebookViewType == github-issues && notebookCellType == code && notebookCellEditable",
-					"group": "inline/cell@2"
-				},
-				{
-					"command": "github-issues.unlockCell",
-					"when": "notebookViewType == github-issues && notebookCellType == code && !notebookCellEditable",
-					"group": "inline/cell@2"
 				}
 			]
 		}
