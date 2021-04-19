@@ -7,7 +7,7 @@
 	"workspaceTrust": {
 		"request": "never"
 	},
-	"version": "0.0.81",
+	"version": "0.0.82",
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
