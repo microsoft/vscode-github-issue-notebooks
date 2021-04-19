@@ -27,15 +27,15 @@ export class IssuesNotebookKernel {
 		readonly octokit: OctokitProvider
 	) {
 
-		this._controller = vscode.notebook.createNotebookController({
-			id: 'githubIssueKernel',
-			label: 'GitHub',
-			description: 'github.com',
-			supportedLanguages: ['github-issues'],
-			selector: { viewType: 'github-issues' },
-			hasExecutionOrder: true,
-			executeHandler: this._executeAll.bind(this)
-		});
+		this._controller = vscode.notebook.createNotebookController(
+			'githubIssueKernel',
+			{ viewType: 'github-issues' },
+			'github.com'
+		);
+
+		this._controller.hasExecutionOrder = true;
+		this._controller.description = 'GitHub';
+		this._controller.executeHandler = this._executeAll.bind(this);
 	}
 
 	dispose(): void {
