@@ -18,7 +18,7 @@ export function activate(context: vscode.ExtensionContext) {
 	context.subscriptions.push(vscode.notebook.registerNotebookCellStatusBarItemProvider({ viewType: 'github-issues' }, new IssuesStatusBarProvider()));
 	context.subscriptions.push(vscode.notebook.registerNotebookSerializer('github-issues', new IssuesNotebookSerializer(), {
 		transientOutputs: true,
-		transientMetadata: {
+		transientCellMetadata: {
 			inputCollapsed: true,
 			outputCollapsed: true,
 		}
