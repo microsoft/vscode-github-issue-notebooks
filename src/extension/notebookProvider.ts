@@ -30,9 +30,9 @@ export class IssuesNotebookKernel {
 		this._controller = vscode.notebook.createNotebookController(
 			'githubIssueKernel',
 			{ viewType: 'github-issues' },
-			'github.com'
+			'github.com',
 		);
-
+		this._controller.supportedLanguages = ['github-issues'];
 		this._controller.hasExecutionOrder = true;
 		this._controller.description = 'GitHub';
 		this._controller.executeHandler = this._executeAll.bind(this);
