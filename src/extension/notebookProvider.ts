@@ -29,7 +29,7 @@ export class IssuesNotebookKernel {
 
 		this._controller = vscode.notebook.createNotebookController(
 			'githubIssueKernel',
-			{ viewType: 'github-issues' },
+			'github-issues',
 			'github.com',
 		);
 		this._controller.supportedLanguages = ['github-issues'];
@@ -148,7 +148,6 @@ export class IssuesNotebookKernel {
 
 		exec.end({ success: true });
 	}
-
 
 	private async _collectDependentCells(cell: vscode.NotebookCell, bucket: Set<vscode.NotebookCell>): Promise<void> {
 
