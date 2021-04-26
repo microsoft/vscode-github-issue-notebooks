@@ -4,9 +4,6 @@
 	"description": "GitHub Issue Notebooks for VS Code",
 	"publisher": "ms-vscode",
 	"preview": true,
-	"workspaceTrust": {
-		"request": "never"
-	},
 	"version": "0.0.85",
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
@@ -18,6 +15,12 @@
 	"categories": [
 		"Other"
 	],
+	"capabilities": {
+		"untrustedWorkspaces": {
+			"supported": true
+		},
+		"virtualWorkspaces": true
+	},
 	"icon": "icon.png",
 	"activationEvents": [
 		"onLanguage:github-issues",
