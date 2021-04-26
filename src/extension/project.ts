@@ -148,7 +148,7 @@ export class ProjectContainer {
 			this._associations.set(notebook, project);
 
 			try {
-				for (const cell of notebook.cells) {
+				for (const cell of notebook.getCells()) {
 					if (cell.kind === vscode.NotebookCellKind.Code) {
 						project.getOrCreate(cell.document);
 					}
@@ -197,7 +197,7 @@ export class ProjectContainer {
 				// notebook uri itself
 				return project;
 			}
-			for (let cell of notebook.cells) {
+			for (let cell of notebook.getCells()) {
 				if (cell.document.uri.toString() === uri.toString()) {
 					// a cell uri
 					return project;
