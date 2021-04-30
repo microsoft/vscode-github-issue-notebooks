@@ -133,7 +133,10 @@ export class IssuesNotebookKernel {
 			seen.add(item.url);
 
 			// markdown
-			md += `- [#${item.number}](${item.html_url}) ${item.title} [${item.labels.map(label => `${label.name}`).join(', ')}]`;
+			md += `- [#${item.number}](${item.html_url}) ${item.title}`;
+			if (item.labels.length > 0) {
+				md += ` [${item.labels.map(label => `${label.name}`).join(', ')}] `;
+			}
 			if (item.assignee) {
 				md += `- [@${item.assignee.login}](${item.assignee.html_url} "Issue ${item.number} is assigned to ${item.assignee.login}")\n`;
 			}
