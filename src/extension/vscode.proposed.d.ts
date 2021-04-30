@@ -1549,23 +1549,29 @@ declare module 'vscode' {
 	export interface NotebookController {
 
 		/**
-		 * The unique identifier of this notebook controller.
+		 * The identifier of this notebook controller.
 		 */
 		readonly id: string;
 
 		/**
-		 * The selector allows to narrow down on specific notebook types or
-		 * instances.
-		 *
-		 * For instance `{ viewType: 'notebook.test' }` selects all notebook
-		 * documents of the type `notebook.test`, whereas `{ pattern: '/my/file/test.nb' }`
-		 * selects only the notebook with the path `/my/file/test.nb`.
+		 * The notebook view type this controller is for.
 		 */
 		readonly viewType: string;
 
 		/**
 		 * An array of language identifiers that are supported by this
-		 * controller. When falsy all languages are supported.
+		 * controller. Any language identifier from [`getLanguages`](#languages.getLanguages)
+		 * is possible. When falsy all languages are supported.
+		 *
+		 * Samples:
+		 * ```js
+		 * // support JavaScript and TypeScript
+		 * myController.supportedLanguages = ['javascript', 'typescript']
+		 *
+		 * // support all languages
+		 * myController.supportedLanguages = undefined; // falsy
+		 * myController.supportedLanguages = []; // falsy
+		 * ```
 		 */
 		supportedLanguages?: string[];
 
@@ -1660,7 +1666,6 @@ declare module 'vscode' {
 		 * @param notebook The notebook for which a priority is set.
 		 * @param affinity A controller affinity
 		 */
-		// todo@API maybe Affinity instead of Priority
 		updateNotebookAffinity(notebook: NotebookDocument, affinity: NotebookControllerAffinity): void;
 	}
 
@@ -1674,8 +1679,8 @@ declare module 'vscode' {
 		/**
 		 * Creates a new notebook controller.
 		 *
-		 * @param id Unique identifier of the controller
-		 * @param selector A notebook selector to narrow down notebook type or path
+		 * @param id Extension-unique identifier of the controller
+		 * @param viewType A notebook type for which this controller is for.
 		 * @param label The label of the controller
 		 * @param handler
 		 * @param preloads
@@ -1870,14 +1875,13 @@ declare module 'vscode' {
 		Right = 2
 	}
 
-	// todo@API remove readonlyness.
 	export class NotebookCellStatusBarItem {
-		readonly text: string;
-		readonly alignment: NotebookCellStatusBarAlignment;
-		readonly command?: string | Command;
-		readonly tooltip?: string;
-		readonly priority?: number;
-		readonly accessibilityInformation?: AccessibilityInformation;
+		text: string;
+		alignment: NotebookCellStatusBarAlignment;
+		command?: string | Command;
+		tooltip?: string;
+		priority?: number;
+		accessibilityInformation?: AccessibilityInformation;
 
 		constructor(text: string, alignment: NotebookCellStatusBarAlignment, command?: string | Command, tooltip?: string, priority?: number, accessibilityInformation?: AccessibilityInformation);
 	}
@@ -2148,49 +2152,49 @@ declare module 'vscode' {
 
 	//#region https://github.com/microsoft/vscode/issues/16221
 
-	// todo@API rename to InlayHint
+	// todo@API Split between Inlay- and OverlayHints (InlayHint are for a position, OverlayHints for a non-empty range)
 	// todo@API add "mini-markdown" for links and styles
-	// todo@API remove description
-	// (done:)  add InlayHintKind with type, argument, etc
+	// (done) remove description
+	// (done) rename to InlayHint
+	// (done)  add InlayHintKind with type, argument, etc
 
 	export namespace languages {
 		/**
-		 * Register a inline hints provider.
+		 * Register a inlay hints provider.
 		 *
 		 * Multiple providers can be registered for a language. In that case providers are asked in
 		 * parallel and the results are merged. A failing provider (rejected promise or exception) will
 		 * not cause a failure of the whole operation.
 		 *
 		 * @param selector A selector that defines the documents this provider is applicable to.
-		 * @param provider An inline hints provider.
+		 * @param provider An inlay hints provider.
 		 * @return A [disposable](#Disposable) that unregisters this provider when being disposed.
 		 */
-		export function registerInlineHintsProvider(selector: DocumentSelector, provider: InlineHintsProvider): Disposable;
+		export function registerInlayHintsProvider(selector: DocumentSelector, provider: InlayHintsProvider): Disposable;
 	}
 
-	export enum InlineHintKind {
+	export enum InlayHintKind {
 		Other = 0,
 		Type = 1,
 		Parameter = 2,
 	}
 
 	/**
-	 * Inline hint information.
+	 * Inlay hint information.
 	 */
-	export class InlineHint {
+	export class InlayHint {
 		/**
 		 * The text of the hint.
 		 */
 		text: string;
 		/**
-		 * The range of the hint.
+		 * The position of this hint.
 		 */
-		range: Range;
-
-		kind?: InlineHintKind;
-
-		// todo@API remove this
-		description?: string | MarkdownString;
+		position: Position;
+		/**
+		 * The kind of this hint.
+		 */
+		kind?: InlayHintKind;
 		/**
 		 * Whitespace before the hint.
 		 */
@@ -2201,29 +2205,29 @@ declare module 'vscode' {
 		whitespaceAfter?: boolean;
 
 		// todo@API make range first argument
-		constructor(text: string, range: Range, kind?: InlineHintKind);
+		constructor(text: string, position: Position, kind?: InlayHintKind);
 	}
 
 	/**
-	 * The inline hints provider interface defines the contract between extensions and
-	 * the inline hints feature.
+	 * The inlay hints provider interface defines the contract between extensions and
+	 * the inlay hints feature.
 	 */
-	export interface InlineHintsProvider {
+	export interface InlayHintsProvider {
 
 		/**
-		 * An optional event to signal that inline hints have changed.
+		 * An optional event to signal that inlay hints have changed.
 		 * @see [EventEmitter](#EventEmitter)
 		 */
-		onDidChangeInlineHints?: Event<void>;
+		onDidChangeInlayHints?: Event<void>;
 
 		/**
-		 * @param model The document in which the command was invoked.
-		 * @param range The range for which line hints should be computed.
-		 * @param token A cancellation token.
 		 *
-		 * @return A list of arguments labels or a thenable that resolves to such.
+		 * @param model The document in which the command was invoked.
+		 * @param range The range for which inlay hints should be computed.
+		 * @param token A cancellation token.
+		 * @return A list of inlay hints or a thenable that resolves to such.
 		 */
-		provideInlineHints(model: TextDocument, range: Range, token: CancellationToken): ProviderResult<InlineHint[]>;
+		provideInlayHints(model: TextDocument, range: Range, token: CancellationToken): ProviderResult<InlayHint[]>;
 	}
 	//#endregion
 
@@ -2286,7 +2290,7 @@ declare module 'vscode' {
 		export function createDocumentTestObserver(document: TextDocument): TestObserver;
 
 		/**
-		 * Creates a {@link TestRunTask<T>}. This should be called by the
+		 * Creates a {@link TestRun<T>}. This should be called by the
 		 * {@link TestRunner} when a request is made to execute tests, and may also
 		 * be called if a test run is detected externally. Once created, tests
 		 * that are included in the results will be moved into the
@@ -2301,7 +2305,7 @@ declare module 'vscode' {
 		 * persisted in VS Code. This may be false if the results are coming from
 		 * a file already saved externally, such as a coverage information file.
 		 */
-		export function createTestRunTask<T>(request: TestRunRequest<T>, name?: string, persist?: boolean): TestRunTask<T>;
+		export function createTestRun<T>(request: TestRunRequest<T>, name?: string, persist?: boolean): TestRun<T>;
 
 		/**
 		 * Creates a new managed {@link TestItem} instance.
@@ -2422,7 +2426,7 @@ declare module 'vscode' {
 
 		/**
 		 * Starts a test run. When called, the controller should call
-		 * {@link vscode.test.createTestRunTask}. All tasks associated with the
+		 * {@link vscode.test.createTestRun}. All tasks associated with the
 		 * run should be created before the function returns or the reutrned
 		 * promise is resolved.
 		 *
@@ -2459,7 +2463,7 @@ declare module 'vscode' {
 	/**
 	 * Options given to {@link TestController.runTests}
 	 */
-	export interface TestRunTask<T = void> {
+	export interface TestRun<T = void> {
 		/**
 		 * The human-readable name of the run. This can be used to
 		 * disambiguate multiple sets of results in a test run. It is useful if
@@ -3038,7 +3042,7 @@ declare module 'vscode' {
 		 * Any time trust is not given, it is recommended to use the
 		* `onDidGrantWorkspaceTrust` event to listen for trust changes.
 		 */
-		export function requestWorkspaceTrust(options?: WorkspaceTrustRequestOptions): Thenable<boolean>;
+		export function requestWorkspaceTrust(options?: WorkspaceTrustRequestOptions): Thenable<boolean | undefined>;
 	}
 
 	//#endregion
