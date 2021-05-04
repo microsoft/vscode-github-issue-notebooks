@@ -4,7 +4,6 @@
  *--------------------------------------------------------------------------------------------*/
 
 import AbortController from "abort-controller";
-import { TextDecoder, TextEncoder } from "util";
 import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
@@ -224,6 +223,14 @@ interface RawNotebookCell {
 	value: string;
 	kind: vscode.NotebookCellKind;
 	editable?: boolean;
+}
+
+declare class TextDecoder {
+	decode(data: Uint8Array): string;
+}
+
+declare class TextEncoder {
+	encode(data: string): Uint8Array;
 }
 
 export class IssuesNotebookSerializer implements vscode.NotebookSerializer {
