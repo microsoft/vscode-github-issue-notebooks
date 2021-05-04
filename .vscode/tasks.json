@@ -5,7 +5,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "bundle-watch",
+			"script": "webpack-watch",
 			"presentation": {
 				"echo": true,
 				"reveal": "never",
@@ -18,7 +18,10 @@
 				"runOn": "folderOpen"
 			},
 			"isBackground": true,
-			"label": "npm: bundle-watch"
+			"label": "npm: webpack-watch",
+			"problemMatcher": [
+				"$ts-webpack-watch"
+			],
 		},
 		{
 			"type": "npm",

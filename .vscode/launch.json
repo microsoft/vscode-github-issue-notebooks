@@ -17,7 +17,7 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			// "preLaunchTask": "npm: bundle-watch"
+			"preLaunchTask": "npm: webpack-watch"
 		},
 		{
 			"name": "Attach to Extension Host",
