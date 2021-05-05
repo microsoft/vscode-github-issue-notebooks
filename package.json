@@ -29,6 +29,7 @@
 	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
 	"extensionKind": [
+		"web",
 		"ui",
 		"workspace"
 	],
