@@ -7,9 +7,11 @@
 	background-color: var(--vscode-list-hoverBackground);
 }
 .title {
-	color: var(--vscode-foreground) !important;
-	font-size: 1em;
+	color: var(--vscode-editor-foreground) !important;
+	font-size: 1.1em;
+	font-weight: 500;
 	text-decoration: none;
+	margin-right: 3px;
 }
 .title:hover {
 	text-decoration: underline;
@@ -19,12 +21,14 @@
 	padding-right: 8px;
 }
 .label {
-	font-size: 0.8em;
+	font-size: 0.85em;
 	margin: 0 2px;
-	padding: 2px;
+	padding: 1px 6px 2px 6px;
+	border-radius: 1em;
 }
 .label a {
-	padding: 2px;
+	/* Prevents wrap breaking on hypen */
+	display: inline-block;
 }
 .status {
 	font-size: 0.8em;
@@ -49,7 +53,7 @@
 	fill: var(--vscode-icon-foreground);
 }
 .item-state .octicon.open {
-	fill: var(--vscode-editorWarning-foreground);
+	fill: var(--vscode-issues-open);
 }
 .stats {
 	text-align: center;
