@@ -116,7 +116,7 @@
 		"unit-test": "npm run ts-compile && npx mocha ./out/test/test-unit",
 		"compile-lint-test": "npm run ts-compile && npm run lint && npm run unit-test",
 		"precommit": "npm run lint",
-		"deploy": "npx vsce publish --noVerify"
+		"deploy": "npx vsce publish --web --noVerify"
 	},
 	"devDependencies": {
 		"@types/glob": "^7.1.1",
