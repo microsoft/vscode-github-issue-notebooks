@@ -9,7 +9,6 @@
 .title {
 	color: var(--vscode-editor-foreground) !important;
 	font-size: 1.1em;
-	font-weight: 500;
 	text-decoration: none;
 	margin-right: 3px;
 }
