@@ -27,7 +27,6 @@
         "no-unused-labels": "warn",
         "no-var": "warn",
         "semi": "off",
-        "@typescript-eslint/semi": "warn",
-        "@typescript-eslint/class-name-casing": "warn"
+        "@typescript-eslint/semi": "warn"
     }
 }
