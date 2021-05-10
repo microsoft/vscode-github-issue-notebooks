@@ -270,8 +270,8 @@ export class IssuesNotebookSerializer implements vscode.NotebookSerializer {
 		for (let cell of data.cells) {
 			contents.push({
 				kind: cell.kind,
-				language: cell.language,
-				value: cell.source
+				language: cell.languageId,
+				value: cell.value
 			});
 		}
 		return this._encoder.encode(JSON.stringify(contents, undefined, 2));
