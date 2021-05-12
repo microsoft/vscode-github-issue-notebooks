@@ -62,7 +62,7 @@
 				]
 			}
 		],
-		"notebookProvider": [
+		"notebooks": [
 			{
 				"viewType": "github-issues",
 				"displayName": "GitHub Issues Notebook",
