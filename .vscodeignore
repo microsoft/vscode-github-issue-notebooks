@@ -10,3 +10,4 @@ node_modules/
 .gitignore
 azure-pipelines.yml
 SECURITY.md
+test/
