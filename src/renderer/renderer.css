@@ -1,16 +1,16 @@
 .item-row {
-	padding: 0.3em;
-	color: var(--vscode-foreground);
+	padding: 0.5em;
+	color: var(--theme-foreground);
 }
 .item-row:hover {
-	background-color: var(--vscode-list-hoverBackground);
+	background-color: rgba(0, 0, 0, 0.1);
 }
 .item-main {
 	display: flex;
 	align-items: center;
 }
 .title {
-	color: var(--vscode-editor-foreground) !important;
+	color: var(--theme-foreground) !important;
 	font-size: 1.1em;
 	text-decoration: none;
 	margin-right: 3px;
@@ -53,11 +53,13 @@
 	opacity: 60%;
 }
 .item-state .octicon {
-	fill: var(--vscode-icon-foreground);
+	fill: var(--theme-foreground);
+	opacity: 0.7;
 	display: block;
 }
 .item-state .octicon.open {
-	fill: var(--vscode-issues-open);
+	fill: green;
+	opacity: 1;
 }
 .stats {
 	text-align: center;
@@ -73,18 +75,18 @@
 }
 .collapse:hover > span,
 .collapse:focus > span {
-	background: var(--vscode-button-hoverBackground);
+	background: var(--theme-button-hover-background);
 }
 .collapse > span {
-	color: var(--vscode-button-foreground);
-	background: var(--vscode-button-background);
+	color: var(--theme-button-foreground);
+	background: var(--theme-button-background);
 	padding: 3px;
 }
 .item-row .start-working {
 	display: none;
 }
 .item-row .start-working a {
-	color: var(--vscode-foreground) !important;
+	color: var(--theme-foreground) !important;
 	font-size: 0.9em;
 	text-decoration: none;
 }
