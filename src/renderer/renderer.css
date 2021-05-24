@@ -1,10 +1,13 @@
 .item-row {
-	display: flex;
-	padding: 0.5em 0;
+	padding: 0.3em;
 	color: var(--vscode-foreground);
 }
 .item-row:hover {
 	background-color: var(--vscode-list-hoverBackground);
+}
+.item-main {
+	display: flex;
+	align-items: center;
 }
 .title {
 	color: var(--vscode-editor-foreground) !important;
@@ -30,9 +33,11 @@
 	display: inline-block;
 }
 .status {
+	display: flex;
+	align-items: center;
 	font-size: 0.8em;
 	opacity: 60%;
-	padding-top: 0.5em;
+	padding: 0.1em 0 0.1em 0.3em;
 }
 .assignee {
 	flex: shrink;
@@ -41,15 +46,15 @@
 	display: flex;
 }
 .user img {
-	padding: 0.1em;
+	padding: 0 0.1em;
 }
 .item-state {
-	flex: shrink;
-	padding: 0 0.3em;
+	padding-right: 0.3em;
 	opacity: 60%;
 }
 .item-state .octicon {
 	fill: var(--vscode-icon-foreground);
+	display: block;
 }
 .item-state .octicon.open {
 	fill: var(--vscode-issues-open);
@@ -88,4 +93,22 @@
 }
 .item-row:hover .start-working {
 	display: inline;
+}
+.item-row .actions {
+	display: none;
+	margin: 0;
+	padding: 0;
+}
+.item-row:hover .actions,
+.item-row:focus-within .actions {
+	display: flex;
+}
+.item-row .actions li {
+	list-style-type: none;
+	padding: 0;
+	cursor: pointer;
+}
+
+.item-row .actions li a {
+	color: inherit;
 }
