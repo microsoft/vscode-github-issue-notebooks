@@ -144,8 +144,8 @@ export class IssuesNotebookKernel {
 
 		// status line
 		exec.replaceOutput([new vscode.NotebookCellOutput([
-			new vscode.NotebookCellOutputItem(mimeGithubIssues, allItems),
-			new vscode.NotebookCellOutputItem('text/markdown', md),
+			vscode.NotebookCellOutputItem.json(allItems, mimeGithubIssues),
+			vscode.NotebookCellOutputItem.text(md, 'text/markdown'),
 		])]);
 
 		exec.end({ success: true });

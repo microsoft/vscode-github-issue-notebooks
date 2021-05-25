@@ -1,7 +1,7 @@
 [
   {
     "kind": 1,
-    "language": "github-issues",
+    "language": "markdown",
     "value": "### Issue Notebook for the Isses Notebook Repo"
   },
   {
@@ -17,6 +17,6 @@
   {
     "kind": 2,
     "language": "github-issues",
-    "value": "$repo "
+    "value": "$repo is:open"
   }
 ]
