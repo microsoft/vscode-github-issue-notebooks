@@ -52,7 +52,7 @@
 				"path": "./syntaxes/github-issues.tmGrammar.json"
 			}
 		],
-		"notebookOutputRenderer": [
+		"notebookRenderer": [
 			{
 				"id": "github-issues",
 				"displayName": "Github Issues Notebook Renderer",
