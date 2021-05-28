@@ -23,6 +23,7 @@
 	},
 	"icon": "icon.png",
 	"activationEvents": [
+		"onCommand:github-issues.new",
 		"onLanguage:github-issues",
 		"onNotebook:github-issues"
 	],
