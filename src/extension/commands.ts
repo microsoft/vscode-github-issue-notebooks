@@ -7,6 +7,10 @@ import * as vscode from 'vscode';
 import { mimeGithubIssues } from './notebookProvider';
 import { ProjectContainer } from './project';
 
+declare class TextDecoder {
+	decode(data: Uint8Array): string;
+}
+
 export function registerCommands(projectContainer: ProjectContainer): vscode.Disposable {
 
 	const subscriptions: vscode.Disposable[] = [];
@@ -24,7 +28,7 @@ export function registerCommands(projectContainer: ProjectContainer): vscode.Dis
 		out: for (let output of cell.outputs) {
 			for (let item of output.outputs) {
 				if (item.mime === mimeGithubIssues) {
-					items = item.value as { html_url: string; }[];
+					items = JSON.parse(new TextDecoder().decode(item.data));
 					break out;
 				}
 			}

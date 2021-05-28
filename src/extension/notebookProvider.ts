@@ -60,7 +60,7 @@ export class IssuesNotebookKernel {
 		// update query so that symbols defined here are marked as more recent
 		project.symbols.update(query);
 
-		const exec = this._controller.createNotebookCellExecutionTask(cell);
+		const exec = this._controller.createNotebookCellExecution(cell);
 		exec.executionOrder = ++this._executionOrder;
 		exec.start({ startTime: Date.now() });
 
@@ -104,13 +104,7 @@ export class IssuesNotebookKernel {
 			}
 		} catch (err) {
 			// print as error
-			exec.replaceOutput([new vscode.NotebookCellOutput([
-				new vscode.NotebookCellOutputItem('application/x.notebook.error-traceback', {
-					ename: err instanceof Error && err.name || 'error',
-					evalue: err instanceof Error && err.message || JSON.stringify(err, undefined, 4),
-					traceback: []
-				})
-			])]);
+			exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(err)]));
 			exec.end({ success: false });
 			return;
 		}
@@ -146,7 +140,7 @@ export class IssuesNotebookKernel {
 		exec.replaceOutput([new vscode.NotebookCellOutput([
 			vscode.NotebookCellOutputItem.json(allItems, mimeGithubIssues),
 			vscode.NotebookCellOutputItem.text(md, 'text/markdown'),
-		])]);
+		], { itemCount: allItems.length })]);
 
 		exec.end({ success: true });
 	}
@@ -192,25 +186,15 @@ export class IssuesNotebookKernel {
 export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItemProvider {
 
 	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem[] | undefined {
-		let issues: { html_url: string; }[] | undefined;
-		out: for (let output of cell.outputs) {
-			for (let item of output.outputs) {
-				if (item.mime === mimeGithubIssues) {
-					issues = item.value as { html_url: string; }[];
-					break out;
-				}
-			}
-		}
-
-		if (!issues) {
+		const count = <number | undefined>cell.outputs[0]?.metadata?.['itemCount'];
+		if (typeof count !== 'number') {
 			return;
 		}
-
 		return [new vscode.NotebookCellStatusBarItem(
-			`$(globe) Open ${issues.length} results`,
+			`$(globe) Open ${count} results`,
 			vscode.NotebookCellStatusBarAlignment.Right,
 			'github-issues.openAll',
-			`Open ${issues.length} results in browser`
+			`Open ${count} results in browser`
 		)];
 	}
 }
