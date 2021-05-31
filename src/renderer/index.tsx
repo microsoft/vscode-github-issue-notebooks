@@ -5,10 +5,26 @@
 import { h, render } from 'preact';
 import { ActivationFunction } from 'vscode-notebook-renderer';
 import { AllItems } from './renderer';
-import './renderer.css';
+import rendererCss from './renderer.css';
 
-export const activate: ActivationFunction = () => ({
-	renderCell(_id, info) {
-		render(<AllItems items={info.json()} />, info.element);
-	},
-});
+export const activate: ActivationFunction = () => {
+	const style = document.createElement('style');
+	style.type = 'text/css';
+	style.textContent = rendererCss;
+
+	return {
+		renderCell(_id, info) {
+			let shadow = info.element.shadowRoot;
+			if (!shadow) {
+				shadow = info.element.attachShadow({ mode: 'open' });
+
+				shadow.append(style.cloneNode(true));
+
+				const root = document.createElement('div');
+				root.id = 'root';
+				shadow.append(root);
+			}
+			render(<AllItems items={info.json()} />, shadow.querySelector('#root')!);
+		},
+	};
+};

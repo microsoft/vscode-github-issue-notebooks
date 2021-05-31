@@ -9,6 +9,7 @@
 		],
 		"jsx": "react",
 		"jsxFactory": "h",
+		"esModuleInterop": true
 	},
 	"references": [
 		{
