@@ -26,7 +26,7 @@ export class IssuesNotebookKernel {
 		readonly octokit: OctokitProvider
 	) {
 
-		this._controller = vscode.notebook.createNotebookController(
+		this._controller = vscode.notebooks.createNotebookController(
 			'githubIssueKernel',
 			'github-issues',
 			'github.com',

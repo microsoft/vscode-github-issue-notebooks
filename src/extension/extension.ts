@@ -15,8 +15,8 @@ export function activate(context: vscode.ExtensionContext) {
 	const projectContainer = new ProjectContainer();
 
 	context.subscriptions.push(new IssuesNotebookKernel(projectContainer, octokit));
-	context.subscriptions.push(vscode.notebook.registerNotebookCellStatusBarItemProvider('github-issues', new IssuesStatusBarProvider()));
-	context.subscriptions.push(vscode.notebook.registerNotebookSerializer('github-issues', new IssuesNotebookSerializer(), {
+	context.subscriptions.push(vscode.notebooks.registerNotebookCellStatusBarItemProvider('github-issues', new IssuesStatusBarProvider()));
+	context.subscriptions.push(vscode.notebooks.registerNotebookSerializer('github-issues', new IssuesNotebookSerializer(), {
 		transientOutputs: true,
 		transientCellMetadata: {
 			inputCollapsed: true,

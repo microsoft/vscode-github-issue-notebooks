@@ -134,7 +134,7 @@ export class ProjectContainer {
 
 	constructor() {
 
-		this._disposables.push(vscode.notebook.onDidOpenNotebookDocument(notebook => {
+		this._disposables.push(vscode.notebooks.onDidOpenNotebookDocument(notebook => {
 
 			if (notebook.viewType !== 'github-issues') {
 				return;
@@ -161,7 +161,7 @@ export class ProjectContainer {
 			this._onDidChange.fire(project);
 		}));
 
-		this._disposables.push(vscode.notebook.onDidCloseNotebookDocument(notebook => {
+		this._disposables.push(vscode.notebooks.onDidCloseNotebookDocument(notebook => {
 			const project = this._associations.get(notebook);
 			if (project) {
 				this._associations.delete(notebook);
@@ -169,7 +169,7 @@ export class ProjectContainer {
 			}
 		}));
 
-		this._disposables.push(vscode.notebook.onDidChangeNotebookCells(e => {
+		this._disposables.push(vscode.notebooks.onDidChangeNotebookCells(e => {
 			let project = this.lookupProject(e.document.uri, false);
 			if (!project) {
 				return;

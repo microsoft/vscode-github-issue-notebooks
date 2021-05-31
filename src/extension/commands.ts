@@ -16,7 +16,7 @@ export function registerCommands(projectContainer: ProjectContainer): vscode.Dis
 	const subscriptions: vscode.Disposable[] = [];
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.new', async () => {
-		const newNotebook = await vscode.notebook.openNotebookDocument('github-issues', new vscode.NotebookData(
+		const newNotebook = await vscode.notebooks.openNotebookDocument('github-issues', new vscode.NotebookData(
 			[new vscode.NotebookCellData(vscode.NotebookCellKind.Code, 'repo:microsoft/vscode is:open', 'github-issues')]
 		));
 		await vscode.window.showNotebookDocument(newNotebook);
@@ -26,7 +26,7 @@ export function registerCommands(projectContainer: ProjectContainer): vscode.Dis
 
 		let items: { html_url: string; }[] | undefined;
 		out: for (let output of cell.outputs) {
-			for (let item of output.outputs) {
+			for (let item of output.items) {
 				if (item.mime === mimeGithubIssues) {
 					items = JSON.parse(new TextDecoder().decode(item.data));
 					break out;
