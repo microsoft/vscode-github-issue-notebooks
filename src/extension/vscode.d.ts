@@ -11347,7 +11347,7 @@ declare module 'vscode' {
 		/**
 		 * The outputs of this cell.
 		 */
-		readonly outputs: ReadonlyArray<NotebookCellOutput>;
+		readonly outputs: readonly NotebookCellOutput[];
 
 		/**
 		 * The most recent {@link NotebookCellExecutionSummary excution summary} for this cell.
@@ -11371,11 +11371,14 @@ declare module 'vscode' {
 		 */
 		readonly uri: Uri;
 
+		/** @deprecated	*/
+		// todo@API remove
+		readonly viewType: string;
+
 		/**
 		 * The type of notebook.
 		 */
-		// todo@API should this be called `notebookType` or `notebookKind`
-		readonly viewType: string;
+		readonly notebookType: string;
 
 		/**
 		 * The version number of this notebook (it will strictly increase after each
@@ -11698,11 +11701,12 @@ declare module 'vscode' {
 		/**
 		 * Create new notebook output.
 		 *
-		 * @param outputs Notebook output items.
+		 * @param items Notebook output items.
 		 * @param id Identifier of this output.
 		 * @param metadata Optional metadata.
 		 */
-		constructor(outputs: NotebookCellOutputItem[], id: string, metadata?: { [key: string]: any });
+		//todo@API id-args is not used by jupyter but we it added with display_id in mind...
+		constructor(items: NotebookCellOutputItem[], id: string, metadata?: { [key: string]: any });
 	}
 
 	/**
@@ -11748,10 +11752,11 @@ declare module 'vscode' {
 		 * @param kind The kind.
 		 * @param value The source value.
 		 * @param languageId The language identifier of the source value.
-		 * @param outputs //TODO@API remove from ctor?
-		 * @param metadata //TODO@API remove from ctor?
-		 * @param executionSummary //TODO@API remove from ctor?
+		 * @param outputs Optional outputs.
+		 * @param metadata Optional metadata.
+		 * @param executionSummary Optional execution summary.
 		 */
+		// todo@API should ctors only have the args for required properties?
 		constructor(kind: NotebookCellKind, value: string, languageId: string, outputs?: NotebookCellOutput[], metadata?: NotebookCellMetadata, executionSummary?: NotebookCellExecutionSummary);
 	}
 
@@ -11872,15 +11877,14 @@ declare module 'vscode' {
 	 * A notebook controller represents an entity that can execute notebook cells. This is often referred to as a kernel.
 	 *
 	 * There can be multiple controllers and the editor will let users choose which controller to use for a certain notebook. The
-	 * {@link NotebookController.viewType `viewType`}-property defines for what kind of notebooks a controller is for and
+	 * {@link NotebookController.notebookType `notebookType`}-property defines for what kind of notebooks a controller is for and
 	 * the {@link NotebookController.updateNotebookAffinity `updateNotebookAffinity`}-function allows controllers to set a preference
-	 * for specific notebooks.
+	 * for specific notebook documents.
 	 *
 	 * When a cell is being run the editor will invoke the {@link NotebookController.executeHandler `executeHandler`} and a controller
 	 * is expected to create and finalize a {@link NotebookCellExecution notebook cell execution}. However, controllers are also free
 	 * to create executions by themselves.
 	 */
-	// todo@api adopt notebookType-rename in comment
 	export interface NotebookController {
 
 		/**
@@ -11891,11 +11895,14 @@ declare module 'vscode' {
 		 */
 		readonly id: string;
 
-		/**
-		 * The notebook view type this controller is for.
-		 */
-		// todo@api rename to notebookType
+		// todo@api remove
+		/** @deprecated */
 		readonly viewType: string;
+
+		/**
+		 * The notebook type this controller is for.
+		 */
+		readonly notebookType: string;
 
 		/**
 		 * An array of language identifiers that are supported by this
@@ -11933,8 +11940,26 @@ declare module 'vscode' {
 		 * Whether this controller supports execution order so that the
 		 * editor can render placeholders for them.
 		 */
-		// todo@API rename to supportsExecutionOrder
+		supportsExecutionOrder?: boolean;
+
+		// todo@API remove
+		/** @deprecated */
 		hasExecutionOrder?: boolean;
+
+		/**
+		 * Create a cell execution task.
+		 *
+		 * _Note_ that there can only be one execution per cell at a time and that an error is thrown if
+		 * a cell execution is created while another is still active.
+		 *
+		 * This should be used in response to the {@link NotebookController.executeHandler execution handler}
+		 * being called or when cell execution has been started else, e.g when a cell was already
+		 * executing or when cell execution was triggered from another source.
+		 *
+		 * @param cell The notebook cell for which to create the execution.
+		 * @returns A notebook cell execution.
+		 */
+		createNotebookCellExecution(cell: NotebookCell): NotebookCellExecution;
 
 		/**
 		 * The execute handler is invoked when the run gestures in the UI are selected, e.g Run Cell, Run All,
@@ -11957,15 +11982,11 @@ declare module 'vscode' {
 		interruptHandler?: (this: NotebookController, notebook: NotebookDocument) => void | Thenable<void>;
 
 		/**
-		 * Dispose and free associated resources.
-		 */
-		dispose(): void;
-
-		/**
 		 * An event that fires whenever a controller has been selected for a notebook document. Selecting a controller
 		 * for a notebook is a user gesture and happens either explicitly or implicitly when interacting while a
 		 * controller was suggested.
 		 */
+		//todo@api rename to ...NotebookDocument...
 		readonly onDidChangeNotebookAssociation: Event<{ notebook: NotebookDocument, selected: boolean }>;
 
 		/**
@@ -11978,19 +11999,9 @@ declare module 'vscode' {
 		updateNotebookAffinity(notebook: NotebookDocument, affinity: NotebookControllerAffinity): void;
 
 		/**
-		 * Create a cell execution task.
-		 *
-		 * _Note_ that there can only be one execution per cell at a time and that an error is thrown if
-		 * a cell execution is created while another is still active.
-		 *
-		 * This should be used in response to the {@link NotebookController.executeHandler execution handler}
-		 * being called or when cell execution has been started else, e.g when a cell was already
-		 * executing or when cell execution was triggered from another source.
-		 *
-		 * @param cell The notebook cell for which to create the execution.
-		 * @returns A notebook cell execution.
+		 * Dispose and free associated resources.
 		 */
-		createNotebookCellExecution(cell: NotebookCell): NotebookCellExecution;
+		dispose(): void;
 	}
 
 	// todo@api jsdoc
@@ -12195,7 +12206,7 @@ declare module 'vscode' {
 		/**
 		 * All notebook documents currently known to the editor.
 		 */
-		export const notebookDocuments: ReadonlyArray<NotebookDocument>;
+		export const notebookDocuments: readonly NotebookDocument[];
 
 		/**
 		 * Open a notebook. Will return early if this notebook is already {@link notebook.notebookDocuments loaded}. Otherwise
@@ -12217,11 +12228,11 @@ declare module 'vscode' {
 		 * path when the document is to be saved.
 		 *
 		 * @see {@link openNotebookDocument}
-		 * @param viewType The notebook view type that should be used.
+		 * @param notebookType The notebook type that should be used.
 		 * @param content The initial contents of the notebook.
 		 * @returns A promise that resolves to a {@link NotebookDocument notebook}.
 		 */
-		export function openNotebookDocument(viewType: string, content?: NotebookData): Thenable<NotebookDocument>;
+		export function openNotebookDocument(notebookType: string, content?: NotebookData): Thenable<NotebookDocument>;
 
 		/**
 		 * An event that is emitted when a {@link NotebookDocument notebook} is opened.
@@ -12255,17 +12266,16 @@ declare module 'vscode' {
 		 * Creates a new notebook controller.
 		 *
 		 * @param id Identifier of the controller. Must be unique per extension.
-		 * @param viewType A notebook view type for which this controller is for.
+		 * @param notebookType A notebook type for which this controller is for.
 		 * @param label The label of the controller.
 		 * @param handler The execute-handler of the controller.
 		 */
-		//todo@API adopt viewType -> notebookType rename
-		export function createNotebookController(id: string, viewType: string, label: string, handler?: NotebookExecuteHandler): NotebookController;
+		export function createNotebookController(id: string, notebookType: string, label: string, handler?: NotebookExecuteHandler): NotebookController;
 
 		/**
 		 * Register a {@link NotebookCellStatusBarItemProvider cell statusbar item provider} for the given notebook type.
 		 *
-		 * @param notebookType The notebook view type to register for.
+		 * @param notebookType The notebook type to register for.
 		 * @param provider A cell status bar provider.
 		 * @return A {@link Disposable} that unregisters this provider when being disposed.
 		 */
