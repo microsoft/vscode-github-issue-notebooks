@@ -62,11 +62,11 @@ export class IssuesNotebookKernel {
 
 		const exec = this._controller.createNotebookCellExecution(cell);
 		exec.executionOrder = ++this._executionOrder;
-		exec.start({ startTime: Date.now() });
+		exec.start(Date.now());
 
 
 		if (!isRunnable(query)) {
-			exec.end({ success: true });
+			exec.end(true);
 			return;
 		}
 
@@ -105,7 +105,7 @@ export class IssuesNotebookKernel {
 		} catch (err) {
 			// print as error
 			exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(err)]));
-			exec.end({ success: false });
+			exec.end(false);
 			return;
 		}
 
@@ -142,7 +142,7 @@ export class IssuesNotebookKernel {
 			vscode.NotebookCellOutputItem.text(md, 'text/markdown'),
 		], { itemCount: allItems.length })]);
 
-		exec.end({ success: true });
+		exec.end(true, Date.now());
 	}
 
 	private async _collectDependentCells(cell: vscode.NotebookCell, bucket: Set<vscode.NotebookCell>): Promise<void> {
@@ -185,17 +185,18 @@ export class IssuesNotebookKernel {
 
 export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItemProvider {
 
-	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem[] | undefined {
+	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem | undefined {
 		const count = <number | undefined>cell.outputs[0]?.metadata?.['itemCount'];
 		if (typeof count !== 'number') {
 			return;
 		}
-		return [new vscode.NotebookCellStatusBarItem(
+		const item = new vscode.NotebookCellStatusBarItem(
 			`$(globe) Open ${count} results`,
 			vscode.NotebookCellStatusBarAlignment.Right,
-			'github-issues.openAll',
-			`Open ${count} results in browser`
-		)];
+		);
+		item.command = 'github-issues.openAll';
+		item.tooltip = `Open ${count} results in browser`;
+		return item;
 	}
 }
 

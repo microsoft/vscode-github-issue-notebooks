@@ -16,7 +16,7 @@ export function registerCommands(projectContainer: ProjectContainer): vscode.Dis
 	const subscriptions: vscode.Disposable[] = [];
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.new', async () => {
-		const newNotebook = await vscode.notebooks.openNotebookDocument('github-issues', new vscode.NotebookData(
+		const newNotebook = await vscode.workspace.openNotebookDocument('github-issues', new vscode.NotebookData(
 			[new vscode.NotebookCellData(vscode.NotebookCellKind.Code, 'repo:microsoft/vscode is:open', 'github-issues')]
 		));
 		await vscode.window.showNotebookDocument(newNotebook);
