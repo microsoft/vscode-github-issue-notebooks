@@ -32,7 +32,7 @@ export class IssuesNotebookKernel {
 			'github.com',
 		);
 		this._controller.supportedLanguages = ['github-issues'];
-		this._controller.hasExecutionOrder = true;
+		this._controller.supportsExecutionOrder = true;
 		this._controller.description = 'GitHub';
 		this._controller.executeHandler = this._executeAll.bind(this);
 	}
@@ -243,10 +243,7 @@ export class IssuesNotebookSerializer implements vscode.NotebookSerializer {
 			item.language
 		));
 
-		return new vscode.NotebookData(
-			cells,
-			new vscode.NotebookDocumentMetadata()
-		);
+		return new vscode.NotebookData(cells);
 	}
 
 	serializeNotebook(data: vscode.NotebookData): Uint8Array {
