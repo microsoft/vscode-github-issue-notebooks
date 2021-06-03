@@ -3,7 +3,7 @@
  *--------------------------------------------------------*/
 
 import { h, render } from 'preact';
-import { ActivationFunction } from 'vscode-notebook-renderer';
+import type { ActivationFunction } from 'vscode-notebook-renderer';
 import { AllItems } from './renderer';
 import rendererCss from './renderer.css';
 
@@ -13,10 +13,10 @@ export const activate: ActivationFunction = () => {
 	style.textContent = rendererCss;
 
 	return {
-		renderCell(_id, info) {
-			let shadow = info.element.shadowRoot;
+		renderOutputItem(info, element) {
+			let shadow = element.shadowRoot;
 			if (!shadow) {
-				shadow = info.element.attachShadow({ mode: 'open' });
+				shadow = element.attachShadow({ mode: 'open' });
 
 				shadow.append(style.cloneNode(true));
 
