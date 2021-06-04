@@ -127,7 +127,7 @@
 		"@types/glob": "^7.1.1",
 		"@types/mocha": "^7.0.1",
 		"@types/node": "^12.11.7",
-		"@types/vscode-notebook-renderer": "^1.57.7",
+		"@types/vscode-notebook-renderer": "^1.57.8",
 		"@typescript-eslint/eslint-plugin": "^4.22.1",
 		"@typescript-eslint/parser": "^4.22.1",
 		"eslint": "7.25.0",
