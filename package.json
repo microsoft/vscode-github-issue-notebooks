@@ -10,7 +10,7 @@
 	},
 	"enableProposedApi": true,
 	"engines": {
-		"vscode": "^1.48.0"
+		"vscode": "^1.59.0"
 	},
 	"categories": [
 		"Other"
