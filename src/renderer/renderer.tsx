@@ -82,7 +82,7 @@ const Item: FunctionComponent<{
 
 const RepoLabel: FunctionComponent<{ url: string; }> = ({ url }) => {
 	const match = /.+\/(.+\/.+)$/.exec(url);
-	return match ? <a href="https://github.com/${match[1]}" className="repo title">{match[1]}</a> : null;
+	return match ? <a href={`https://github.com/${match[1]}`} className="repo title">{match[1]}</a> : null;
 };
 
 
