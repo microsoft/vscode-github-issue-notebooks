@@ -77,6 +77,7 @@
 		"commands": [
 			{
 				"title": "New GitHub Issue Notebook",
+				"shortTitle": "GitHub Issue Notebook",
 				"command": "github-issues.new"
 			},
 			{
@@ -107,6 +108,11 @@
 					"alt": "github-issues.openAll",
 					"when": "notebookType == github-issues && notebookCellType == code && notebookCellHasOutputs",
 					"group": "inline/output@1"
+				}
+			],
+			"file/newFile": [
+				{
+					"command": "github-issues.new"
 				}
 			]
 		}
