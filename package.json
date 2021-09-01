@@ -29,11 +29,6 @@
 	],
 	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
-	"extensionKind": [
-		"ui",
-		"web",
-		"workspace"
-	],
 	"contributes": {
 		"languages": [
 			{
