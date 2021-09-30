@@ -60,6 +60,8 @@ suite('Validation', function () {
 		assertValidateErrors('foo:');
 		assertValidateErrors('label:', Code.NodeMissing);
 		assertValidateErrors('-label:', Code.NodeMissing);
+		assertValidateErrors('label:foo,bar');
+		assertValidateErrors('milestone:foo,bar', Code.OrNotAllowed);
 	});
 
 	test('variable definition', function () {

@@ -31,7 +31,7 @@ export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: Qu
 					stack.push({ node: symbol.def, doc: symbol.root });
 				}
 
-			} else if (node._type === NodeType.QualifiedValue && node.qualifier.value === 'repo') {
+			} else if (node._type === NodeType.QualifiedValue && node.qualifier.value === 'repo' && node.value._type !== NodeType.LiteralSequence) {
 				// check repo-statement
 
 				let value: string | undefined;

@@ -45,6 +45,9 @@ suite('Parser', function () {
 		assertNodeTypes('label:foo', NodeType.QualifiedValue);
 		assertNodeTypes('label:"foo bar"', NodeType.QualifiedValue);
 		assertNodeTypes('-label:foo', NodeType.QualifiedValue);
+		assertNodeTypes('label:foo,bar', NodeType.QualifiedValue);
+		assertNodeTypes('label:"foo",bar,bazz', NodeType.QualifiedValue);
+		assertNodeTypes('label:"foo",bar,"baz,z"', NodeType.QualifiedValue);
 		assertNodeTypes('label:>=12', NodeType.QualifiedValue);
 		assertNodeTypes('label:>12', NodeType.QualifiedValue);
 		assertNodeTypes('label:<12', NodeType.QualifiedValue);
@@ -75,6 +78,7 @@ suite('Parser', function () {
 	test('Sequence', function () {
 		assertNodeTypes('label: foo', NodeType.QualifiedValue, NodeType.Literal);
 		assertNodeTypes('label:foo bar', NodeType.QualifiedValue, NodeType.Literal);
+		assertNodeTypes('label:foo,bar bar', NodeType.QualifiedValue, NodeType.Literal);
 		assertNodeTypes('label:foo bar NOT bazz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
 		assertNodeTypes('label:foo bar 0cafecafe bazz', NodeType.QualifiedValue, NodeType.Literal, NodeType.Any, NodeType.Literal);
 
@@ -84,6 +88,7 @@ suite('Parser', function () {
 	test('Sequence (deep)', function () {
 		assertNodeTypesDeep('label: foo', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Missing, NodeType.Literal);
 		assertNodeTypesDeep('label:foo', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
+		assertNodeTypesDeep('label:foo,bar', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.LiteralSequence, NodeType.Literal, NodeType.Literal);
 		assertNodeTypesDeep('label:123', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Number);
 		assertNodeTypesDeep('label:"123"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
 		assertNodeTypesDeep('label:"foo bar"', NodeType.Query, NodeType.QualifiedValue, NodeType.Literal, NodeType.Literal);
@@ -127,7 +132,9 @@ suite('Print Nodes', function () {
 
 	test('simple', function () {
 		assertPrinted('label:bug');
+		assertPrinted('label:bug,foo');
 		assertPrinted('-label:bug');
+		assertPrinted('-label:bug,bar');
 		assertPrinted('assignee:@me');
 		assertPrinted('comments:10..20');
 		assertPrinted('comments:10..*');

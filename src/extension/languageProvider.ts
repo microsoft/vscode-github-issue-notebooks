@@ -678,38 +678,49 @@ export class GithubValidation extends IProjectValidation {
 				if (repos.length === 0) {
 					return;
 				}
-				const value = Utils.print(node.value, queryDoc.text, name => project.symbols.getFirst(name)?.value).replace(/^"(.*)"$/, '$1');
+
 				const info = QualifiedValueNodeSchema.get(node.qualifier.value);
 
-				if (info?.placeholderType === ValuePlaceholderType.Label) {
-					work.push(this._checkLabels(value, repos).then(missing => {
-						if (missing.length === repos.length) {
-							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Label '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
-							newDiagnostics.push(diag);
-						} else if (missing.length > 0) {
-							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Label '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
-							newDiagnostics.push(diag);
-						}
-					}));
+				const validateValue = async (valueNode: Utils.PrintableNode) => {
 
-				} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
-					work.push(this._checkMilestones(value, repos).then(missing => {
-						if (missing.length === repos.length) {
-							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Milestone '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
-							newDiagnostics.push(diag);
-						} else if (missing.length > 0) {
-							const diag = new vscode.Diagnostic(project.rangeOf(node.value), `Milestone '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
-							newDiagnostics.push(diag);
-						}
-					}));
+					const value = Utils.print(valueNode, queryDoc.text, name => project.symbols.getFirst(name)?.value).replace(/^"(.*)"$/, '$1');
 
-				} else if (info?.placeholderType === ValuePlaceholderType.Username) {
-					if (value === '@me') {
-						await this.octokit.lib();
-						if (!this.octokit.isAuthenticated) {
-							newDiagnostics.push(new vscode.Diagnostic(project.rangeOf(node.value), `@me is ignored because you are not logged in`, vscode.DiagnosticSeverity.Warning));
+					if (info?.placeholderType === ValuePlaceholderType.Label) {
+						work.push(this._checkLabels(value, repos).then(missing => {
+							if (missing.length === repos.length) {
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Label '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
+								newDiagnostics.push(diag);
+							} else if (missing.length > 0) {
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Label '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
+								newDiagnostics.push(diag);
+							}
+						}));
+
+					} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
+						work.push(this._checkMilestones(value, repos).then(missing => {
+							if (missing.length === repos.length) {
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Milestone '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
+								newDiagnostics.push(diag);
+							} else if (missing.length > 0) {
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Milestone '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
+								newDiagnostics.push(diag);
+							}
+						}));
+
+					} else if (info?.placeholderType === ValuePlaceholderType.Username) {
+						if (value === '@me') {
+							await this.octokit.lib();
+							if (!this.octokit.isAuthenticated) {
+								newDiagnostics.push(new vscode.Diagnostic(project.rangeOf(valueNode), `@me is ignored because you are not logged in`, vscode.DiagnosticSeverity.Warning));
+							}
 						}
 					}
+				};
+
+				if (node.value._type === NodeType.LiteralSequence) {
+					node.value.nodes.forEach(validateValue);
+				} else {
+					validateValue(node.value);
 				}
 			});
 

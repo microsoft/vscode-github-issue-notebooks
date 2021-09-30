@@ -55,6 +55,7 @@ suite('Scanner', function () {
 		assertTokenTypes('// aaaaaaa', TokenType.LineComment);
 		assertTokenTypes('//', TokenType.LineComment);
 		assertTokenTypes('// aaaa aaa', TokenType.LineComment);
+		assertTokenTypes(',', TokenType.Comma);
 	});
 
 	test('Sequence', function () {
@@ -97,5 +98,7 @@ suite('Scanner', function () {
 		assertTokenTypes('$BUG= "label:bug"', TokenType.VariableName, TokenType.Equals, TokenType.Whitespace, TokenType.QuotedLiteral);
 		assertTokenTypes('$BUG=label:bug', TokenType.VariableName, TokenType.Equals, TokenType.Literal, TokenType.Colon, TokenType.Literal);
 
+		assertTokenTypes('foo,bar', TokenType.Literal, TokenType.Comma, TokenType.Literal);
+		assertTokenTypes('foo,"b,ar"', TokenType.Literal, TokenType.Comma, TokenType.QuotedLiteral);
 	});
 });

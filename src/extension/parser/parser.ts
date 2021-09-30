@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AnyNode, CompareNode, DateNode, LiteralNode, MissingNode, NodeType, NumberNode, OrExpressionNode, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, VariableDefinitionNode, VariableNameNode } from "./nodes";
+import { AnyNode, CompareNode, DateNode, LiteralNode, LiteralSequenceNode, MissingNode, NodeType, NumberNode, OrExpressionNode, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, VariableDefinitionNode, VariableNameNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
 export class Parser {
@@ -134,6 +134,32 @@ export class Parser {
 				tokenType: token.type
 			};
 		}
+	}
+
+	private _parseLiteralOrLiteralSequence(): LiteralNode | LiteralSequenceNode | undefined {
+		const literal = this._parseLiteral();
+		if (!literal) {
+			return literal;
+		}
+
+		const nodes = [literal];
+		while (this._accept(TokenType.Comma)) {
+			const next = this._parseLiteral();
+			if (!next) {
+				break;
+			}
+			nodes.push(next);
+		}
+		if (nodes.length === 1) {
+			return nodes[0];
+		}
+
+		return {
+			_type: NodeType.LiteralSequence,
+			start: nodes[0].start,
+			end: this._scanner.pos,
+			nodes
+		};
 	}
 
 	private _parseLiteral(): LiteralNode | undefined {
@@ -318,7 +344,7 @@ export class Parser {
 			?? this._parseDate()
 			?? this._parseNumberLiteral()
 			?? this._parseVariableName()
-			?? this._parseLiteral()
+			?? this._parseLiteralOrLiteralSequence()
 			?? this._parseAny(TokenType.SHA)
 			?? this._createMissing(`This looks like a 'key:value'-expression but lacks value.`, true);
 

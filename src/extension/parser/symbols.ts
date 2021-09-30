@@ -133,19 +133,19 @@ export const enum RepeatInfo {
 class QualifiedValueInfo {
 
 	static enum(sets: ValueSet | ValueSet[], repeatable?: RepeatInfo, description?: string) {
-		return new QualifiedValueInfo(ValueType.Literal, Array.isArray(sets) ? sets : [sets], undefined, repeatable, description);
+		return new QualifiedValueInfo(ValueType.Literal, Array.isArray(sets) ? sets : [sets], undefined, repeatable, false, description);
 	}
 
-	static placeholder(placeholder: ValuePlaceholderType, repeatable?: RepeatInfo, description?: string) {
-		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder, repeatable, description);
+	static placeholder(placeholder: ValuePlaceholderType, repeatable?: RepeatInfo, valueSequence?: boolean, description?: string) {
+		return new QualifiedValueInfo(ValueType.Literal, undefined, placeholder, repeatable, valueSequence, description);
 	}
 
 	static simple(type: ValueType, description?: string) {
-		return new QualifiedValueInfo(type, undefined, undefined, undefined, description);
+		return new QualifiedValueInfo(type, undefined, undefined, undefined, false, description);
 	}
 
 	static username(repeatable?: RepeatInfo, description?: string) {
-		return new QualifiedValueInfo(ValueType.Literal, [new ValueSet(true, '@me')], ValuePlaceholderType.Username, repeatable, description);
+		return new QualifiedValueInfo(ValueType.Literal, [new ValueSet(true, '@me')], ValuePlaceholderType.Username, repeatable, false, description);
 	}
 
 	constructor(
@@ -153,6 +153,7 @@ class QualifiedValueInfo {
 		readonly enumValues: readonly ValueSet[] | undefined,
 		readonly placeholderType: ValuePlaceholderType | undefined,
 		readonly repeatable: RepeatInfo = RepeatInfo.No,
+		readonly valueSequence: boolean | undefined,
 		readonly description: string | undefined
 	) { }
 }
@@ -190,12 +191,12 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	// placeholder 
 	['base', QualifiedValueInfo.placeholder(ValuePlaceholderType.BaseBranch)],
 	['head', QualifiedValueInfo.placeholder(ValuePlaceholderType.HeadBranch)],
-	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, RepeatInfo.Repeat, 'Issues and pull requests with a certain label')],
+	['label', QualifiedValueInfo.placeholder(ValuePlaceholderType.Label, RepeatInfo.Repeat, true, 'Issues and pull requests with a certain label')],
 	['language', QualifiedValueInfo.placeholder(ValuePlaceholderType.Language)],
-	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone, undefined, 'Issues and pull requests for a certain miletsone')],
-	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, RepeatInfo.Repeat, 'Issues and pull requests in all repositories owned by a certain organization')],
+	['milestone', QualifiedValueInfo.placeholder(ValuePlaceholderType.Milestone, undefined, false, 'Issues and pull requests for a certain miletsone')],
+	['org', QualifiedValueInfo.placeholder(ValuePlaceholderType.Orgname, RepeatInfo.Repeat, false, 'Issues and pull requests in all repositories owned by a certain organization')],
 	['project', QualifiedValueInfo.placeholder(ValuePlaceholderType.ProjectBoard)],
-	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, RepeatInfo.Repeat, 'Issues and pull requests in a certain repository')],
+	['repo', QualifiedValueInfo.placeholder(ValuePlaceholderType.Repository, RepeatInfo.Repeat, false, 'Issues and pull requests in a certain repository')],
 	['user', QualifiedValueInfo.username(RepeatInfo.Repeat, 'Issues and pull requests in all repositories owned by a certain user')],
 	['team-review-requested', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],
 	['team', QualifiedValueInfo.placeholder(ValuePlaceholderType.Teamname)],

@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, Utils, VariableDefinitionNode } from "./nodes";
+import { Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, SimpleNode, Utils, VariableDefinitionNode } from "./nodes";
 import { TokenType } from "./scanner";
 import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueType } from "./symbols";
 
@@ -102,58 +102,70 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 	}
 
 	// check value
-	// get the 'actual' value
-	let valueNode = node.value;
-	if (valueNode._type === NodeType.Compare) {
-		valueNode = valueNode.value;
-	} else if (valueNode._type === NodeType.Range) {
-		valueNode = valueNode.open || valueNode.close || valueNode;
-	}
 
-	// missing => done
-	if (info && valueNode._type === NodeType.Missing) {
-		bucket.push(new ValidationError(valueNode, Code.NodeMissing, valueNode.message, undefined, true));
-		return;
-	}
+	const validateValue = (valueNode: SimpleNode) => {
 
-	// variable => get type/value
-	let valueType: ValueType | undefined;
-	let value: string | undefined;
-	if (valueNode._type === NodeType.VariableName) {
-		// variable value type
-		const symbol = symbols.getFirst(valueNode.value);
-		valueType = symbol?.type;
-		value = symbol?.value;
-	} else if (valueNode._type === NodeType.Date) {
-		// literal
-		valueType = ValueType.Date;
-		value = valueNode.value;
-	} else if (valueNode._type === NodeType.Number) {
-		// literal
-		valueType = ValueType.Number;
-		value = String(valueNode.value);
-	} else if (valueNode._type === NodeType.Literal) {
-		// literal
-		value = valueNode.value;
-		valueType = ValueType.Literal;
-	}
-
-	if (info.type !== valueType) {
-		bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected type '${info.type}'`));
-		return;
-	}
-
-	if (info.enumValues && info.placeholderType === undefined) {
-		let set = value && info.enumValues.find(set => set.entries.has(value!) ? set : undefined);
-		if (!set) {
-			// value not known
-			bucket.push(new ValidationError(node.value, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set.entries].join(', ')).join(', ')}`));
-		} else if (conflicts.has(set) && set.exclusive) {
-			// other value from set in use
-			bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, conflicts.get(set)));
-		} else {
-			conflicts.set(set, node);
+		// get the 'actual' value
+		if (valueNode._type === NodeType.Compare) {
+			valueNode = valueNode.value;
+		} else if (valueNode._type === NodeType.Range) {
+			valueNode = valueNode.open || valueNode.close || valueNode;
 		}
+
+		// missing => done
+		if (info && valueNode._type === NodeType.Missing) {
+			bucket.push(new ValidationError(valueNode, Code.NodeMissing, valueNode.message, undefined, true));
+			return;
+		}
+
+		// variable => get type/value
+		let valueType: ValueType | undefined;
+		let value: string | undefined;
+		if (valueNode._type === NodeType.VariableName) {
+			// variable value type
+			const symbol = symbols.getFirst(valueNode.value);
+			valueType = symbol?.type;
+			value = symbol?.value;
+		} else if (valueNode._type === NodeType.Date) {
+			// literal
+			valueType = ValueType.Date;
+			value = valueNode.value;
+		} else if (valueNode._type === NodeType.Number) {
+			// literal
+			valueType = ValueType.Number;
+			value = String(valueNode.value);
+		} else if (valueNode._type === NodeType.Literal) {
+			// literal
+			value = valueNode.value;
+			valueType = ValueType.Literal;
+		}
+
+		if (info.type !== valueType) {
+			bucket.push(new ValidationError(valueNode, Code.ValueUnknown, `Unknown value '${value}', expected type '${info.type}'`));
+			return;
+		}
+
+		if (info.enumValues && info.placeholderType === undefined) {
+			let set = value && info.enumValues.find(set => set.entries.has(value!) ? set : undefined);
+			if (!set) {
+				// value not known
+				bucket.push(new ValidationError(valueNode, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set.entries].join(', ')).join(', ')}`));
+			} else if (conflicts.has(set) && set.exclusive) {
+				// other value from set in use
+				bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, conflicts.get(set)));
+			} else {
+				conflicts.set(set, node);
+			}
+		}
+	};
+
+	if (node.value._type === NodeType.LiteralSequence) {
+		if (!info.valueSequence) {
+			bucket.push(new ValidationError(node.value, Code.OrNotAllowed, `Sequence of values is not allowed`));
+		}
+		node.value.nodes.forEach(validateValue);
+	} else {
+		validateValue(node.value);
 	}
 }
 

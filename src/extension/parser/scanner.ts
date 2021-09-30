@@ -11,6 +11,7 @@ export const enum TokenType {
 	DateTime = 'DateTime',
 	Dash = 'Dash',
 	Colon = 'Colon',
+	Comma = 'Comma',
 	LessThan = 'LessThan',
 	LessThanEqual = 'LessThanEqual',
 	GreaterThan = 'GreaterThan',
@@ -52,6 +53,7 @@ export class Scanner {
 		[TokenType.Number, /\d+\b/y],
 		[TokenType.QuotedLiteral, /"[^"]+"/y],
 		[TokenType.Colon, /:/y],
+		[TokenType.Comma, /,/y],
 		[TokenType.Dash, /-/y],
 		[TokenType.Equals, /=/y],
 		[TokenType.LessThanEqual, /<=/y],
@@ -64,7 +66,7 @@ export class Scanner {
 		[TokenType.RangeFixedStart, new RegExp("\\.\\.\\*", 'y')],
 		[TokenType.RangeFixedEnd, new RegExp("\\*\\.\\.", 'y')],
 		[TokenType.Range, new RegExp("\\.\\.", 'y')],
-		[TokenType.Literal, /[^\s:"=]+/y],
+		[TokenType.Literal, /[^\s:"=,]+/y],
 		[TokenType.Unknown, /.+/y],
 	]);
 

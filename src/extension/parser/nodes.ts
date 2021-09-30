@@ -11,6 +11,7 @@ export const enum NodeType {
 	Compare = 'Compare',
 	Date = 'Date',
 	Literal = 'Literal',
+	LiteralSequence = 'LiteralSequence',
 	Missing = 'Missing',
 	Number = 'Number',
 	OrExpression = 'OrExpression',
@@ -43,6 +44,11 @@ export interface LiteralNode extends BaseNode {
 	value: string;
 }
 
+export interface LiteralSequenceNode extends BaseNode {
+	_type: NodeType.LiteralSequence;
+	nodes: LiteralNode[];
+}
+
 export interface NumberNode extends BaseNode {
 	_type: NodeType.Number;
 	value: number;
@@ -69,7 +75,7 @@ export interface QualifiedValueNode extends BaseNode {
 	_type: NodeType.QualifiedValue;
 	not: boolean;
 	qualifier: LiteralNode;
-	value: CompareNode | RangeNode | DateNode | NumberNode | VariableNameNode | LiteralNode | AnyNode | MissingNode;
+	value: CompareNode | RangeNode | DateNode | NumberNode | VariableNameNode | LiteralNode | LiteralSequenceNode | AnyNode | MissingNode;
 }
 
 export interface VariableNameNode extends BaseNode {
@@ -102,7 +108,7 @@ export interface QueryDocumentNode extends BaseNode {
 	nodes: (QueryNode | OrExpressionNode | VariableDefinitionNode)[];
 }
 
-export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | MissingNode | AnyNode;
+export type SimpleNode = VariableNameNode | QualifiedValueNode | RangeNode | CompareNode | DateNode | NumberNode | LiteralNode | LiteralSequenceNode | MissingNode | AnyNode;
 
 export type Node = QueryDocumentNode // level 1
 	| QueryNode | OrExpressionNode | VariableDefinitionNode // level 2
@@ -155,6 +161,7 @@ export namespace Utils {
 					stack.unshift(node.left);
 					stack.unshift(node);
 					break;
+				case NodeType.LiteralSequence:
 				case NodeType.Query:
 				case NodeType.QueryDocument:
 					for (let i = node.nodes.length - 1; i >= 0; i--) {
@@ -199,6 +206,8 @@ export namespace Utils {
 				case NodeType.Date:
 				case NodeType.Number:
 					return text.substring(node.start, node.end);
+				case NodeType.LiteralSequence:
+					return node.nodes.map(_print).join(',');
 				case NodeType.Compare:
 					// >=aaa etc
 					return `${node.cmp}${_print(node.value)}`;
