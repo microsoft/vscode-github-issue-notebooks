@@ -7,7 +7,7 @@ import * as vscode from 'vscode';
 import { withEmoji } from '../common/emoji';
 import { GithubData } from './githubDataProvider';
 import { OctokitProvider } from './octokitProvider';
-import { Node, NodeType, QueryDocumentNode, Utils } from './parser/nodes';
+import { LiteralSequenceNode, Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
 import { Scanner, Token, TokenType } from './parser/scanner';
 import { QualifiedValueNodeSchema, SymbolInfo, ValuePlaceholderType } from './parser/symbols';
 import { Code, validateQueryDocument, ValidationError } from './parser/validation';
@@ -307,7 +307,11 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 		const node = Utils.nodeAt(query, offset, parents) ?? query;
 		const parent = parents[parents.length - 2];
 
-		if (parent?._type === NodeType.QualifiedValue && node === parent.value) {
+		if (parent._type === NodeType.LiteralSequence) {
+			return;
+		}
+
+		if (parent?._type === NodeType.QualifiedValue && node._type === NodeType.Literal && node === parent.value) {
 			// RHS of a qualified value => complete value set
 			const replacing = project.rangeOf(node);
 			const inserting = replacing.with(undefined, position);
@@ -474,7 +478,7 @@ export class GithubRepoSearchCompletions implements vscode.CompletionItemProvide
 
 export class GithubPlaceholderCompletions implements vscode.CompletionItemProvider {
 
-	static readonly triggerCharacters = [':'];
+	static readonly triggerCharacters = [':', ','];
 
 	constructor(
 		readonly container: ProjectContainer,
@@ -486,24 +490,56 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 		const project = this.container.lookupProject(document.uri);
 		const doc = project.getOrCreate(document);
 		const offset = document.offsetAt(position);
-		const parents: Node[] = [];
-		const node = Utils.nodeAt(doc, offset, parents) ?? doc;
-		const qualified = parents[parents.length - 2];
-		const query = parents[parents.length - 3];
 
-		if (query?._type !== NodeType.Query || qualified?._type !== NodeType.QualifiedValue || node !== qualified.value) {
+		// node chain at offset
+		const parents: Node[] = [];
+		Utils.nodeAt(doc, offset, parents) ?? doc;
+
+		// find query, qualified, maybe sequence, and literal in the node chain
+		let query: QueryNode | undefined;
+		let qualified: QualifiedValueNode | undefined;
+		let sequence: LiteralSequenceNode | undefined;
+		let literal: Node | undefined;
+
+		for (const node of parents) {
+			switch (node._type) {
+				case NodeType.Query:
+					query = node;
+					break;
+				case NodeType.QualifiedValue:
+					qualified = node;
+					break;
+				case NodeType.LiteralSequence:
+					sequence = node;
+					break;
+				case NodeType.Literal:
+				case NodeType.Missing:
+					literal = node;
+					break;
+			}
+		}
+
+		if (!query || !qualified) {
+			return;
+		}
+
+		if (!sequence && qualified.value !== literal) {
+			// qualif|ier:value
 			return;
 		}
 
 		const repos = getRepoInfos(doc, project, query);
 		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
 
-		const inserting = new vscode.Range(document.positionAt(qualified.value.start), position);
-		const replacing = new vscode.Range(document.positionAt(qualified.value.start), document.positionAt(qualified.value.end));
-		const range = { inserting, replacing };
+		let range = { inserting: new vscode.Range(position, position), replacing: new vscode.Range(position, position) };
+		if (literal) {
+			const inserting = new vscode.Range(document.positionAt(literal.start), position);
+			const replacing = new vscode.Range(document.positionAt(literal.start), document.positionAt(literal.end));
+			range = { inserting, replacing };
+		}
 
-		if (info?.placeholderType === ValuePlaceholderType.Label) {
-			return this._completeLabels(repos, range);
+		if (info?.placeholderType === ValuePlaceholderType.Label || sequence) {
+			return this._completeLabels(repos, literal ? undefined : sequence, range);
 		} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
 			return this._completeMilestones(repos, range);
 		} else if (info?.placeholderType === ValuePlaceholderType.Username) {
@@ -511,13 +547,20 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 		}
 	}
 
-	private async _completeLabels(repos: Iterable<RepoInfo>, range?: { inserting: vscode.Range, replacing: vscode.Range; }) {
+	private async _completeLabels(repos: Iterable<RepoInfo>, sequence: LiteralSequenceNode | undefined, range: { inserting: vscode.Range, replacing: vscode.Range; }) {
 		const result = new Map<string, vscode.CompletionItem>();
+
+		// label:foo,bar,|
+		const isUseInSequence = sequence && new Set(sequence.nodes.map(node => node.value));
 
 		for (let info of repos) {
 
 			const labels = await this._githubData.getOrFetchLabels(info);
 			for (const label of labels) {
+
+				if (isUseInSequence?.has(label.name)) {
+					continue;
+				}
 
 				let existing = result.get(label.name);
 				if (existing) {

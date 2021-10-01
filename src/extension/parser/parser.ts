@@ -142,21 +142,24 @@ export class Parser {
 			return literal;
 		}
 
+		let comma = this._accept(TokenType.Comma);
+		if (!comma) {
+			return literal;
+		}
+
 		const nodes = [literal];
-		while (this._accept(TokenType.Comma)) {
+		do {
 			const next = this._parseLiteral();
 			if (!next) {
 				break;
 			}
 			nodes.push(next);
-		}
-		if (nodes.length === 1) {
-			return nodes[0];
-		}
+			comma = this._accept(TokenType.Comma);
+		} while (comma);
 
 		return {
 			_type: NodeType.LiteralSequence,
-			start: nodes[0].start,
+			start: literal.start,
 			end: this._scanner.pos,
 			nodes
 		};
