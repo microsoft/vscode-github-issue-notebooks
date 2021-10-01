@@ -342,8 +342,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			// all variables
 			for (let symbol of project.symbols.all()) {
 				result.push({
-					label: symbol.name,
-					detail: symbol.type ? `${symbol.value} (${symbol.type})` : symbol.value,
+					label: { label: symbol.name, detail: symbol.type ? `${symbol.value} (${symbol.type})` : symbol.value },
 					kind: vscode.CompletionItemKind.Variable,
 				});
 			}
@@ -528,9 +527,8 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 					existing.sortText = String.fromCharCode(0) + existing.label;
 				} else {
 					result.set(label.name, {
-						label: withEmoji(label.name),
+						label: { label: withEmoji(label.name), description: label.description },
 						range,
-						detail: label.description,
 						kind: vscode.CompletionItemKind.Color,
 						documentation: `#${label.color}`,
 						insertText: label.name.match(/\s/) ? `"${label.name}"` : undefined,
@@ -558,9 +556,8 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 					existing.sortText = String.fromCharCode(0) + existing.sortText;
 				} else {
 					result.set(milestone.title, {
-						label: milestone.title,
+						label: { label: milestone.title, description: milestone.description },
 						range,
-						documentation: milestone.description,
 						kind: vscode.CompletionItemKind.Event,
 						insertText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
 						filterText: milestone.title.match(/\s/) ? `"${milestone.title}"` : undefined,
