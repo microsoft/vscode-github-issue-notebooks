@@ -5,13 +5,14 @@
 
 import * as vscode from 'vscode';
 import { mimeGithubIssues } from './notebookProvider';
+import { OctokitProvider } from './octokitProvider';
 import { ProjectContainer } from './project';
 
 declare class TextDecoder {
 	decode(data: Uint8Array): string;
 }
 
-export function registerCommands(projectContainer: ProjectContainer): vscode.Disposable {
+export function registerCommands(projectContainer: ProjectContainer, octokit: OctokitProvider): vscode.Disposable {
 
 	const subscriptions: vscode.Disposable[] = [];
 
@@ -68,6 +69,10 @@ export function registerCommands(projectContainer: ProjectContainer): vscode.Dis
 			}
 			await vscode.env.openExternal(vscode.Uri.parse(url));
 		}
+	}));
+
+	subscriptions.push(vscode.commands.registerCommand('github-issues.authNow', async () => {
+		await octokit.lib(true);
 	}));
 
 	return vscode.Disposable.from(...subscriptions);

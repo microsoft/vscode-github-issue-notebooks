@@ -16,6 +16,8 @@ export const enum Code {
 	ValueUnknown = 'ValueUnknown',
 	QualifierUnknown = 'QualifierUnknown',
 	RangeMixesTypes = 'RangeMixesTypes',
+
+	GitHubLoginNeeded = 'GitHubLoginNeeded'
 }
 
 export class ValidationError {

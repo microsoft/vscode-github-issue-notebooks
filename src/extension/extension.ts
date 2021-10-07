@@ -24,5 +24,5 @@ export function activate(context: vscode.ExtensionContext) {
 		}
 	}));
 	context.subscriptions.push(registerLanguageProvider(projectContainer, octokit));
-	context.subscriptions.push(registerCommands(projectContainer));
+	context.subscriptions.push(registerCommands(projectContainer, octokit));
 }

@@ -367,6 +367,14 @@ export class QuickFixProvider implements vscode.CodeActionProvider {
 				action.edit.delete(document.uri, diag.range);
 				result.push(action);
 			}
+
+			if (diag.code === Code.GitHubLoginNeeded) {
+				const action = new vscode.CodeAction('Login for @me', vscode.CodeActionKind.QuickFix);
+				action.diagnostics = [diag];
+				action.command = { command: 'github-issues.authNow', title: 'Login for @me' };
+				result.push(action);
+
+			}
 		}
 		return result;
 	}
@@ -749,10 +757,13 @@ export class GithubValidation extends IProjectValidation {
 
 					} else if (info?.placeholderType === ValuePlaceholderType.Username) {
 						if (value === '@me') {
-							await this.octokit.lib();
-							if (!this.octokit.isAuthenticated) {
-								newDiagnostics.push(new vscode.Diagnostic(project.rangeOf(valueNode), `@me is ignored because you are not logged in`, vscode.DiagnosticSeverity.Warning));
-							}
+							work.push(this.octokit.lib().then(() => {
+								if (!this.octokit.isAuthenticated) {
+									const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `@me requires that you are logged in`, vscode.DiagnosticSeverity.Warning);
+									diag.code = Code.GitHubLoginNeeded;
+									newDiagnostics.push(diag);
+								}
+							}));
 						}
 					}
 				};
@@ -808,6 +819,7 @@ export class Validation {
 
 	constructor(
 		readonly container: ProjectContainer,
+		readonly octokit: OctokitProvider,
 		readonly validation: IProjectValidation[]
 	) {
 
@@ -844,6 +856,9 @@ export class Validation {
 				strategy.clearProject(project);
 			}
 		}));
+		this._disposables.push(octokit.onDidChange(() => {
+			validateAllSoon();
+		}));
 	}
 
 	dispose(): void {
@@ -876,7 +891,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubRepoSearchCompletions(container, octokit), ...GithubRepoSearchCompletions.triggerCharacters));
 	disposables.push(vscode.languages.registerCompletionItemProvider(selector, new GithubPlaceholderCompletions(container, githubData), ...GithubPlaceholderCompletions.triggerCharacters));
 
-	disposables.push(new Validation(container, [
+	disposables.push(new Validation(container, octokit, [
 		new LanguageValidation(),
 		new GithubValidation(githubData, octokit)
 	]));
