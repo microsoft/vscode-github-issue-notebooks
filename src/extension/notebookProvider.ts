@@ -9,7 +9,7 @@ import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
 import { NodeType, Utils } from "./parser/nodes";
 import { ProjectContainer } from './project';
-import { isRunnable } from './utils';
+import { isRunnable, isUsingAtMe } from './utils';
 
 
 export const mimeGithubIssues = 'x-application/github-issues';
@@ -67,6 +67,13 @@ export class IssuesNotebookKernel {
 
 		if (!isRunnable(query)) {
 			exec.end(true);
+			return;
+		}
+
+		if (isUsingAtMe(query) && !this.octokit.isAuthenticated) {
+			const message = 'This query uses [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).';
+			exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
+			exec.end(false);
 			return;
 		}
 
