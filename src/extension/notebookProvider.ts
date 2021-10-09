@@ -14,6 +14,13 @@ import { isRunnable, isUsingAtMe } from './utils';
 
 export const mimeGithubIssues = 'x-application/github-issues';
 
+export type ResultData = {
+	html_url: string;
+	repository_url: string;
+	number: number;
+};
+
+
 // --- running queries
 
 export class IssuesNotebookKernel {
@@ -199,18 +206,24 @@ export class IssuesNotebookKernel {
 
 export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItemProvider {
 
-	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem | undefined {
+	provideCellStatusBarItems(cell: vscode.NotebookCell): vscode.NotebookCellStatusBarItem[] | undefined {
 		const count = <number | undefined>cell.outputs[0]?.metadata?.['itemCount'];
 		if (typeof count !== 'number') {
 			return;
 		}
-		const item = new vscode.NotebookCellStatusBarItem(
-			`$(globe) Open ${count} results`,
-			vscode.NotebookCellStatusBarAlignment.Right,
-		);
-		item.command = 'github-issues.openAll';
-		item.tooltip = `Open ${count} results in browser`;
-		return item;
+
+		let openEach = new vscode.NotebookCellStatusBarItem(`$(globe) Open ${count} results`, vscode.NotebookCellStatusBarAlignment.Right);
+		openEach.command = 'github-issues.openEach';
+		openEach.tooltip = `Open ${count} results in browser as separate tabs`;
+
+		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(zap) Open as one tab`, vscode.NotebookCellStatusBarAlignment.Right);
+		openByNumber.command = 'github-issues.openResultsByNumbers';
+		openByNumber.tooltip = `Open results in single browser tab`;
+
+		const items: vscode.NotebookCellStatusBarItem[] = [
+			openEach, openByNumber
+		];
+		return items;
 	}
 }
 

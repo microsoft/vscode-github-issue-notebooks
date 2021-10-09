@@ -76,31 +76,47 @@
 				"command": "github-issues.new"
 			},
 			{
-				"title": "Open All In Browser",
-				"command": "github-issues.openAll",
+				"title": "Open Each Result In Browser",
+				"command": "github-issues.openEach",
 				"icon": "$(globe)"
 			},
 			{
-				"title": "Open Query In Browser",
-				"command": "github-issues.openUrl",
+				"title": "Open Expanded Cell Query In Browser",
+				"command": "github-issues.openQuery",
 				"icon": "$(home)"
+			},
+			{
+				"title": "Copy Expanded Cell Query To Clipboard",
+				"command": "github-issues.copyQueryToClipboard",
+				"icon": "$(copy)"
+			},
+			{
+				"title": "Open Results In Browser Using Numbers",
+				"command": "github-issues.openResultsByNumbers",
+				"icon": "$(zap)"
 			}
 		],
 		"menus": {
 			"commandPalette": [
 				{
-					"command": "github-issues.openAll",
+					"command": "github-issues.openEach",
 					"when": "false"
 				},
 				{
-					"command": "github-issues.openUrl",
+					"command": "github-issues.openQuery",
 					"when": "false"
 				}
 			],
 			"notebook/cell/title": [
 				{
-					"command": "github-issues.openUrl",
-					"alt": "github-issues.openAll",
+					"command": "github-issues.openQuery",
+					"alt": "github-issues.openQuery",
+					"when": "notebookType == github-issues && notebookCellType == code && notebookCellHasOutputs",
+					"group": "inline/output@1"
+				},
+				{
+					"command": "github-issues.copyQueryToClipboard",
+					"alt": "github-issues.copyQueryToClipboard",
 					"when": "notebookType == github-issues && notebookCellType == code && notebookCellHasOutputs",
 					"group": "inline/output@1"
 				}
