@@ -91,7 +91,7 @@
 				"icon": "$(copy)"
 			},
 			{
-				"title": "Open Results In Browser Using Numbers",
+				"title": "Open Results In One Browser Tab",
 				"command": "github-issues.openResultsByNumbers",
 				"icon": "$(zap)"
 			}
@@ -110,14 +110,12 @@
 			"notebook/cell/title": [
 				{
 					"command": "github-issues.openQuery",
-					"alt": "github-issues.openQuery",
-					"when": "notebookType == github-issues && notebookCellType == code && notebookCellHasOutputs",
+					"when": "notebookType == github-issues && notebookCellType == code",
 					"group": "inline/output@1"
 				},
 				{
 					"command": "github-issues.copyQueryToClipboard",
-					"alt": "github-issues.copyQueryToClipboard",
-					"when": "notebookType == github-issues && notebookCellType == code && notebookCellHasOutputs",
+					"when": "notebookType == github-issues && notebookCellType == code",
 					"group": "inline/output@1"
 				}
 			],

@@ -216,9 +216,9 @@ export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItem
 		openEach.command = 'github-issues.openEach';
 		openEach.tooltip = `Open ${count} results in browser as separate tabs`;
 
-		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(zap) Open as one tab`, vscode.NotebookCellStatusBarAlignment.Right);
+		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(zap) Open in one tab`, vscode.NotebookCellStatusBarAlignment.Right);
 		openByNumber.command = 'github-issues.openResultsByNumbers';
-		openByNumber.tooltip = `Open results in single browser tab`;
+		openByNumber.tooltip = `Open up to 50 results in single browser tab`;
 
 		const items: vscode.NotebookCellStatusBarItem[] = [
 			openEach, openByNumber
