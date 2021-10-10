@@ -116,7 +116,7 @@ export class IssuesNotebookKernel {
 					page += 1;
 				}
 			}
-		} catch (err) {
+		} catch (err: any) {
 			if (err instanceof Error && err.message.includes('Authenticated requests get a higher rate limit')) {
 				// ugly error-message checking for anon-rate-limit. where are the error codes?
 				const message = 'You have exeeded the rate limit for anonymous querying. You can [logged in](command:github-issues.authNow) to continue querying.';
