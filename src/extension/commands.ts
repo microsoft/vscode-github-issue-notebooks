@@ -105,9 +105,12 @@ export function registerCommands(projectContainer: ProjectContainer, octokit: Oc
 			// Seems like it always accepts at least 50, so limiting it to that.
 			if (results.length > 50) {
 				await vscode.window.showInformationMessage(
-					`More than 50 results in ${r}. Not opened.`,
+					`Truncated results to 50 from ${r}.`,
 				);
-			} else if (results.length > 0) {
+				results = results.slice(0, 50);
+			}
+
+			if (results.length > 0) {
 				let results_string: string = '';
 				results.forEach(n => {
 					results_string += `${n} `;
