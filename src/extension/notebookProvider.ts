@@ -212,16 +212,22 @@ export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItem
 			return;
 		}
 
-		let openEach = new vscode.NotebookCellStatusBarItem(`$(globe) Open ${count} results`, vscode.NotebookCellStatusBarAlignment.Right);
+		let openEach = new vscode.NotebookCellStatusBarItem(`$(files) Open ${count} results`, vscode.NotebookCellStatusBarAlignment.Right);
 		openEach.command = 'github-issues.openEach';
 		openEach.tooltip = `Open ${count} results in browser as separate tabs`;
 
-		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(zap) Open in one tab`, vscode.NotebookCellStatusBarAlignment.Right);
+		let openByQuery = new vscode.NotebookCellStatusBarItem(`$(question) Open as query`, vscode.NotebookCellStatusBarAlignment.Right);
+		openByQuery.command = 'github-issues.openQuery';
+		openByQuery.tooltip = `Open ${count} results in browser as a query, which may not accurately reflect these results`;
+
+		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(inbox) Open only these`, vscode.NotebookCellStatusBarAlignment.Right);
 		openByNumber.command = 'github-issues.openResultsByNumbers';
-		openByNumber.tooltip = `Open up to 50 results in single browser tab`;
+		openByNumber.tooltip = `Open up to 50 of these specific results in single browser tab`;
+
+
 
 		const items: vscode.NotebookCellStatusBarItem[] = [
-			openEach, openByNumber
+			openEach, openByNumber, openByQuery
 		];
 		return items;
 	}

@@ -76,22 +76,22 @@
 				"command": "github-issues.new"
 			},
 			{
-				"title": "Open Each Result In Browser",
+				"title": "Open each result in your browser",
 				"command": "github-issues.openEach",
-				"icon": "$(globe)"
+				"icon": "$(files)"
 			},
 			{
-				"title": "Open Expanded Cell Query In Browser",
+				"title": "Open expanded cell query in browser",
 				"command": "github-issues.openQuery",
-				"icon": "$(home)"
+				"icon": "$(question)"
 			},
 			{
-				"title": "Copy Expanded Cell Query To Clipboard",
+				"title": "Copy expanded cell query to clipboard",
 				"command": "github-issues.copyQueryToClipboard",
 				"icon": "$(copy)"
 			},
 			{
-				"title": "Open Results In One Browser Tab",
+				"title": "Open specific results in one browser tab",
 				"command": "github-issues.openResultsByNumbers",
 				"icon": "$(zap)"
 			}
