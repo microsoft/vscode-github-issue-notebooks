@@ -94,6 +94,9 @@ export function registerCommands(projectContainer: ProjectContainer, octokit: Oc
 			return;
 		}
 
+		let config = vscode.workspace.getConfiguration();
+		let max_results: number = (config.get('github-issues.maxToOpenInOneTab') ?? 50);
+
 		// Get the unique set of repos from the list.
 		let repos = [...new Set(Array.from(items, x => x.html_url.replace(/(\/[\d]+$)/g, '')))];
 
@@ -103,11 +106,11 @@ export function registerCommands(projectContainer: ProjectContainer, octokit: Oc
 
 			// There is some hard limit to the number of results that can be opened by number. 
 			// Seems like it always accepts at least 50, so limiting it to that.
-			if (results.length > 50) {
+			if (results.length > max_results) {
 				await vscode.window.showInformationMessage(
-					`Truncated results to 50 from ${r}.`,
+					`Truncated results to ${max_results} from ${r}.`,
 				);
-				results = results.slice(0, 50);
+				results = results.slice(0, max_results);
 			}
 
 			if (results.length > 0) {

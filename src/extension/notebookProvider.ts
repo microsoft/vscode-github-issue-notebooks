@@ -27,6 +27,7 @@ export class IssuesNotebookKernel {
 
 	private readonly _controller: vscode.NotebookController;
 	private _executionOrder = 0;
+	private _config = vscode.workspace.getConfiguration('vscode-github-issue-notebooks');
 
 	constructor(
 		readonly container: ProjectContainer,
@@ -220,9 +221,9 @@ export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItem
 		openByQuery.command = 'github-issues.openQuery';
 		openByQuery.tooltip = `Open ${count} results in browser as a query, which may not accurately reflect these results`;
 
-		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(inbox) Open only these`, vscode.NotebookCellStatusBarAlignment.Right);
+		let openByNumber = new vscode.NotebookCellStatusBarItem(`$(inbox) Open batch`, vscode.NotebookCellStatusBarAlignment.Right);
 		openByNumber.command = 'github-issues.openResultsByNumbers';
-		openByNumber.tooltip = `Open up to 50 of these specific results in single browser tab`;
+		openByNumber.tooltip = `Open these specific results in single browser tab via their id numbers. Max can be adjust via the github-issues.maxToOpenInOneTab setting`;
 
 
 

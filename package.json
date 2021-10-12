@@ -30,6 +30,18 @@
 	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
 	"contributes": {
+		"configuration": {
+			"type": "object",
+			"title": "Github Issues",
+			"properties": {
+				"github-issues.maxToOpenInOneTab": {
+					"type": "number",
+					"default": 50,
+					"description": "Maximum batch size of results to open in a single browser tab",
+					"scope": "resource"
+				}
+			}
+		},
 		"languages": [
 			{
 				"id": "github-issues",
