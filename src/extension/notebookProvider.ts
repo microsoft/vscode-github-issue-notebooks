@@ -112,7 +112,7 @@ export class IssuesNotebookKernel {
 		} catch (err) {
 			if (err instanceof Error && err.message.includes('Authenticated requests get a higher rate limit')) {
 				// ugly error-message checking for anon-rate-limit. where are the error codes?
-				const message = 'You have exeeded the rate limit for anonymous querying. You can [logged in](command:github-issues.authNow) to continue querying.';
+				const message = 'You have exceeded the rate limit for anonymous querying. You can [log in](command:github-issues.authNow) to continue querying.';
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
 
 			} else {
