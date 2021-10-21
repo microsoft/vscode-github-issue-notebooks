@@ -1,9 +1,3 @@
-👉👉👉 This extension is still **under development**.
-
-👉👉👉 Latest **VS Code Insiders** is required and at times this extension might be broken.
-
----
-
 [![Build Status](https://dev.azure.com/jrieken/vscode-github-issue-notebooks/_apis/build/status/microsoft.vscode-github-issue-notebooks?branchName=main)](https://dev.azure.com/jrieken/vscode-github-issue-notebooks/_build/latest?definitionId=1&branchName=main)
 
 # GitHub Issue Notebooks
@@ -12,9 +6,9 @@ The VS Code GitHub Issue notebook extension enables you to run issue queries fro
 
 ### Getting Started
 
-1. use latest VS Code Insiders
+1. go to https://vscode.dev or use [VS Code Desktop](https://code.visualstudio.com/Download)
 1. install this extension from the market place: https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-github-issue-notebooks
-1. create a `XYZ.github-issues` file and you are all set
+1. select "File > New File... > GitHub Issue Notebook"
 
 ![Sample](https://raw.githubusercontent.com/microsoft/vscode-github-issue-notebooks/main/sample.png)
 
