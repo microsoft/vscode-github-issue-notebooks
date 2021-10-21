@@ -346,7 +346,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			// all variables
 			for (let symbol of project.symbols.all()) {
 				result.push({
-					label: { label: symbol.name, detail: symbol.type ? `${symbol.value} (${symbol.type})` : symbol.value },
+					label: { label: symbol.name, description: symbol.type ? `${symbol.value} (${symbol.type})` : symbol.value },
 					kind: vscode.CompletionItemKind.Variable,
 				});
 			}
