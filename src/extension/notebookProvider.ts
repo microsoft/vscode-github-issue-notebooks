@@ -70,11 +70,16 @@ export class IssuesNotebookKernel {
 			return;
 		}
 
-		if (isUsingAtMe(query, project) && !this.octokit.isAuthenticated) {
-			const message = 'This query uses [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).';
-			exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
-			exec.end(false);
-			return;
+		if (!this.octokit.isAuthenticated) {
+			const atMe = isUsingAtMe(query, project);
+			if (atMe > 0) {
+				const message = atMe > 1
+					? 'This query depends on [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).'
+					: 'This query uses [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).';
+				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
+				exec.end(false);
+				return;
+			}
 		}
 
 		const allQueryData = project.queryData(query);
@@ -114,7 +119,9 @@ export class IssuesNotebookKernel {
 				// ugly error-message checking for anon-rate-limit. where are the error codes?
 				const message = 'You have exceeded the rate limit for anonymous querying. You can [log in](command:github-issues.authNow) to continue querying.';
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
-
+			} else if (err instanceof Error && err.message.includes('The listed users cannot be searched')) {
+				const message = 'This query uses [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).';
+				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
 			} else {
 				// print as error
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(err)]));

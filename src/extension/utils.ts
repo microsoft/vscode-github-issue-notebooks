@@ -52,21 +52,22 @@ export function isRunnable(query: QueryDocumentNode): boolean {
 	return query.nodes.some(node => node._type === NodeType.Query || node._type === NodeType.OrExpression);
 }
 
-export function isUsingAtMe(query: Node, project: Project): boolean {
-	let result = false;
+export function isUsingAtMe(query: Node, project: Project): number {
+	let result = 0;
 	Utils.walk(query, (node, parent) => {
+		if (result === 0) {
+			if (node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition) {
+				// check variables
+				let symbol = project.symbols.getFirst(node.value);
+				if (symbol) {
+					result += 2 * isUsingAtMe(symbol.def, project);
+				}
 
-		if (node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition) {
-			// check variables
-			let symbol = project.symbols.getFirst(node.value);
-			if (symbol) {
-				result = isUsingAtMe(symbol.def, project);
-			}
-
-		} else if (node._type === NodeType.QualifiedValue && node.value._type === NodeType.Literal && node.value.value === '@me') {
-			const info = QualifiedValueNodeSchema.get(node.qualifier.value);
-			if (info?.placeholderType === ValuePlaceholderType.Username) {
-				result = true;
+			} else if (node._type === NodeType.QualifiedValue && node.value._type === NodeType.Literal && node.value.value === '@me') {
+				const info = QualifiedValueNodeSchema.get(node.qualifier.value);
+				if (info?.placeholderType === ValuePlaceholderType.Username) {
+					result = 1;
+				}
 			}
 		}
 	});
