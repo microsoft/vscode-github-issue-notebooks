@@ -12,7 +12,7 @@ import { Scanner, Token, TokenType } from './parser/scanner';
 import { QualifiedValueNodeSchema, SymbolInfo, ValuePlaceholderType } from './parser/symbols';
 import { Code, validateQueryDocument, ValidationError } from './parser/validation';
 import { Project, ProjectContainer } from './project';
-import { getRepoInfos, RepoInfo } from './utils';
+import { getAllRepos, RepoInfo } from './utils';
 
 const selector = { language: 'github-issues' };
 
@@ -536,7 +536,7 @@ export class GithubPlaceholderCompletions implements vscode.CompletionItemProvid
 			return;
 		}
 
-		const repos = getRepoInfos(doc, project, query);
+		const repos = getAllRepos(project);
 		const info = QualifiedValueNodeSchema.get(qualified.qualifier.value);
 
 		let range = { inserting: new vscode.Range(position, position), replacing: new vscode.Range(position, position) };
@@ -715,15 +715,16 @@ export class GithubValidation extends IProjectValidation {
 			collection.clear();
 		}
 
+		const repos = Array.from(getAllRepos(project));
+		if (repos.length === 0) {
+			return;
+		}
+
 		for (let { node: queryDoc, doc } of project.all()) {
 			const newDiagnostics: vscode.Diagnostic[] = [];
 			const work: Promise<any>[] = [];
 			Utils.walk(queryDoc, async (node, parent) => {
 				if (parent?._type !== NodeType.Query || node._type !== NodeType.QualifiedValue || node.value._type === NodeType.Missing) {
-					return;
-				}
-				const repos = [...getRepoInfos(queryDoc, project, parent)];
-				if (repos.length === 0) {
 					return;
 				}
 

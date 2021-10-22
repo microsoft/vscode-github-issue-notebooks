@@ -3,7 +3,7 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from "./parser/nodes";
+import { Node, NodeType, QueryDocumentNode, Utils } from "./parser/nodes";
 import { QualifiedValueNodeSchema, ValuePlaceholderType } from "./parser/symbols";
 import { Project } from "./project";
 
@@ -12,33 +12,23 @@ export interface RepoInfo {
 	repo: string;
 }
 
-export function* getRepoInfos(doc: QueryDocumentNode, project: Project, node: QueryNode): Generator<RepoInfo> {
+export function* getAllRepos(project: Project): Generator<RepoInfo> {
 
 	const repoStrings: string[] = [];
 
-	let stack: { node: Node, doc: QueryDocumentNode; }[] = [{ doc, node }];
+	for (let item of project.all()) {
 
-	while (stack.length) {
-
-		const { doc, node } = stack.shift()!;
-
-		Utils.walk(node, (node, parent) => {
-
-			if (node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition) {
-				// check variables
-				let symbol = project.symbols.getFirst(node.value);
-				if (symbol) {
-					stack.push({ node: symbol.def, doc: symbol.root });
-				}
-
-			} else if (node._type === NodeType.QualifiedValue && node.qualifier.value === 'repo' && node.value._type !== NodeType.LiteralSequence) {
-				// check repo-statement
+		Utils.walk(item.node, node => {
+			// check repo-statement
+			if (node._type === NodeType.QualifiedValue && node.qualifier.value === 'repo') {
 
 				let value: string | undefined;
 				if (node.value._type === NodeType.VariableName) {
+					// repo:$SOME_VAR
 					value = project.symbols.getFirst(node.value.value)?.value;
 				} else {
-					value = Utils.print(node.value, doc.text, () => undefined);
+					// repo:some_value
+					value = Utils.print(node.value, item.doc.getText(), () => undefined);
 				}
 
 				if (value) {
