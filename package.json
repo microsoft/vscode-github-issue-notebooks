@@ -8,7 +8,9 @@
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
-	"enableProposedApi": true,
+	"enabledApiProposals": [
+		"notebookEditor"
+	],
 	"engines": {
 		"vscode": "^1.59.0"
 	},
