@@ -1,5 +1,3 @@
-[![Build Status](https://dev.azure.com/jrieken/vscode-github-issue-notebooks/_apis/build/status/microsoft.vscode-github-issue-notebooks?branchName=main)](https://dev.azure.com/jrieken/vscode-github-issue-notebooks/_build/latest?definitionId=1&branchName=main)
-
 # GitHub Issue Notebooks
 
 The VS Code GitHub Issue notebook extension enables you to run issue queries from within VS Code so that queries and results are displayed interleaved - just like in other notebook applications. 
