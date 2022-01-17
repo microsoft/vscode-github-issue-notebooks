@@ -1,39 +1,33 @@
+name: $(Date:yyyyMMdd)$(Rev:.r)
+
 trigger:
   branches:
-    include: ['*']
+    include: ["*"]
   tags:
-    include: ['*']
+    include: ["*"]
+pr: none
 
-strategy:
-  matrix:
-    linux:
-      imageName: 'ubuntu-latest'
+resources:
+  repositories:
+    - repository: templates
+      type: github
+      name: microsoft/vscode-engineering
+      ref: main
+      endpoint: Monaco
 
-pool:
-  vmImage: $(imageName)
+extends:
+  template: azure-pipelines/extension/stable.yml@templates
+  parameters:
+    buildSteps:
+      - bash: |
+          /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          echo ">>> Started xvfb"
+        displayName: Start xvfb
+        condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
 
-steps:
-
-- task: NodeTool@0
-  inputs:
-    versionSpec: '12.x'
-  displayName: 'Install Node.js'
-
-- bash: |
-    /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
-    echo ">>> Started xvfb"
-  displayName: Start xvfb
-  condition: and(succeeded(), eq(variables['Agent.OS'], 'Linux'))
-
-- bash: |
-    echo ">>> Compile, unit-test, integration-test"
-    npm i && npm run compile-lint-test
-  displayName: Compile, Lint, Test
-  env:
-    DISPLAY: ':99.0'
-
-- bash: |
-    echo ">>> Publish"
-    npm run deploy -- -p $(VSCODE_MARKETPLACE_TOKEN)
-  displayName: Publish
-  condition: and(succeeded(), startsWith(variables['Build.SourceBranch'], 'refs/tags/'))
+      - bash: |
+          echo ">>> Compile, unit-test, integration-test"
+          npm i && npm run compile-lint-test
+        displayName: Compile, Lint, Test
+        env:
+          DISPLAY: ":99.0"
