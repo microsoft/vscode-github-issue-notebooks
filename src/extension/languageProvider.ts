@@ -307,7 +307,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 		const node = Utils.nodeAt(query, offset, parents) ?? query;
 		const parent = parents[parents.length - 2];
 
-		if (parent._type === NodeType.LiteralSequence) {
+		if (parent?._type === NodeType.LiteralSequence) {
 			return;
 		}
 
