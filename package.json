@@ -109,7 +109,8 @@
 			],
 			"file/newFile": [
 				{
-					"command": "github-issues.new"
+					"command": "github-issues.new",
+					"group": "notebook"
 				}
 			]
 		}
