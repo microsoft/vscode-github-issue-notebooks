@@ -169,16 +169,16 @@ export class ProjectContainer {
 			}
 		}));
 
-		this._disposables.push(vscode.notebooks.onDidChangeNotebookCells(e => {
-			let project = this.lookupProject(e.document.uri, false);
+		this._disposables.push(vscode.workspace.onDidChangeNotebookDocument(e => {
+			let project = this.lookupProject(e.notebook.uri, false);
 			if (!project) {
 				return;
 			}
-			for (let change of e.changes) {
-				for (let cell of change.deletedItems) {
+			for (let change of e.contentChanges) {
+				for (let cell of change.removedCells) {
 					project.delete(cell.document);
 				}
-				for (const cell of change.items) {
+				for (const cell of change.addedCells) {
 					if (cell.kind === vscode.NotebookCellKind.Code) {
 						project.getOrCreate(cell.document);
 					}
