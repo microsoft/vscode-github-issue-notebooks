@@ -20,7 +20,7 @@ export function registerCommands(projectContainer: ProjectContainer, octokit: Oc
 		const newNotebook = await vscode.workspace.openNotebookDocument('github-issues', new vscode.NotebookData(
 			[new vscode.NotebookCellData(vscode.NotebookCellKind.Code, 'repo:microsoft/vscode is:open', 'github-issues')]
 		));
-		await vscode.window.showNotebookDocument(newNotebook);
+		await vscode.commands.executeCommand('vscode.openWith', newNotebook.uri, 'github-issues');
 	}));
 
 	subscriptions.push(vscode.commands.registerCommand('github-issues.openAll', async (cell: vscode.NotebookCell) => {
