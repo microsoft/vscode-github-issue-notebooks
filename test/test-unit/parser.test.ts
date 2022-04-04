@@ -251,4 +251,8 @@ suite('Print Nodes', function () {
 		assertPrinted('fooBar -assignee:@me sort:created-asc');
 		assertPrinted('fooBar sort asc by created -assignee:@me');
 	});
+
+	test('Queries using GH OR syntax don\'t execute correctly #122', function () {
+		assertPrinted('repo:microsoft/vscode label:workbench-window,workbench-zen -milestone:"Backlog Candidates"');
+	});
 });

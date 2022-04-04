@@ -160,7 +160,7 @@ export class Parser {
 		return {
 			_type: NodeType.LiteralSequence,
 			start: literal.start,
-			end: this._scanner.pos,
+			end: nodes[nodes.length - 1].end,
 			nodes
 		};
 	}
