@@ -35,7 +35,7 @@
         },
         {
             "name": "keyword.other",
-            "match": "\\b(type|updated|in|org|repo|user|state|assignee|author|mentions|team|stars|topics|pushed|size|commenter|involves|label|linked|milestone|project|language|comments|interactions|reactions|created|closed|archived|is|no|status|base|head|draft|review-requested|review|reviewed-by|team-review-requested|merged)\\b"
+            "match": "\\b(type|updated|in|org|repo|user|state|assignee|author|mentions|team|stars|topics|pushed|size|commenter|involves|label|linked|milestone|project|language|comments|interactions|reactions|created|closed|archived|is|no|status|base|head|draft|review-requested|review|reviewed-by|team-review-requested|user-review-requested|merged)\\b"
         }
     ]
 }

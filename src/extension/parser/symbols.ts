@@ -168,6 +168,7 @@ export const QueryNodeImpliesPullRequestSchema = new Set<string>([
 	'review',
 	'reviewed-by',
 	'team-review-requested',
+	'user-review-requested',
 	'merged',
 ]);
 
@@ -208,6 +209,7 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['involves', QualifiedValueInfo.username(RepeatInfo.Repeat, 'Issues and pull requests that in some way involve a user. The involves qualifier is a logical OR between the author, assignee, mentions, and commenter qualifiers for a single user')],
 	['review-requested', QualifiedValueInfo.username(undefined, 'Pull requests where a specific user is requested for review')],
 	['reviewed-by', QualifiedValueInfo.username(undefined, 'Pull requests reviewed by a particular user')],
+	['user-review-requested', QualifiedValueInfo.username(undefined, 'Pull requests where a specific user is directly requested for review')],
 	// simple value
 	['closed', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were closed')],
 	['created', QualifiedValueInfo.simple(ValueType.Date, 'Issues and pull requests based on when they were created')],
