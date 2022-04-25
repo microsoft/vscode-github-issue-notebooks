@@ -8,9 +8,6 @@
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
-	"enabledApiProposals": [
-		"notebookDocumentEvents"
-	],
 	"engines": {
 		"vscode": "^1.67.0"
 	},
