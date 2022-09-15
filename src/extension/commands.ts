@@ -40,7 +40,7 @@ export function registerCommands(projectContainer: ProjectContainer, octokit: Oc
 
 		if (items.length > 10) {
 			const option = await vscode.window.showInformationMessage(
-				`This will open ${items.length} browser tabs. Do you want to continue?`,
+				vscode.l10n.t('This will open {0} browser tabs. Do you want to continue?', items.length),
 				{ modal: true },
 				'OK'
 			);

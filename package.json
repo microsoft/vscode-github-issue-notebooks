@@ -14,6 +14,9 @@
 	"categories": [
 		"Other"
 	],
+	"enabledApiProposals": [
+		"localization"
+	],
 	"capabilities": {
 		"untrustedWorkspaces": {
 			"supported": true
@@ -28,6 +31,7 @@
 	],
 	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
+	"l10n": "./l10n",
 	"contributes": {
 		"languages": [
 			{
@@ -70,7 +74,7 @@
 		],
 		"commands": [
 			{
-				"title": "New GitHub Issue Notebook",
+				"title": "%github-issues.new.title%",
 				"shortTitle": "GitHub Issue Notebook",
 				"command": "github-issues.new"
 			},
