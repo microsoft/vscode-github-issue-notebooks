@@ -1,7 +1,7 @@
 {
 	"name": "vscode-github-issue-notebooks",
 	"displayName": "GitHub Issue Notebooks",
-	"description": "GitHub Issue Notebooks for VS Code",
+	"description": "%description%",
 	"publisher": "ms-vscode",
 	"preview": true,
 	"version": "0.0.119",
@@ -79,12 +79,12 @@
 				"command": "github-issues.new"
 			},
 			{
-				"title": "Open All In Browser",
+				"title": "%github-issues.openAll.title%",
 				"command": "github-issues.openAll",
 				"icon": "$(globe)"
 			},
 			{
-				"title": "Open Query In Browser",
+				"title": "%github-issues.openUrl.title%",
 				"command": "github-issues.openUrl",
 				"icon": "$(home)"
 			}
