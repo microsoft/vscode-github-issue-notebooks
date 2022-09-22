@@ -12,7 +12,7 @@ resources:
     - repository: templates
       type: github
       name: microsoft/vscode-engineering
-      ref: tyler/log-version
+      ref: main
       endpoint: Monaco
 
 extends:
