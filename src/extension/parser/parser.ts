@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { l10n } from "vscode";
 import { AnyNode, CompareNode, DateNode, LiteralNode, LiteralSequenceNode, MissingNode, NodeType, NumberNode, OrExpressionNode, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, VariableDefinitionNode, VariableNameNode } from "./nodes";
 import { Scanner, Token, TokenType } from "./scanner";
 
@@ -253,7 +252,7 @@ export class Parser {
 		const value = this._parseDate()
 			?? this._parseNumber()
 			?? this._parseVariableName()
-			?? this._createMissing(l10n.t('expected date or number'));
+			?? this._createMissing('expected date or number');
 		return {
 			_type: NodeType.Compare,
 			start: cmp.start,
@@ -279,7 +278,7 @@ export class Parser {
 		const close = this._parseDate()
 			?? this._parseNumber()
 			?? this._parseVariableName()
-			?? this._createMissing(l10n.t('expected number or date'));
+			?? this._createMissing('expected number or date');
 
 		return {
 			_type: NodeType.Range,
@@ -299,7 +298,7 @@ export class Parser {
 		const close = this._parseDate()
 			?? this._parseNumber()
 			?? this._parseVariableName()
-			?? this._createMissing(l10n.t('expected number or date'));
+			?? this._createMissing('expected number or date');
 		return {
 			_type: NodeType.Range,
 			start: tk.start,
@@ -350,7 +349,7 @@ export class Parser {
 			?? this._parseVariableName()
 			?? this._parseLiteralOrLiteralSequence()
 			?? this._parseAny(TokenType.SHA)
-			?? this._createMissing(l10n.t(`This looks like a 'key:value'-expression but lacks value.`), true);
+			?? this._createMissing(`This looks like a 'key:value'-expression but lacks value.`, true);
 
 		return {
 			_type: NodeType.QualifiedValue,
@@ -388,7 +387,7 @@ export class Parser {
 			this._reset(anchor);
 			return;
 		}
-		const value = this._parseQuery(false) ?? this._createMissing(l10n.t('query expected'));
+		const value = this._parseQuery(false) ?? this._createMissing('query expected');
 		return {
 			_type: NodeType.VariableDefinition,
 			start: name.start,
