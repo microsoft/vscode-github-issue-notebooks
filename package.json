@@ -9,7 +9,7 @@
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
 	"engines": {
-		"vscode": "^1.67.0"
+		"vscode": "^1.72.0-insider"
 	},
 	"categories": [
 		"Other"
