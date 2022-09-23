@@ -369,9 +369,10 @@ export class QuickFixProvider implements vscode.CodeActionProvider {
 			}
 
 			if (diag.code === Code.GitHubLoginNeeded) {
-				const action = new vscode.CodeAction('Login for @me', vscode.CodeActionKind.QuickFix);
+				const loginForAtMe = vscode.l10n.t('Login for {0}', '@me');
+				const action = new vscode.CodeAction(loginForAtMe, vscode.CodeActionKind.QuickFix);
 				action.diagnostics = [diag];
-				action.command = { command: 'github-issues.authNow', title: 'Login for @me' };
+				action.command = { command: 'github-issues.authNow', title: loginForAtMe };
 				result.push(action);
 
 			}
@@ -737,10 +738,10 @@ export class GithubValidation extends IProjectValidation {
 					if (info?.placeholderType === ValuePlaceholderType.Label) {
 						work.push(this._checkLabels(value, repos).then(missing => {
 							if (missing.length === repos.length) {
-								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Label '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), vscode.l10n.t("Label '{0}' is unknown", value), vscode.DiagnosticSeverity.Warning);
 								newDiagnostics.push(diag);
 							} else if (missing.length > 0) {
-								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Label '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), vscode.l10n.t("Label '{0}' is unknown in these repositories: {1}", value, missing.map(info => `${info.owner}/${info.repo}`).join(', ')), vscode.DiagnosticSeverity.Hint);
 								newDiagnostics.push(diag);
 							}
 						}));
@@ -748,10 +749,10 @@ export class GithubValidation extends IProjectValidation {
 					} else if (info?.placeholderType === ValuePlaceholderType.Milestone) {
 						work.push(this._checkMilestones(value, repos).then(missing => {
 							if (missing.length === repos.length) {
-								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Milestone '${value}' is unknown`, vscode.DiagnosticSeverity.Warning);
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), vscode.l10n.t("Milestone '{0}' is unknown", value), vscode.DiagnosticSeverity.Warning);
 								newDiagnostics.push(diag);
 							} else if (missing.length > 0) {
-								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `Milestone '${value}' is unknown in these repositories: ${missing.map(info => `${info.owner}/${info.repo}`).join(', ')}`, vscode.DiagnosticSeverity.Hint);
+								const diag = new vscode.Diagnostic(project.rangeOf(valueNode), vscode.l10n.t("Milestone '{0}' is unknown in these repositories: {1}", value, missing.map(info => `${info.owner}/${info.repo}`).join(', ')), vscode.DiagnosticSeverity.Hint);
 								newDiagnostics.push(diag);
 							}
 						}));
@@ -760,7 +761,7 @@ export class GithubValidation extends IProjectValidation {
 						if (value === '@me') {
 							work.push(this.octokit.lib().then(() => {
 								if (!this.octokit.isAuthenticated) {
-									const diag = new vscode.Diagnostic(project.rangeOf(valueNode), `@me requires that you are logged in`, vscode.DiagnosticSeverity.Warning);
+									const diag = new vscode.Diagnostic(project.rangeOf(valueNode), vscode.l10n.t('{0} requires that you are logged in', '@me'), vscode.DiagnosticSeverity.Warning);
 									diag.code = Code.GitHubLoginNeeded;
 									newDiagnostics.push(diag);
 								}

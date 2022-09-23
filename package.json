@@ -1,7 +1,7 @@
 {
 	"name": "vscode-github-issue-notebooks",
 	"displayName": "GitHub Issue Notebooks",
-	"description": "GitHub Issue Notebooks for VS Code",
+	"description": "%description%",
 	"publisher": "ms-vscode",
 	"preview": true,
 	"version": "0.0.119",
@@ -9,10 +9,13 @@
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
 	"engines": {
-		"vscode": "^1.67.0"
+		"vscode": "^1.72.0-insider"
 	},
 	"categories": [
 		"Other"
+	],
+	"enabledApiProposals": [
+		"localization"
 	],
 	"capabilities": {
 		"untrustedWorkspaces": {
@@ -28,6 +31,7 @@
 	],
 	"main": "./dist/extension-node.js",
 	"browser": "./dist/extension-web.js",
+	"l10n": "./l10n",
 	"contributes": {
 		"languages": [
 			{
@@ -70,17 +74,17 @@
 		],
 		"commands": [
 			{
-				"title": "New GitHub Issue Notebook",
+				"title": "%github-issues.new.title%",
 				"shortTitle": "GitHub Issue Notebook",
 				"command": "github-issues.new"
 			},
 			{
-				"title": "Open All In Browser",
+				"title": "%github-issues.openAll.title%",
 				"command": "github-issues.openAll",
 				"icon": "$(globe)"
 			},
 			{
-				"title": "Open Query In Browser",
+				"title": "%github-issues.openUrl.title%",
 				"command": "github-issues.openUrl",
 				"icon": "$(home)"
 			}

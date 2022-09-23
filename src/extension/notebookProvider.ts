@@ -14,6 +14,8 @@ import { isRunnable, isUsingAtMe } from './utils';
 
 export const mimeGithubIssues = 'x-application/github-issues';
 
+const atMeLink = '[`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames)';
+
 // --- running queries
 
 export class IssuesNotebookKernel {
@@ -74,8 +76,22 @@ export class IssuesNotebookKernel {
 			const atMe = isUsingAtMe(query, project);
 			if (atMe > 0) {
 				const message = atMe > 1
-					? 'This query depends on [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).'
-					: 'This query uses [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).';
+					? vscode.l10n.t({
+						message: 'This query depends on {0} to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).',
+						args: [atMeLink],
+						comment: [
+							'The [...](command:...) will be rendered as a markdown link. Only the contents of the square brackets should be translated',
+							'{Locked="](command:github-issues.authNow)"}'
+						]
+					})
+					: vscode.l10n.t({
+						message: 'This query uses {0} to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).',
+						args: [atMeLink],
+						comment: [
+							'The [...](command:...) will be rendered as a markdown link. Only the contents of the square brackets should be translated',
+							'{Locked="](command:github-issues.authNow)"}'
+						]
+					});
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
 				exec.end(false);
 				return;
@@ -117,10 +133,23 @@ export class IssuesNotebookKernel {
 		} catch (err) {
 			if (err instanceof Error && err.message.includes('Authenticated requests get a higher rate limit')) {
 				// ugly error-message checking for anon-rate-limit. where are the error codes?
-				const message = 'You have exceeded the rate limit for anonymous querying. You can [log in](command:github-issues.authNow) to continue querying.';
+				const message = vscode.l10n.t({
+					message: 'You have exceeded the rate limit for anonymous querying. You can [log in](command:github-issues.authNow) to continue querying.',
+					comment: [
+						'The [...](command:...) will be rendered as a markdown link. Only the contents of the square brackets should be translated',
+						'{Locked="](command:github-issues.authNow)"}'
+					]
+				});
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
 			} else if (err instanceof Error && err.message.includes('The listed users cannot be searched')) {
-				const message = 'This query uses [`@me`](https://docs.github.com/en/search-github/getting-started-with-searching-on-github/understanding-the-search-syntax#queries-with-usernames) to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).';
+				const message = vscode.l10n.t({
+					message: 'This query uses {0} to specify the current user. For that to work you need to be [logged in](command:github-issues.authNow).',
+					args: [atMeLink],
+					comment: [
+						'The [...](command:...) will be rendered as a markdown link. Only the contents of the square brackets should be translated',
+						'{Locked="](command:github-issues.authNow)"}'
+					]
+				});
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
 			} else {
 				// print as error
@@ -152,7 +181,7 @@ export class IssuesNotebookKernel {
 				md += ` [${item.labels.map(label => `${label.name}`).join(', ')}] `;
 			}
 			if (item.assignee) {
-				md += `- [@${item.assignee.login}](${item.assignee.html_url} "Issue ${item.number} is assigned to ${item.assignee.login}")\n`;
+				md += `- [@${item.assignee.login}](${item.assignee.html_url} "${vscode.l10n.t('Issue {0} is assigned to {1}', item.number, item.assignee.login)}")\n`;
 			}
 			md += '\n';
 		}
@@ -212,11 +241,11 @@ export class IssuesStatusBarProvider implements vscode.NotebookCellStatusBarItem
 			return;
 		}
 		const item = new vscode.NotebookCellStatusBarItem(
-			`$(globe) Open ${count} results`,
+			'$(globe) ' + vscode.l10n.t('Open {0} results', count),
 			vscode.NotebookCellStatusBarAlignment.Right,
 		);
 		item.command = 'github-issues.openAll';
-		item.tooltip = `Open ${count} results in browser`;
+		item.tooltip = vscode.l10n.t('Open {0} results in browser', count);
 		return item;
 	}
 }
