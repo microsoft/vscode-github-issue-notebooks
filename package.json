@@ -4,7 +4,7 @@
 	"description": "%description%",
 	"publisher": "ms-vscode",
 	"preview": true,
-	"version": "0.0.119",
+	"version": "0.0.120",
 	"repository": {
 		"url": "https://github.com/microsoft/vscode-github-issue-notebooks"
 	},
