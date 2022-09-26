@@ -1,11 +1,4 @@
 {
-	"description": {
-		"message": "GitHub Issue Notebooks for VS Code",
-		"comment": [
-			"{Locked='GitHub Issue Notebooks'}",
-			"{Locked='VS Code'}"
-		]
-	},
 	"github-issues.new.title": {
 		"message": "New GitHub Issue Notebook",
 		"comment": [
