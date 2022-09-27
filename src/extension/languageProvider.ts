@@ -382,6 +382,76 @@ export class QuickFixProvider implements vscode.CodeActionProvider {
 
 }
 
+export class NotebookSplitOrIntoCellProvider implements vscode.CodeActionProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		let cell: vscode.NotebookCell | undefined;
+		for (let candidate of vscode.workspace.notebookDocuments) {
+			for (let item of candidate.getCells()) {
+				if (item.document === document) {
+					cell = item;
+				}
+			}
+		}
+		if (!cell) {
+			return undefined;
+		}
+
+		const result: vscode.CodeAction[] = [];
+		for (const node of query.nodes) {
+			if (node._type === NodeType.OrExpression) {
+				const orNodeRange = project.rangeOf(node, document.uri);
+				if (!_range.intersection(orNodeRange)) {
+					continue;
+				}
+
+				const nodes: QueryNode[] = [];
+				const stack = [node];
+				while (stack.length > 0) {
+					let s = stack.pop()!;
+					nodes.push(s.left);
+					if (s.right._type === NodeType.OrExpression) {
+						stack.push(s.right);
+					} else {
+						nodes.push(s.right);
+					}
+				}
+
+				// split into cells
+				const action1 = new vscode.CodeAction(vscode.l10n.t('Split OR into Cells'), vscode.CodeActionKind.RefactorRewrite);
+				action1.edit = new vscode.WorkspaceEdit();
+				action1.edit.set(document.uri, [vscode.TextEdit.delete(orNodeRange)]);
+				action1.edit.set(cell.notebook.uri, [vscode.NotebookEdit.insertCells(
+					cell.index + 1,
+					nodes.map(node => ({
+						kind: vscode.NotebookCellKind.Code,
+						languageId: document.languageId,
+						value: Utils.print(node, query.text, _name => undefined)
+					}))
+				)]);
+
+				// split into statements
+				const action2 = new vscode.CodeAction(vscode.l10n.t('Split OR into Statements'), vscode.CodeActionKind.RefactorRewrite);
+				action2.edit = new vscode.WorkspaceEdit();
+				action2.edit.set(document.uri, [vscode.TextEdit.replace(
+					orNodeRange,
+					nodes.map(node => Utils.print(node, query.text, _name => undefined)).join('\n')
+				)]);
+
+				result.push(action1);
+				result.push(action2);
+			}
+		}
+		return result;
+	}
+}
+
 export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 
 	static readonly triggerCharacters = [':'];
@@ -885,6 +955,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerReferenceProvider(selector, new ReferenceProvider(container)));
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
