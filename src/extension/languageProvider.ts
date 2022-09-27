@@ -388,9 +388,6 @@ export class NotebookSplitOrIntoCellProvider implements vscode.CodeActionProvide
 
 	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
 
-		const project = this.container.lookupProject(document.uri);
-		const query = project.getOrCreate(document);
-
 		let cell: vscode.NotebookCell | undefined;
 		for (let candidate of vscode.workspace.notebookDocuments) {
 			for (let item of candidate.getCells()) {
@@ -402,6 +399,9 @@ export class NotebookSplitOrIntoCellProvider implements vscode.CodeActionProvide
 		if (!cell) {
 			return undefined;
 		}
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
 
 		const result: vscode.CodeAction[] = [];
 		for (const node of query.nodes) {
@@ -449,6 +449,62 @@ export class NotebookSplitOrIntoCellProvider implements vscode.CodeActionProvide
 			}
 		}
 		return result;
+	}
+}
+
+export class NotebookExtractCellProvider implements vscode.CodeActionProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
+
+		if (context.triggerKind !== vscode.CodeActionTriggerKind.Invoke) {
+			return undefined;
+		}
+
+		let cell: vscode.NotebookCell | undefined;
+		for (let candidate of vscode.workspace.notebookDocuments) {
+			for (let item of candidate.getCells()) {
+				if (item.document === document) {
+					cell = item;
+				}
+			}
+		}
+		if (!cell) {
+			return undefined;
+		}
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		let usesVariables = false;
+		let definesVariables = false;
+
+		Utils.walk(query, (node, parent) => {
+			usesVariables = usesVariables || node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition;
+			definesVariables = definesVariables || node._type === NodeType.VariableDefinition;
+		});
+
+		if (usesVariables) {
+			return;
+		}
+
+		const filename = `${cell.notebook.uri.path.substring(cell.notebook.uri.path.lastIndexOf('/') + 1)}-cell-${Math.random().toString(16).slice(2, 7)}.github-issues`;
+		const newNotebookUri = vscode.Uri.joinPath(cell.notebook.uri, `../${filename}`);
+
+		const action = new vscode.CodeAction(
+			definesVariables ? vscode.l10n.t('Copy Cell Into New Notebook') : vscode.l10n.t('Move Cell Into New Notebook'),
+			vscode.CodeActionKind.RefactorMove
+		);
+		action.edit = new vscode.WorkspaceEdit();
+		action.edit.createFile(newNotebookUri, { ignoreIfExists: false });
+		action.edit.set(newNotebookUri, [vscode.NotebookEdit.insertCells(0, [{ kind: vscode.NotebookCellKind.Code, languageId: document.languageId, value: cell.document.getText() }])]);
+		action.command = { command: 'vscode.open', title: 'Show Notebook', arguments: [newNotebookUri] };
+		if (!definesVariables) {
+			action.edit.set(cell.notebook.uri, [vscode.NotebookEdit.deleteCells(new vscode.NotebookRange(cell.index, cell.index + 1))]);
+		}
+
+		return [action];
 	}
 }
 
@@ -956,6 +1012,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookExtractCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
