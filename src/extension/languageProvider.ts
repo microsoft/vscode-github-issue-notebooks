@@ -655,15 +655,30 @@ export abstract class IProjectValidation {
 
 class LanguageValidationDiagnostic extends vscode.Diagnostic {
 
+	private static asMessage(error: ValidationError): string {
+		switch (error.code) {
+			case Code.NodeMissing: return vscode.l10n.t('Expected {0}', error.expected.join(', '));
+			case Code.OrNotAllowed: return vscode.l10n.t('OR is not supported when defining a variable');
+			case Code.VariableDefinedRecursive: return vscode.l10n.t('Cannot reference a variable from its definition');
+			case Code.VariableUnknown: return vscode.l10n.t(`Unknown variable`);
+			case Code.QualifierUnknown: return vscode.l10n.t('Unknown qualifier: \'{0}\'', error.node.value);
+			case Code.ValueConflict: return vscode.l10n.t('This conflicts with another usage');
+			case Code.ValueTypeUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected type \'{1}\'', error.actual, error.expected);
+			case Code.ValueUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected one of \'{1}\'', error.actual, error.expected);
+			case Code.SequenceNotAllowed: return vscode.l10n.t(`Sequence of values is not allowed`);
+			case Code.RangeMixesTypes: return vscode.l10n.t('This range uses mixed values: {0} and {1}`', error.valueA, error.valueB);
+		}
+	}
+
 	readonly docVersion: number;
 
 	constructor(readonly error: ValidationError, project: Project, doc: vscode.TextDocument) {
-		super(project.rangeOf(error.node), error.message);
+		super(project.rangeOf(error.node), LanguageValidationDiagnostic.asMessage(error));
 
 		this.code = error.code;
 		this.docVersion = doc.version;
 
-		if (error.conflictNode) {
+		if (error.code === Code.ValueConflict && error.conflictNode) {
 			this.relatedInformation = [new vscode.DiagnosticRelatedInformation(
 				new vscode.Location(doc.uri, project.rangeOf(error.conflictNode)),
 				project.textOf(error.conflictNode)
@@ -671,7 +686,7 @@ class LanguageValidationDiagnostic extends vscode.Diagnostic {
 			this.tags = [vscode.DiagnosticTag.Unnecessary];
 		}
 
-		if (error.hint) {
+		if (error.code === Code.NodeMissing && error.hint) {
 			this.severity = vscode.DiagnosticSeverity.Information;
 		}
 	}
