@@ -379,7 +379,49 @@ export class QuickFixProvider implements vscode.CodeActionProvider {
 		}
 		return result;
 	}
+}
 
+export class ExtractVariableProvider implements vscode.CodeActionProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+
+	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
+
+		if (context.triggerKind !== vscode.CodeActionTriggerKind.Invoke || range.isEmpty) {
+			return;
+		}
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		// find common ancestor 
+		const start = document.offsetAt(range.start);
+		const end = document.offsetAt(range.end);
+		const startStack: Node[] = [];
+		const endStack: Node[] = [];
+		Utils.nodeAt(query, start, startStack);
+		Utils.nodeAt(query, end, endStack);
+		let ancestor: Node | undefined = undefined;
+		for (let i = 0; i < startStack.length && endStack.length; i++) {
+			if (startStack[i] !== endStack[i]) {
+				break;
+			}
+			ancestor = startStack[i];
+		}
+
+		if (!ancestor || ancestor._type !== NodeType.QualifiedValue) {
+			return;
+		}
+
+		const action = new vscode.CodeAction('Extract As Variable', vscode.CodeActionKind.RefactorExtract);
+		action.edit = new vscode.WorkspaceEdit();
+		action.edit.set(document.uri, [
+			vscode.SnippetTextEdit.insert(project.rangeOf(query, document.uri).start, new vscode.SnippetString().appendText('$').appendPlaceholder(ancestor.qualifier.value.toUpperCase(), 1).appendText(`=${Utils.print(ancestor, query.text, () => undefined)}\n\n`)),
+			vscode.SnippetTextEdit.replace(project.rangeOf(ancestor, document.uri), new vscode.SnippetString().appendText('$').appendTabstop(1))
+		]);
+		return [action];
+	}
 }
 
 export class NotebookSplitOrIntoCellProvider implements vscode.CodeActionProvider {
@@ -1011,6 +1053,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerReferenceProvider(selector, new ReferenceProvider(container)));
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new ExtractVariableProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.RefactorExtract] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookExtractCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
