@@ -177,6 +177,7 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['draft', QualifiedValueInfo.enum(new ValueSet(true, 'true', 'false'), undefined, 'Draft pull requests')],
 	['in', QualifiedValueInfo.enum(new ValueSet(true, 'title', 'body', 'comments'), undefined, 'Search in the title, body, comments, or any combination of these')],
 	['is', QualifiedValueInfo.enum([new ValueSet(true, 'locked', 'unlocked'), new ValueSet(true, 'merged', 'unmerged'), new ValueSet(true, 'public', 'private'), new ValueSet(true, 'open', 'closed'), new ValueSet(true, 'pr', 'issue')], RepeatInfo.Repeat)],
+	['reason', QualifiedValueInfo.enum(new ValueSet(true, 'closed', '"not planned"'))],
 	['linked', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
 	['no', QualifiedValueInfo.enum(new ValueSet(false, 'label', 'milestone', 'assignee', 'project'), RepeatInfo.Repeat)],
 	['review', QualifiedValueInfo.enum(new ValueSet(true, 'none', 'required', 'approved'))],

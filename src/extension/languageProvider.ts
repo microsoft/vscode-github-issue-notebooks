@@ -311,7 +311,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			return;
 		}
 
-		if (parent?._type === NodeType.QualifiedValue && node._type === NodeType.Literal && node === parent.value) {
+		if (parent?._type === NodeType.QualifiedValue && (node._type === NodeType.Literal || node._type === NodeType.Missing) && node === parent.value) {
 			// RHS of a qualified value => complete value set
 			const replacing = project.rangeOf(node);
 			const inserting = replacing.with(undefined, position);
