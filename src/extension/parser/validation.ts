@@ -5,7 +5,7 @@
 
 import { LiteralNode, Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, SimpleNode, Utils, VariableDefinitionNode } from "./nodes";
 import { TokenType } from "./scanner";
-import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueType } from "./symbols";
+import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueSet, ValueType } from "./symbols";
 
 export const enum Code {
 	NodeMissing = 'NodeMissing',
@@ -45,7 +45,7 @@ export interface ValueUnknownError {
 	readonly code: Code.ValueUnknown;
 	readonly node: Node;
 	readonly actual: string;
-	readonly expected: string;
+	readonly expected: Iterable<ValueSet>;
 }
 
 export interface ValueTypeError {
@@ -196,7 +196,7 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 			let set = value && info.enumValues.find(set => set.entries.has(value!) ? set : undefined);
 			if (!set) {
 				// value not known
-				bucket.push({ node: valueNode, code: Code.ValueUnknown, actual: value!, expected: info.enumValues.map(set => [...set.entries]).flat().join(', ') });
+				bucket.push({ node: valueNode, code: Code.ValueUnknown, actual: value!, expected: info.enumValues });
 			} else if (conflicts.has(set) && set.exclusive) {
 				// other value from set in use
 				bucket.push({ node, code: Code.ValueConflict, conflictNode: conflicts.get(set)! });

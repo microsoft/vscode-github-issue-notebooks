@@ -311,7 +311,7 @@ export class CompletionItemProvider implements vscode.CompletionItemProvider {
 			return;
 		}
 
-		if (parent?._type === NodeType.QualifiedValue && node._type === NodeType.Literal && node === parent.value) {
+		if (parent?._type === NodeType.QualifiedValue && (node._type === NodeType.Literal || node._type === NodeType.Missing) && node === parent.value) {
 			// RHS of a qualified value => complete value set
 			const replacing = project.rangeOf(node);
 			const inserting = replacing.with(undefined, position);
@@ -360,12 +360,25 @@ export class QuickFixProvider implements vscode.CodeActionProvider {
 	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext) {
 		const result: vscode.CodeAction[] = [];
 		for (let diag of context.diagnostics) {
-			if (diag instanceof LanguageValidationDiagnostic && document.version === diag.docVersion && diag.code === Code.ValueConflict) {
-				const action = new vscode.CodeAction('Remove This', vscode.CodeActionKind.QuickFix);
-				action.diagnostics = [diag];
-				action.edit = new vscode.WorkspaceEdit();
-				action.edit.delete(document.uri, diag.range);
-				result.push(action);
+			if (diag instanceof LanguageValidationDiagnostic && document.version === diag.docVersion) {
+
+				// remove conflicting value
+				if (diag.code === Code.ValueConflict) {
+					const action = new vscode.CodeAction('Remove This', vscode.CodeActionKind.QuickFix);
+					action.diagnostics = [diag];
+					action.edit = new vscode.WorkspaceEdit();
+					action.edit.delete(document.uri, diag.range);
+					result.push(action);
+				}
+
+				// replace with value set entry
+				if (diag.error.code === Code.ValueUnknown) {
+					const action = new vscode.CodeAction('Replace with Valid Value', vscode.CodeActionKind.QuickFix);
+					action.diagnostics = [diag];
+					action.edit = new vscode.WorkspaceEdit();
+					action.edit.set(document.uri, [vscode.SnippetTextEdit.replace(diag.range, new vscode.SnippetString().appendChoice(Array.from(diag.error.expected).map(set => [...set.entries]).flat()))]);
+					result.push(action);
+				}
 			}
 
 			if (diag.code === Code.GitHubLoginNeeded) {
@@ -832,7 +845,7 @@ class LanguageValidationDiagnostic extends vscode.Diagnostic {
 			case Code.QualifierUnknown: return vscode.l10n.t('Unknown qualifier: \'{0}\'', error.node.value);
 			case Code.ValueConflict: return vscode.l10n.t('This conflicts with another usage');
 			case Code.ValueTypeUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected type \'{1}\'', error.actual, error.expected);
-			case Code.ValueUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected one of \'{1}\'', error.actual, error.expected);
+			case Code.ValueUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected one of \'{1}\'', error.actual, Array.from(error.expected).map(set => [...set.entries]).flat().join(', '));
 			case Code.SequenceNotAllowed: return vscode.l10n.t(`Sequence of values is not allowed`);
 			case Code.RangeMixesTypes: return vscode.l10n.t('This range uses mixed values: {0} and {1}`', error.valueA, error.valueB);
 		}
