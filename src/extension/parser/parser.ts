@@ -252,7 +252,7 @@ export class Parser {
 		const value = this._parseDate()
 			?? this._parseNumber()
 			?? this._parseVariableName()
-			?? this._createMissing('expected date or number');
+			?? this._createMissing([NodeType.Number, NodeType.Date]);
 		return {
 			_type: NodeType.Compare,
 			start: cmp.start,
@@ -278,7 +278,7 @@ export class Parser {
 		const close = this._parseDate()
 			?? this._parseNumber()
 			?? this._parseVariableName()
-			?? this._createMissing('expected number or date');
+			?? this._createMissing([NodeType.Number, NodeType.Date]);
 
 		return {
 			_type: NodeType.Range,
@@ -298,7 +298,7 @@ export class Parser {
 		const close = this._parseDate()
 			?? this._parseNumber()
 			?? this._parseVariableName()
-			?? this._createMissing('expected number or date');
+			?? this._createMissing([NodeType.Number, NodeType.Date]);
 		return {
 			_type: NodeType.Range,
 			start: tk.start,
@@ -349,7 +349,7 @@ export class Parser {
 			?? this._parseVariableName()
 			?? this._parseLiteralOrLiteralSequence()
 			?? this._parseAny(TokenType.SHA)
-			?? this._createMissing(`This looks like a 'key:value'-expression but lacks value.`, true);
+			?? this._createMissing([NodeType.Any], true);
 
 		return {
 			_type: NodeType.QualifiedValue,
@@ -387,7 +387,7 @@ export class Parser {
 			this._reset(anchor);
 			return;
 		}
-		const value = this._parseQuery(false) ?? this._createMissing('query expected');
+		const value = this._parseQuery(false) ?? this._createMissing([NodeType.Query]);
 		return {
 			_type: NodeType.VariableDefinition,
 			start: name.start,
@@ -397,12 +397,12 @@ export class Parser {
 		};
 	}
 
-	private _createMissing(message: string, optional?: boolean): MissingNode {
+	private _createMissing(expected: NodeType[], optional?: boolean): MissingNode {
 		return {
 			_type: NodeType.Missing,
 			start: this._token!.start,
 			end: this._token!.start,
-			message,
+			expected,
 			optional
 		};
 	}
