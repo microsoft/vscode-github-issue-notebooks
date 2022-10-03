@@ -62,7 +62,7 @@ suite('Validation', function () {
 		assertValidateErrors('-label:', Code.NodeMissing);
 		assertValidateErrors('label:foo,bar');
 		assertValidateErrors('milestone:foo,bar', Code.SequenceNotAllowed);
-		assertValidateErrors('reason:closed');
+		assertValidateErrors('reason:completed');
 		assertValidateErrors('reason:"not planned"');
 		assertValidateErrors('reason:"not supported"', Code.ValueUnknown);
 	});
