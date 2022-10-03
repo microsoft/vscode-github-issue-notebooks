@@ -379,7 +379,175 @@ export class QuickFixProvider implements vscode.CodeActionProvider {
 		}
 		return result;
 	}
+}
 
+export class ExtractVariableProvider implements vscode.CodeActionProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+
+	provideCodeActions(document: vscode.TextDocument, range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext): vscode.ProviderResult<(vscode.CodeAction | vscode.Command)[]> {
+
+		if (context.triggerKind !== vscode.CodeActionTriggerKind.Invoke || range.isEmpty) {
+			return;
+		}
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		// find common ancestor 
+		const start = document.offsetAt(range.start);
+		const end = document.offsetAt(range.end);
+		const startStack: Node[] = [];
+		const endStack: Node[] = [];
+		Utils.nodeAt(query, start, startStack);
+		Utils.nodeAt(query, end, endStack);
+		let ancestor: Node | undefined = undefined;
+		for (let i = 0; i < startStack.length && endStack.length; i++) {
+			if (startStack[i] !== endStack[i]) {
+				break;
+			}
+			ancestor = startStack[i];
+		}
+
+		if (!ancestor || ancestor._type !== NodeType.QualifiedValue) {
+			return;
+		}
+
+		const action = new vscode.CodeAction('Extract As Variable', vscode.CodeActionKind.RefactorExtract);
+		action.edit = new vscode.WorkspaceEdit();
+		action.edit.set(document.uri, [
+			vscode.SnippetTextEdit.insert(project.rangeOf(query, document.uri).start, new vscode.SnippetString().appendText('$').appendPlaceholder(ancestor.qualifier.value.toUpperCase(), 1).appendText(`=${Utils.print(ancestor, query.text, () => undefined)}\n\n`)),
+			vscode.SnippetTextEdit.replace(project.rangeOf(ancestor, document.uri), new vscode.SnippetString().appendText('$').appendTabstop(1))
+		]);
+		return [action];
+	}
+}
+
+export class NotebookSplitOrIntoCellProvider implements vscode.CodeActionProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
+
+		let cell: vscode.NotebookCell | undefined;
+		for (let candidate of vscode.workspace.notebookDocuments) {
+			for (let item of candidate.getCells()) {
+				if (item.document === document) {
+					cell = item;
+				}
+			}
+		}
+		if (!cell) {
+			return undefined;
+		}
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		const result: vscode.CodeAction[] = [];
+		for (const node of query.nodes) {
+			if (node._type === NodeType.OrExpression) {
+				const orNodeRange = project.rangeOf(node, document.uri);
+				if (!_range.intersection(orNodeRange)) {
+					continue;
+				}
+
+				const nodes: QueryNode[] = [];
+				const stack = [node];
+				while (stack.length > 0) {
+					let s = stack.pop()!;
+					nodes.push(s.left);
+					if (s.right._type === NodeType.OrExpression) {
+						stack.push(s.right);
+					} else {
+						nodes.push(s.right);
+					}
+				}
+
+				// split into cells
+				const action1 = new vscode.CodeAction(vscode.l10n.t('Split OR into Cells'), vscode.CodeActionKind.RefactorRewrite);
+				action1.edit = new vscode.WorkspaceEdit();
+				action1.edit.set(document.uri, [vscode.TextEdit.delete(orNodeRange)]);
+				action1.edit.set(cell.notebook.uri, [vscode.NotebookEdit.insertCells(
+					cell.index + 1,
+					nodes.map(node => ({
+						kind: vscode.NotebookCellKind.Code,
+						languageId: document.languageId,
+						value: Utils.print(node, query.text, _name => undefined)
+					}))
+				)]);
+
+				// split into statements
+				const action2 = new vscode.CodeAction(vscode.l10n.t('Split OR into Statements'), vscode.CodeActionKind.RefactorRewrite);
+				action2.edit = new vscode.WorkspaceEdit();
+				action2.edit.set(document.uri, [vscode.TextEdit.replace(
+					orNodeRange,
+					nodes.map(node => Utils.print(node, query.text, _name => undefined)).join('\n')
+				)]);
+
+				result.push(action1);
+				result.push(action2);
+			}
+		}
+		return result;
+	}
+}
+
+export class NotebookExtractCellProvider implements vscode.CodeActionProvider {
+
+	constructor(readonly container: ProjectContainer) { }
+
+	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
+
+		if (context.triggerKind !== vscode.CodeActionTriggerKind.Invoke) {
+			return undefined;
+		}
+
+		let cell: vscode.NotebookCell | undefined;
+		for (let candidate of vscode.workspace.notebookDocuments) {
+			for (let item of candidate.getCells()) {
+				if (item.document === document) {
+					cell = item;
+				}
+			}
+		}
+		if (!cell) {
+			return undefined;
+		}
+
+		const project = this.container.lookupProject(document.uri);
+		const query = project.getOrCreate(document);
+
+		let usesVariables = false;
+		let definesVariables = false;
+
+		Utils.walk(query, (node, parent) => {
+			usesVariables = usesVariables || node._type === NodeType.VariableName && parent?._type !== NodeType.VariableDefinition;
+			definesVariables = definesVariables || node._type === NodeType.VariableDefinition;
+		});
+
+		if (usesVariables) {
+			return;
+		}
+
+		const filename = `${cell.notebook.uri.path.substring(cell.notebook.uri.path.lastIndexOf('/') + 1)}-cell-${Math.random().toString(16).slice(2, 7)}.github-issues`;
+		const newNotebookUri = vscode.Uri.joinPath(cell.notebook.uri, `../${filename}`);
+
+		const action = new vscode.CodeAction(
+			definesVariables ? vscode.l10n.t('Copy Cell Into New Notebook') : vscode.l10n.t('Move Cell Into New Notebook'),
+			vscode.CodeActionKind.RefactorMove
+		);
+		action.edit = new vscode.WorkspaceEdit();
+		action.edit.createFile(newNotebookUri, { ignoreIfExists: false });
+		action.edit.set(newNotebookUri, [vscode.NotebookEdit.insertCells(0, [{ kind: vscode.NotebookCellKind.Code, languageId: document.languageId, value: cell.document.getText() }])]);
+		action.command = { command: 'vscode.open', title: 'Show Notebook', arguments: [newNotebookUri] };
+		if (!definesVariables) {
+			action.edit.set(cell.notebook.uri, [vscode.NotebookEdit.deleteCells(new vscode.NotebookRange(cell.index, cell.index + 1))]);
+		}
+
+		return [action];
+	}
 }
 
 export class GithubOrgCompletions implements vscode.CompletionItemProvider {
@@ -885,6 +1053,9 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerReferenceProvider(selector, new ReferenceProvider(container)));
 	disposables.push(vscode.languages.registerRenameProvider(selector, new RenameProvider(container)));
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new QuickFixProvider(), { providedCodeActionKinds: [vscode.CodeActionKind.QuickFix] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new ExtractVariableProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.RefactorExtract] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookExtractCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
