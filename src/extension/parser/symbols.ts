@@ -112,7 +112,7 @@ export const enum ValuePlaceholderType {
 	Username = 'username',
 }
 
-class ValueSet {
+export class ValueSet {
 
 	readonly entries: Set<string>;
 
