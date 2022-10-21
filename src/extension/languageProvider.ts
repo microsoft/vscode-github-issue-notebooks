@@ -847,7 +847,7 @@ class LanguageValidationDiagnostic extends vscode.Diagnostic {
 			case Code.ValueTypeUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected type \'{1}\'', error.actual, error.expected);
 			case Code.ValueUnknown: return vscode.l10n.t('Unknown value \'{0}\', expected one of \'{1}\'', error.actual, Array.from(error.expected).map(set => [...set.entries]).flat().join(', '));
 			case Code.SequenceNotAllowed: return vscode.l10n.t(`Sequence of values is not allowed`);
-			case Code.RangeMixesTypes: return vscode.l10n.t('This range uses mixed values: {0} and {1}`', error.valueA, error.valueB);
+			case Code.RangeMixesTypes: return vscode.l10n.t('This range uses mixed values: {0} and {1}`', error.valueA!, error.valueB!);
 		}
 	}
 
