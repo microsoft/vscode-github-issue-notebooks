@@ -180,7 +180,7 @@ export const QualifiedValueNodeSchema = new Map<string, QualifiedValueInfo>([
 	['reason', QualifiedValueInfo.enum(new ValueSet(true, 'completed', '"not planned"'))],
 	['linked', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'))],
 	['no', QualifiedValueInfo.enum(new ValueSet(false, 'label', 'milestone', 'assignee', 'project'), RepeatInfo.Repeat)],
-	['review', QualifiedValueInfo.enum(new ValueSet(true, 'none', 'required', 'approved'))],
+	['review', QualifiedValueInfo.enum(new ValueSet(true, 'none', 'required', 'approved', 'changes_requested'))],
 	['state', QualifiedValueInfo.enum(new ValueSet(true, 'open', 'closed'), undefined, 'Issues and pull requests based on whether they are open or closed')],
 	['status', QualifiedValueInfo.enum(new ValueSet(true, 'pending', 'success', 'failure'), undefined, 'Pull requests based on the status of the commits')],
 	['type', QualifiedValueInfo.enum(new ValueSet(true, 'pr', 'issue'), undefined, 'Only issues or only pull requests')],
