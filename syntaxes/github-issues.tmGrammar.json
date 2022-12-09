@@ -15,7 +15,7 @@
         },
         {
             "name": "constant.language",
-            "match": "\\b(?<![\\.\\$])(@me|pr|issue|title|body|comments|completed|open|closed|true|false|locked|unlocked|merged|unmerged|public|private|pending|success|failure|none|required|approved)(?!\\s*:)\\b"
+            "match": "\\b(?<![\\.\\$])(@me|pr|issue|title|body|comments|completed|open|closed|true|false|locked|unlocked|merged|unmerged|public|private|pending|success|failure|none|required|approved|changes_requested)(?!\\s*:)\\b"
         },
         {
             "name": "constant.numeric.date",
