@@ -18,5 +18,10 @@
 	"[typescriptreact]": {
 		"editor.defaultFormatter": "vscode.typescript-language-features",
 	},
-	"editor.insertSpaces": false
+	"editor.insertSpaces": false,
+	"git.branchProtection": [
+		"main",
+	],
+	"git.branchProtectionPrompt": "alwaysCommitToNewBranch",
+	"git.branchRandomName.enable": true,
 }
