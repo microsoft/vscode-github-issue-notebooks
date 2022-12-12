@@ -35,7 +35,7 @@ export interface AnyNode extends BaseNode {
 
 export interface MissingNode extends BaseNode {
 	_type: NodeType.Missing;
-	message: string;
+	expected: NodeType[];
 	optional?: boolean;
 }
 

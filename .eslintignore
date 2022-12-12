@@ -1,3 +1,4 @@
-**/src/extension/vscode.proposed.d.ts
+**/src/*/vscode.d.ts
+**/src/*/vscode.proposed*.d.ts
 **/out/
 **/dist/

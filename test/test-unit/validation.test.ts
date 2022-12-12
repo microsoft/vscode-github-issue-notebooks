@@ -18,7 +18,7 @@ suite('Validation', function () {
 		symbols.update(query);
 		const errors = validateQueryDocument(query, symbols);
 		for (let { code } of errors) {
-			assert.deepEqual(code, expected.shift());
+			assert.deepEqual(code, expected.shift(), input);
 		}
 		assert.equal(expected.length, 0);
 	}
@@ -37,18 +37,18 @@ suite('Validation', function () {
 		assertValidateErrors('milestone:"March 2020"');
 		assertValidateErrors('Label:foo', Code.QualifierUnknown);
 		assertValidateErrors('bar:foo', Code.QualifierUnknown);
-		assertValidateErrors('comments:true', Code.ValueUnknown);
-		assertValidateErrors('comments:$var', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:$var', Code.ValueUnknown);
+		assertValidateErrors('comments:true', Code.ValueTypeUnknown);
+		assertValidateErrors('comments:$var', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:$var', Code.ValueTypeUnknown);
 		assertValidateErrors('comments:>true', Code.NodeMissing);
 		assertValidateErrors('comments:>=true', Code.NodeMissing);
-		assertValidateErrors('$var=true\ncomments:>$var', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:>=$var', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:<$var', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:<=$var', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:$var..*', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:$var..$var', Code.ValueUnknown);
-		assertValidateErrors('$var=true\ncomments:*..$var', Code.ValueUnknown);
+		assertValidateErrors('$var=true\ncomments:>$var', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:>=$var', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:<$var', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:<=$var', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:$var..*', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:$var..$var', Code.ValueTypeUnknown);
+		assertValidateErrors('$var=true\ncomments:*..$var', Code.ValueTypeUnknown);
 		assertValidateErrors('$var=123\ncomments:$var');
 		assertValidateErrors('comments:123');
 		assertValidateErrors('comments:123..123');
@@ -61,7 +61,10 @@ suite('Validation', function () {
 		assertValidateErrors('label:', Code.NodeMissing);
 		assertValidateErrors('-label:', Code.NodeMissing);
 		assertValidateErrors('label:foo,bar');
-		assertValidateErrors('milestone:foo,bar', Code.OrNotAllowed);
+		assertValidateErrors('milestone:foo,bar', Code.SequenceNotAllowed);
+		assertValidateErrors('reason:completed');
+		assertValidateErrors('reason:"not planned"');
+		assertValidateErrors('reason:"not supported"', Code.ValueUnknown);
 	});
 
 	test('variable definition', function () {

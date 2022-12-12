@@ -3,25 +3,70 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, SimpleNode, Utils, VariableDefinitionNode } from "./nodes";
+import { LiteralNode, Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, SimpleNode, Utils, VariableDefinitionNode } from "./nodes";
 import { TokenType } from "./scanner";
-import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueType } from "./symbols";
+import { QualifiedValueNodeSchema, RepeatInfo, SymbolTable, ValueSet, ValueType } from "./symbols";
 
 export const enum Code {
 	NodeMissing = 'NodeMissing',
 	OrNotAllowed = 'OrNotAllowed',
+	SequenceNotAllowed = 'SequenceNotAllowed',
 	VariableDefinedRecursive = 'VariableDefinedRecursive',
 	VariableUnknown = 'VariableUnknown',
 	ValueConflict = 'ValueConflict',
 	ValueUnknown = 'ValueUnknown',
+	ValueTypeUnknown = 'ValueTypeUnknown',
 	QualifierUnknown = 'QualifierUnknown',
 	RangeMixesTypes = 'RangeMixesTypes',
 
 	GitHubLoginNeeded = 'GitHubLoginNeeded'
 }
 
-export class ValidationError {
-	constructor(readonly node: Node, readonly code: Code, readonly message: string, readonly conflictNode?: Node, readonly hint?: boolean) { }
+
+export type ValidationError = GenericError | QualifierUnknownError | ValueConflictError | ValueUnknownError | ValueTypeError | MissingNodeError | MixedTypesError;
+
+export interface GenericError {
+	readonly code: Code.OrNotAllowed | Code.SequenceNotAllowed | Code.VariableDefinedRecursive | Code.VariableUnknown;
+	readonly node: Node;
+}
+
+export interface ValueConflictError {
+	readonly code: Code.ValueConflict;
+	readonly node: Node;
+	readonly conflictNode: Node;
+}
+
+export interface QualifierUnknownError {
+	readonly code: Code.QualifierUnknown;
+	readonly node: LiteralNode;
+}
+
+export interface ValueUnknownError {
+	readonly code: Code.ValueUnknown;
+	readonly node: Node;
+	readonly actual: string;
+	readonly expected: Iterable<ValueSet>;
+}
+
+export interface ValueTypeError {
+	readonly code: Code.ValueTypeUnknown;
+	readonly node: Node;
+	readonly actual: string;
+	readonly expected: ValueType;
+}
+
+export interface MissingNodeError {
+	readonly code: Code.NodeMissing;
+	readonly node: Node;
+	readonly expected: NodeType[];
+	readonly hint: boolean;
+}
+
+export interface MixedTypesError {
+	readonly code: Code.RangeMixesTypes;
+	readonly node: Node;
+	readonly valueA: ValueType | undefined;
+	readonly valueB: ValueType | undefined;
 }
 
 export function validateQueryDocument(doc: QueryDocumentNode, symbols: SymbolTable): Iterable<ValidationError> {
@@ -42,17 +87,17 @@ export function validateQueryDocument(doc: QueryDocumentNode, symbols: SymbolTab
 function _validateVariableDefinition(defNode: VariableDefinitionNode, bucket: ValidationError[]) {
 
 	if (defNode.value._type === NodeType.Missing) {
-		bucket.push(new ValidationError(defNode, Code.NodeMissing, defNode.value.message));
+		bucket.push({ node: defNode, code: Code.NodeMissing, expected: defNode.value.expected, hint: false });
 		return;
 	}
 
 	// var-decl: no OR-statement 
 	Utils.walk(defNode.value, node => {
 		if (node._type === NodeType.Any && node.tokenType === TokenType.OR) {
-			bucket.push(new ValidationError(node, Code.OrNotAllowed, `OR is not supported when defining a variable`));
+			bucket.push({ node, code: Code.OrNotAllowed });
 		}
 		if (node._type === NodeType.VariableName && node.value === defNode.name.value) {
-			bucket.push(new ValidationError(node, Code.VariableDefinedRecursive, `Cannot reference a variable from its definition`));
+			bucket.push({ node, code: Code.VariableDefinedRecursive });
 		}
 	});
 }
@@ -71,7 +116,7 @@ function _validateQuery(query: QueryNode, bucket: ValidationError[], symbols: Sy
 			// variable-name => must exist
 			const info = symbols.getFirst(node.value);
 			if (!info) {
-				bucket.push(new ValidationError(node, Code.VariableUnknown, `Unknown variable`));
+				bucket.push({ node, code: Code.VariableUnknown });
 			}
 		}
 	}
@@ -86,14 +131,14 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 		return;
 	}
 	if (!info) {
-		bucket.push(new ValidationError(node.qualifier, Code.QualifierUnknown, `Unknown qualifier: '${node.qualifier.value}'`));
+		bucket.push({ node: node.qualifier, code: Code.QualifierUnknown });
 		return;
 	}
 
 	if (info.repeatable === RepeatInfo.No || !node.not && info.repeatable === RepeatInfo.RepeatNegated) {
 		const key = `${node.not ? '-' : ''}${node.qualifier.value}`;
 		if (conflicts.has(key)) {
-			bucket.push(new ValidationError(node, Code.ValueConflict, 'This qualifier is already used', conflicts.get(key)));
+			bucket.push({ node, code: Code.ValueConflict, conflictNode: conflicts.get(key)! });
 		} else {
 			conflicts.set(key, node);
 		}
@@ -116,7 +161,7 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 
 		// missing => done
 		if (info && valueNode._type === NodeType.Missing) {
-			bucket.push(new ValidationError(valueNode, Code.NodeMissing, valueNode.message, undefined, true));
+			bucket.push({ node: valueNode, code: Code.NodeMissing, expected: valueNode.expected, hint: true });
 			return;
 		}
 
@@ -143,7 +188,7 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 		}
 
 		if (info.type !== valueType) {
-			bucket.push(new ValidationError(valueNode, Code.ValueUnknown, `Unknown value '${value}', expected type '${info.type}'`));
+			bucket.push({ node: valueNode, code: Code.ValueTypeUnknown, actual: value!, expected: info.type });
 			return;
 		}
 
@@ -151,10 +196,10 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 			let set = value && info.enumValues.find(set => set.entries.has(value!) ? set : undefined);
 			if (!set) {
 				// value not known
-				bucket.push(new ValidationError(valueNode, Code.ValueUnknown, `Unknown value '${value}', expected one of: ${info.enumValues.map(set => [...set.entries].join(', ')).join(', ')}`));
+				bucket.push({ node: valueNode, code: Code.ValueUnknown, actual: value!, expected: info.enumValues });
 			} else if (conflicts.has(set) && set.exclusive) {
 				// other value from set in use
-				bucket.push(new ValidationError(node, Code.ValueConflict, `This value conflicts with another value.`, conflicts.get(set)));
+				bucket.push({ node, code: Code.ValueConflict, conflictNode: conflicts.get(set)! });
 			} else {
 				conflicts.set(set, node);
 			}
@@ -163,7 +208,7 @@ function _validateQualifiedValue(node: QualifiedValueNode, bucket: ValidationErr
 
 	if (node.value._type === NodeType.LiteralSequence) {
 		if (!info.valueSequence) {
-			bucket.push(new ValidationError(node.value, Code.OrNotAllowed, `Sequence of values is not allowed`));
+			bucket.push({ node: node.value, code: Code.SequenceNotAllowed });
 		}
 		node.value.nodes.forEach(validateValue);
 	} else {
@@ -177,7 +222,7 @@ function _validateRange(node: RangeNode, bucket: ValidationError[], symbol: Symb
 		const typeOpen = Utils.getTypeOfNode(node.open, symbol);
 		const typeClose = Utils.getTypeOfNode(node.close, symbol);
 		if (typeOpen !== typeClose) {
-			bucket.push(new ValidationError(node, Code.RangeMixesTypes, `This range uses mixed values: ${typeOpen} and ${typeClose}`));
+			bucket.push({ node, code: Code.RangeMixesTypes, valueA: typeOpen, valueB: typeClose });
 		}
 	}
 }

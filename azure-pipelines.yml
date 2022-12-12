@@ -18,6 +18,8 @@ resources:
 extends:
   template: azure-pipelines/extension/stable.yml@templates
   parameters:
+    # Once localization supports notebook renderers we can include that folder here
+    l10nSourcePaths: ./src/extension
     buildSteps:
       - bash: |
           /usr/bin/Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
