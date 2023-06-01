@@ -570,6 +570,17 @@ export class VariableNamesSourceAction implements vscode.CodeActionProvider {
 	constructor(readonly container: ProjectContainer) { }
 
 	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
+
+		for (const notebook of vscode.workspace.notebookDocuments) {
+			for (const cell of notebook.getCells()) {
+				if (cell.document.uri.toString() === document.uri.toString()) {
+					console.log(`CALLED for ${document.uri.toString()} which cell INDEX ${cell.index}`);
+					break;
+				}
+			}
+		}
+
+
 		const project = this.container.lookupProject(document.uri);
 
 		const defs = new Map<string, string>();
@@ -604,6 +615,7 @@ export class VariableNamesSourceAction implements vscode.CodeActionProvider {
 					const newName = defs.get(candidate.value);
 					if (newName) {
 						edit.replace(entry.doc.uri, project.rangeOf(candidate), newName);
+						console.log(`CONTEXT ${document.uri.toString()}, FILE: ${entry.doc.uri.toString()}, RENAME ${candidate.value} -> ${newName}`);
 					}
 				}
 			});
@@ -612,6 +624,8 @@ export class VariableNamesSourceAction implements vscode.CodeActionProvider {
 		const codeAction = new vscode.CodeAction('Normalize Variable Names');
 		codeAction.edit = edit;
 		codeAction.kind = VariableNamesSourceAction.kind;
+
+		console.log(`RESULT for ${document.uri} => ${edit.entries().length}`);
 
 		return [codeAction];
 	}
@@ -1138,7 +1152,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new ExtractVariableProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.RefactorExtract] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookExtractCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
-	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new VariableNamesSourceAction(container), { providedCodeActionKinds: [VariableNamesSourceAction.kind] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ scheme: 'vscode-notebook-cell' }, new VariableNamesSourceAction(container), { providedCodeActionKinds: [VariableNamesSourceAction.kind] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
