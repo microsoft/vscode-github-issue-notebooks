@@ -567,7 +567,9 @@ export class VariableNamesSourceAction implements vscode.CodeActionProvider {
 
 	static kind = vscode.CodeActionKind.Empty.append('notebook.source.normalizeVariableNames');
 
-	constructor(readonly container: ProjectContainer) { }
+	constructor(readonly container: ProjectContainer) {
+		console.log('CREATED');
+	}
 
 	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
 
