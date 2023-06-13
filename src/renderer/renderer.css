@@ -47,6 +47,8 @@
 }
 .user img {
 	padding: 0 0.1em;
+	border-radius: 20px;
+	border: solid 1px transparent;
 }
 .item-state {
 	padding-right: 0.3em;
