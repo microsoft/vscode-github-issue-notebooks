@@ -2,9 +2,8 @@ name: $(Date:yyyyMMdd)$(Rev:.r)
 
 trigger:
   branches:
-    include: ["*"]
-  tags:
-    include: ["*"]
+    include:
+      - main
 pr: none
 
 resources:
@@ -14,6 +13,12 @@ resources:
       name: microsoft/vscode-engineering
       ref: main
       endpoint: Monaco
+
+parameters:
+  - name: publishExtension
+    displayName: 🚀 Publish Extension
+    type: boolean
+    default: false
 
 extends:
   template: azure-pipelines/extension/stable.yml@templates
@@ -32,4 +37,19 @@ extends:
           npm i && npm run compile-lint-test
         displayName: Compile, Lint, Test
         env:
-          DISPLAY: ":99.0"
+          DISPLAY: ':99.0'
+
+    tsa:
+      enabled: true
+      options:
+        codebaseName: 'devdiv_$(Build.Repository.Name)'
+        serviceTreeID: 'c8cb03c6-176e-40dd-90a5-518de08666dc'
+        instanceUrl: 'https://devdiv.visualstudio.com/defaultcollection'
+        projectName: 'DevDiv'
+        areaPath: 'DevDiv\\VS Code (compliance tracking only)\\Visual Studio Code Miscellaneous Extensions'
+        notificationAliases:
+          - 'stbatt@microsoft.com'
+          - 'lszomoru@microsoft.com'
+          - 'jrieken@microsoft.com'
+
+    publishExtension: ${{ parameters.publishExtension }}
