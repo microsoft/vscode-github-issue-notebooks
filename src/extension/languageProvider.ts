@@ -573,18 +573,9 @@ export class VariableNamesSourceAction implements vscode.CodeActionProvider {
 
 	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
 
-		for (const notebook of vscode.workspace.notebookDocuments) {
-			for (const cell of notebook.getCells()) {
-				if (cell.document.uri.toString() === document.uri.toString()) {
-					console.log(`CALLED for ${document.uri.toString()} which cell INDEX ${cell.index}`);
-					break;
-				}
-			}
-		}
-
-
 		const project = this.container.lookupProject(document.uri);
 
+		// (1) find all defined variables, map them onto upper-cased name
 		const defs = new Map<string, string>();
 		for (let entry of project.all()) {
 			Utils.walk(entry.node, node => {
@@ -599,36 +590,37 @@ export class VariableNamesSourceAction implements vscode.CodeActionProvider {
 			});
 		}
 
-		// validate
+		// (2) make sure not to collide with existing names
 		let counter = 1;
 		for (const [oldName, newName] of defs) {
 			if (defs.has(newName)) {
 				// conflict
-				defs.set(oldName, `newName${counter++}`);
+				defs.set(oldName, `${newName}${counter++}`);
 			}
 		}
 
+		// (3) create edits for all occurrences
 		const edit = new vscode.WorkspaceEdit();
-		const seen = new Set<string>();
 		for (let entry of project.all()) {
 			Utils.walk(entry.node, candidate => {
-				if (candidate._type === NodeType.VariableName && !seen.has(candidate.value)) {
-					seen.add(candidate.value);
+				if (candidate._type === NodeType.VariableName) {
 					const newName = defs.get(candidate.value);
-					if (newName) {
+					if (newName && newName !== candidate.value) {
 						edit.replace(entry.doc.uri, project.rangeOf(candidate), newName);
-						console.log(`CONTEXT ${document.uri.toString()}, FILE: ${entry.doc.uri.toString()}, RENAME ${candidate.value} -> ${newName}`);
+						// console.log(`CONTEXT ${document.uri.toString()}, FILE: ${entry.doc.uri.toString()}, RENAME ${candidate.value} -> ${newName}`);
 					}
 				}
 			});
 		}
 
+		if (edit.entries().length === 0) {
+			// nothing to do
+			return;
+		}
+
 		const codeAction = new vscode.CodeAction('Normalize Variable Names');
-		codeAction.edit = edit;
 		codeAction.kind = VariableNamesSourceAction.kind;
-
-		console.log(`RESULT for ${document.uri} => ${edit.entries().length}`);
-
+		codeAction.edit = edit;
 		return [codeAction];
 	}
 }
