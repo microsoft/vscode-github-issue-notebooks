@@ -1146,7 +1146,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new ExtractVariableProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.RefactorExtract] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookExtractCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
-	disposables.push(vscode.languages.registerCodeActionsProvider({ scheme: 'vscode-notebook-cell', notebookType: 'github-issues' }, new VariableNamesSourceAction(container), { providedCodeActionKinds: [VariableNamesSourceAction.kind] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ notebookType: 'github-issues' }, new VariableNamesSourceAction(container), { providedCodeActionKinds: [VariableNamesSourceAction.kind] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
