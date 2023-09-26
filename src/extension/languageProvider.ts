@@ -10,9 +10,9 @@ import { OctokitProvider } from './octokitProvider';
 import { LiteralSequenceNode, Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
 import { Scanner, Token, TokenType } from './parser/scanner';
 import { QualifiedValueNodeSchema, SymbolInfo, ValuePlaceholderType } from './parser/symbols';
-import { Code, validateQueryDocument, ValidationError } from './parser/validation';
+import { Code, ValidationError, validateQueryDocument } from './parser/validation';
 import { Project, ProjectContainer } from './project';
-import { getAllRepos, RepoInfo } from './utils';
+import { RepoInfo, getAllRepos } from './utils';
 
 const selector = { language: 'github-issues' };
 
@@ -563,6 +563,68 @@ export class NotebookExtractCellProvider implements vscode.CodeActionProvider {
 	}
 }
 
+export class VariableNamesSourceAction implements vscode.CodeActionProvider {
+
+	static kind = vscode.CodeActionKind.Notebook.append('source.normalizeVariableNames');
+
+	constructor(readonly container: ProjectContainer) {
+
+	}
+
+	provideCodeActions(document: vscode.TextDocument, _range: vscode.Range | vscode.Selection, _context: vscode.CodeActionContext): vscode.ProviderResult<vscode.CodeAction[]> {
+
+		const project = this.container.lookupProject(document.uri);
+
+		// (1) find all defined variables, map them onto upper-cased name
+		const defs = new Map<string, string>();
+		for (let entry of project.all()) {
+			Utils.walk(entry.node, node => {
+				switch (node._type) {
+					case NodeType.VariableDefinition:
+						const newName = node.name.value.toUpperCase();
+						if (node.name.value !== newName) {
+							defs.set(node.name.value, newName);
+						}
+						break;
+				}
+			});
+		}
+
+		// (2) make sure not to collide with existing names
+		let counter = 1;
+		for (const [oldName, newName] of defs) {
+			if (defs.has(newName)) {
+				// conflict
+				defs.set(oldName, `${newName}${counter++}`);
+			}
+		}
+
+		// (3) create edits for all occurrences
+		const edit = new vscode.WorkspaceEdit();
+		for (let entry of project.all()) {
+			Utils.walk(entry.node, candidate => {
+				if (candidate._type === NodeType.VariableName) {
+					const newName = defs.get(candidate.value);
+					if (newName && newName !== candidate.value) {
+						edit.replace(entry.doc.uri, project.rangeOf(candidate), newName);
+						// console.log(`CONTEXT ${document.uri.toString()}, FILE: ${entry.doc.uri.toString()}, RENAME ${candidate.value} -> ${newName}`);
+					}
+				}
+			});
+		}
+
+		if (edit.entries().length === 0) {
+			// nothing to do
+			return;
+		}
+
+		const codeAction = new vscode.CodeAction('Normalize Variable Names');
+		codeAction.kind = VariableNamesSourceAction.kind;
+		codeAction.edit = edit;
+		return [codeAction];
+	}
+}
+
 export class GithubOrgCompletions implements vscode.CompletionItemProvider {
 
 	static readonly triggerCharacters = [':'];
@@ -1084,6 +1146,7 @@ export function registerLanguageProvider(container: ProjectContainer, octokit: O
 	disposables.push(vscode.languages.registerCodeActionsProvider(selector, new ExtractVariableProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.RefactorExtract] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookSplitOrIntoCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
 	disposables.push(vscode.languages.registerCodeActionsProvider({ ...selector, scheme: 'vscode-notebook-cell' }, new NotebookExtractCellProvider(container), { providedCodeActionKinds: [vscode.CodeActionKind.Refactor] }));
+	disposables.push(vscode.languages.registerCodeActionsProvider({ notebookType: 'github-issues' }, new VariableNamesSourceAction(container), { providedCodeActionKinds: [VariableNamesSourceAction.kind] }));
 	disposables.push(vscode.languages.registerDocumentSemanticTokensProvider(selector, new DocumentSemanticTokensProvider(container), DocumentSemanticTokensProvider.legend));
 	disposables.push(vscode.languages.registerDocumentRangeFormattingEditProvider(selector, new FormattingProvider(container)));
 	disposables.push(vscode.languages.registerOnTypeFormattingEditProvider(selector, new FormattingProvider(container), '\n'));
