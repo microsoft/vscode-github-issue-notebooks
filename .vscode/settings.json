@@ -10,7 +10,7 @@
 	"editor.formatOnSave": true,
 	"typescript.format.semicolons": "insert",
 	"editor.codeActionsOnSave": {
-		"source.organizeImports": true
+		"source.organizeImports": "explicit"
 	},
 	"[typescript]": {
 		"editor.defaultFormatter": "vscode.typescript-language-features",
