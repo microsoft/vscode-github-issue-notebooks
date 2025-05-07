@@ -3,6 +3,8 @@
 	"compilerOptions": {
 		"composite": true,
 		"outDir": "../../out/src/extension",
+		"module": "ESNext",
+		"moduleResolution": "node"
 	},
 	"references": [
 		{
