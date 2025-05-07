@@ -3,7 +3,6 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import AbortController from "abort-controller";
 import * as vscode from 'vscode';
 import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
 import { OctokitProvider } from "./octokitProvider";
@@ -153,7 +152,7 @@ export class IssuesNotebookKernel {
 				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.text(message, 'text/markdown')]));
 			} else {
 				// print as error
-				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(err)]));
+				exec.replaceOutput(new vscode.NotebookCellOutput([vscode.NotebookCellOutputItem.error(err as Error)]));
 			}
 			exec.end(false);
 			return;

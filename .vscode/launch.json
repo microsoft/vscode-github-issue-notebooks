@@ -17,7 +17,7 @@
 			"outFiles": [
 				"${workspaceFolder}/dist/**/*.js"
 			],
-			"preLaunchTask": "npm: webpack-watch"
+			"preLaunchTask": "npm: esbuild:watch"
 		},
 		{
 			"name": "Attach to Extension Host",
@@ -27,7 +27,7 @@
 			"skipFiles": [
 				"<node_internals>/**"
 			],
-			"type": "pwa-node"
+			"type": "node"
 		},
 		{
 			"name": "Unit Tests",
@@ -42,7 +42,7 @@
 				"<node_internals>/**"
 			],
 			"sourceMaps": true,
-			"type": "pwa-node",
+			"type": "node",
 			"preLaunchTask": "npm: ts-compile"
 		},
 		{

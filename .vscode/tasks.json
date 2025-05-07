@@ -5,7 +5,7 @@
 	"tasks": [
 		{
 			"type": "npm",
-			"script": "webpack-watch",
+			"script": "esbuild:watch",
 			"presentation": {
 				"echo": true,
 				"reveal": "never",
@@ -18,10 +18,15 @@
 				"runOn": "folderOpen"
 			},
 			"isBackground": true,
-			"label": "npm: webpack-watch",
+			"label": "npm: esbuild:watch",
 			"problemMatcher": [
-				"$ts-webpack-watch"
-			],
+				{
+					"pattern": "",
+					"background": {
+						"endsPattern": "Watching for changes"
+					}
+				}
+			]
 		},
 		{
 			"type": "npm",
