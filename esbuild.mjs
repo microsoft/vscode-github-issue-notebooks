@@ -51,7 +51,7 @@ const buildWeb = async () => {
       entryPoints: ['./src/extension/extension.ts'],
       bundle: true,
       external: ['vscode'],
-      outfile: './dist/extension-web.js',
+      outfile: './dist/extension-web.cjs',
       platform: 'browser',
       format: 'cjs', // CommonJS for web (specifically for vscode-module import)
       sourcemap: true,

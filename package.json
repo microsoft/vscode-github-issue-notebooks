@@ -26,7 +26,7 @@
 		"onNotebook:github-issues"
 	],
 	"main": "./dist/extension-node.js",
-	"browser": "./dist/extension-web.js",
+	"browser": "./dist/extension-web.cjs",
 	"l10n": "./l10n",
 	"contributes": {
 		"languages": [
