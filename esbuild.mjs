@@ -24,7 +24,6 @@ const buildNode = async () => {
       external: ['vscode'],
       outfile: './dist/extension-node.js',
       platform: 'neutral',
-      packages: 'external',
       format: 'esm', // ESM output for Node.js
       sourcemap: true,
       minify: minify,
