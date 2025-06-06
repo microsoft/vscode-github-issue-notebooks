@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { OctokitProvider } from "./octokitProvider";
-import { RepoInfo } from "./utils";
+import { OctokitProvider } from "./octokitProvider.js";
+import { RepoInfo } from "./utils.js";
 
 export type LabelInfo = {
 	color: string;

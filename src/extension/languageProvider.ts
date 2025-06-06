@@ -4,15 +4,15 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { withEmoji } from '../common/emoji';
-import { GithubData } from './githubDataProvider';
-import { OctokitProvider } from './octokitProvider';
-import { LiteralSequenceNode, Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
-import { Scanner, Token, TokenType } from './parser/scanner';
-import { QualifiedValueNodeSchema, SymbolInfo, ValuePlaceholderType } from './parser/symbols';
-import { Code, ValidationError, validateQueryDocument } from './parser/validation';
-import { Project, ProjectContainer } from './project';
-import { RepoInfo, getAllRepos } from './utils';
+import { withEmoji } from '../common/emoji.js';
+import { GithubData } from './githubDataProvider.js';
+import { OctokitProvider } from './octokitProvider.js';
+import { LiteralSequenceNode, Node, NodeType, QualifiedValueNode, QueryDocumentNode, QueryNode, Utils } from './parser/nodes.js';
+import { Scanner, Token, TokenType } from './parser/scanner.js';
+import { QualifiedValueNodeSchema, SymbolInfo, ValuePlaceholderType } from './parser/symbols.js';
+import { Code, ValidationError, validateQueryDocument } from './parser/validation.js';
+import { Project, ProjectContainer } from './project.js';
+import { RepoInfo, getAllRepos } from './utils.js';
 
 const selector = { language: 'github-issues' };
 

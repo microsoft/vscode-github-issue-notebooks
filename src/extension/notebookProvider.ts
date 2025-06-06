@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types';
-import { OctokitProvider } from "./octokitProvider";
-import { NodeType, Utils } from "./parser/nodes";
-import { ProjectContainer } from './project';
-import { isRunnable, isUsingAtMe } from './utils';
+import { SearchIssuesAndPullRequestsResponseItemsItem } from '../common/types.js';
+import { OctokitProvider } from "./octokitProvider.js";
+import { NodeType, Utils } from "./parser/nodes.js";
+import { ProjectContainer } from './project.js';
+import { isRunnable, isUsingAtMe } from './utils.js';
 
 
 export const mimeGithubIssues = 'x-application/github-issues';

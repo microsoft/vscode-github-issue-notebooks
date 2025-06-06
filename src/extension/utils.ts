@@ -3,9 +3,9 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Node, NodeType, QueryDocumentNode, Utils } from "./parser/nodes";
-import { QualifiedValueNodeSchema, ValuePlaceholderType } from "./parser/symbols";
-import { Project } from "./project";
+import { Node, NodeType, QueryDocumentNode, Utils } from "./parser/nodes.js";
+import { QualifiedValueNodeSchema, ValuePlaceholderType } from "./parser/symbols.js";
+import { Project } from "./project.js";
 
 export interface RepoInfo {
 	owner: string;

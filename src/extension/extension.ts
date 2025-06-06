@@ -4,11 +4,11 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { registerCommands } from './commands';
-import { registerLanguageProvider } from './languageProvider';
-import { IssuesNotebookKernel, IssuesNotebookSerializer, IssuesStatusBarProvider } from './notebookProvider';
-import { OctokitProvider } from './octokitProvider';
-import { ProjectContainer } from './project';
+import { registerCommands } from './commands.js';
+import { registerLanguageProvider } from './languageProvider.js';
+import { IssuesNotebookKernel, IssuesNotebookSerializer, IssuesStatusBarProvider } from './notebookProvider.js';
+import { OctokitProvider } from './octokitProvider.js';
+import { ProjectContainer } from './project.js';
 
 export function activate(context: vscode.ExtensionContext) {
 	const octokit = new OctokitProvider();
