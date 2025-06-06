@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from './parser/nodes';
-import { Parser } from './parser/parser';
-import { SymbolTable } from './parser/symbols';
+import { Node, NodeType, QueryDocumentNode, QueryNode, Utils } from './parser/nodes.js';
+import { Parser } from './parser/parser.js';
+import { SymbolTable } from './parser/symbols.js';
 
 export class Project {
 

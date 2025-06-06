@@ -5,8 +5,8 @@
 
 import * as assert from 'assert';
 import { suite, test } from 'mocha';
-import { NodeType, QueryNode, Utils } from '../../src/extension/parser/nodes';
-import { Parser } from '../../src/extension/parser/parser';
+import { NodeType, QueryNode, Utils } from '../../src/extension/parser/nodes.js';
+import { Parser } from '../../src/extension/parser/parser.js';
 
 suite('Parser', function () {
 

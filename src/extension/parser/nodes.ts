@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { Token, TokenType } from "./scanner";
-import { SymbolTable, ValueType } from "./symbols";
+import { Token, TokenType } from "./scanner.js";
+import { SymbolTable, ValueType } from "./symbols.js";
 
 export const enum NodeType {
 	Any = 'Any',

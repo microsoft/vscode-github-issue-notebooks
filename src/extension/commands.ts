@@ -4,9 +4,9 @@
  *--------------------------------------------------------------------------------------------*/
 
 import * as vscode from 'vscode';
-import { mimeGithubIssues } from './notebookProvider';
-import { OctokitProvider } from './octokitProvider';
-import { ProjectContainer } from './project';
+import { mimeGithubIssues } from './notebookProvider.js';
+import { OctokitProvider } from './octokitProvider.js';
+import { ProjectContainer } from './project.js';
 
 declare class TextDecoder {
 	decode(data: Uint8Array): string;

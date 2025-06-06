@@ -3,8 +3,8 @@
  *  Licensed under the MIT License. See License.txt in the project root for license information.
  *--------------------------------------------------------------------------------------------*/
 
-import { AnyNode, CompareNode, DateNode, LiteralNode, LiteralSequenceNode, MissingNode, NodeType, NumberNode, OrExpressionNode, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, VariableDefinitionNode, VariableNameNode } from "./nodes";
-import { Scanner, Token, TokenType } from "./scanner";
+import { AnyNode, CompareNode, DateNode, LiteralNode, LiteralSequenceNode, MissingNode, NodeType, NumberNode, OrExpressionNode, QualifiedValueNode, QueryDocumentNode, QueryNode, RangeNode, VariableDefinitionNode, VariableNameNode } from "./nodes.js";
+import { Scanner, Token, TokenType } from "./scanner.js";
 
 export class Parser {
 

@@ -5,7 +5,7 @@
 
 import * as assert from 'assert';
 import { suite, test } from 'mocha';
-import { Scanner, TokenType } from "../../src/extension/parser/scanner";
+import { Scanner, TokenType } from "../../src/extension/parser/scanner.js";
 
 suite('Scanner', function () {
 
