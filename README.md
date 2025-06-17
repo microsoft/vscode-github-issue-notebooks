@@ -4,9 +4,9 @@ The VS Code GitHub Issue notebook extension enables you to run issue queries fro
 
 ### Getting Started
 
-1. go to https://vscode.dev or use [VS Code Desktop](https://code.visualstudio.com/Download)
-1. install this extension from the market place: https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-github-issue-notebooks
-1. select "File > New File... > GitHub Issue Notebook"
+1. Go to https://vscode.dev or use [VS Code Desktop](https://code.visualstudio.com/Download)
+1. Install this extension from the market place: https://marketplace.visualstudio.com/items?itemName=ms-vscode.vscode-github-issue-notebooks
+1. Select "File > New File... > GitHub Issue Notebook"
 
 ![Sample](https://raw.githubusercontent.com/microsoft/vscode-github-issue-notebooks/main/sample.png)
 
@@ -25,7 +25,7 @@ The following features are currently supported
 
 ### Query Syntax
 
-This extension supports to search for issues and pull requests using GitHub search queries (https://help.github.com/en/github/searching-for-information-on-github/searching-issues-and-pull-requests). In addition, variables can be defined and OR-queries can be used. Approximation of the grammer:
+This extension supports searching for issues and pull requests using GitHub search queries (https://help.github.com/en/github/searching-for-information-on-github/searching-issues-and-pull-requests). In addition, variables can be defined and OR-queries can be used. Approximation of the grammar:
 
 ```
 doc ::= query | or | def
