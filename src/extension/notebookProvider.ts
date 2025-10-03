@@ -112,7 +112,7 @@ export class IssuesNotebookKernel {
 				let count = 0;
 				while (!exec.token.isCancellationRequested) {
 
-					const response = await octokit.search.issuesAndPullRequests({
+					const response = await octokit.rest.search.issuesAndPullRequests({
 						q: queryData.q,
 						sort: (<any>queryData.sort),
 						order: queryData.order,
