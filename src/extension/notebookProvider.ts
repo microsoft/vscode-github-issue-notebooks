@@ -71,6 +71,8 @@ export class IssuesNotebookKernel {
 			return;
 		}
 
+		const octokit = await this.octokit.lib();
+
 		if (!this.octokit.isAuthenticated) {
 			const atMe = isUsingAtMe(query, project);
 			if (atMe > 0) {
@@ -106,7 +108,6 @@ export class IssuesNotebookKernel {
 			exec.token.onCancellationRequested(_ => abortCtl.abort());
 
 			for (let queryData of allQueryData) {
-				const octokit = await this.octokit.lib();
 
 				let page = 1;
 				let count = 0;
