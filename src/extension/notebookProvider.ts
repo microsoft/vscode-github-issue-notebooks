@@ -71,6 +71,8 @@ export class IssuesNotebookKernel {
 			return;
 		}
 
+		const octokit = await this.octokit.lib();
+
 		if (!this.octokit.isAuthenticated) {
 			const atMe = isUsingAtMe(query, project);
 			if (atMe > 0) {
@@ -106,13 +108,12 @@ export class IssuesNotebookKernel {
 			exec.token.onCancellationRequested(_ => abortCtl.abort());
 
 			for (let queryData of allQueryData) {
-				const octokit = await this.octokit.lib();
 
 				let page = 1;
 				let count = 0;
 				while (!exec.token.isCancellationRequested) {
 
-					const response = await octokit.search.issuesAndPullRequests({
+					const response = await octokit.rest.search.issuesAndPullRequests({
 						q: queryData.q,
 						sort: (<any>queryData.sort),
 						order: queryData.order,
